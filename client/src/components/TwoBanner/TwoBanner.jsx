@@ -1,12 +1,25 @@
 import React from "react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router"; 
+import { useLanguage } from "../../Context/LanguageProvider";
 
 const TwoBanner = () => {
   const navigate = useNavigate();
+  const { isBangla } = useLanguage();
 
   // 🔁 replace with your real banner images
   const LEFT_BANNER = "https://i.ibb.co/3f8bPPv/habanero.png"; // replace
   const RIGHT_BANNER = "https://i.ibb.co/4K3MZfM/smartsoft.png"; // replace
+
+  // Bilingual texts
+  const title = isBangla
+    ? "বন্ধুদের রেফার করে আয় শুরু করুন"
+    : "Refer friends and start earning";
+
+  const description = isBangla
+    ? "বাংলাদেশের নং ১ ফ্রেন্ড রেফারেল প্রোগ্রাম এখন এখানে! একজন বন্ধুকে রেফার করে ফ্রি ৳৫০০ উপভোগ করুন এবং আপনার বন্ধু প্রতিবার জমা দিলে আনলিমিটেড সর্বোচ্চ % কমিশন পান!"
+    : "Bangladesh's No.1 Friend Referral Program is here! Refer a friend and enjoy free ৳500, plus earn unlimited maximum % commission every time your friend deposits!";
+
+  const buttonText = isBangla ? "এখনই রেফার করুন" : "Refer Now";
 
   return (
     <section className="w-full mt-4">
@@ -20,35 +33,33 @@ const TwoBanner = () => {
               <div className="h-[160px] sm:h-[190px] md:h-[210px] lg:h-[280px]">
                 <img
                   src={LEFT_BANNER}
-                  alt="Refer friends"
+                  alt={isBangla ? "বন্ধু রেফার" : "Refer friends"}
                   className="h-full w-full object-cover"
                   loading="lazy"
                   draggable={false}
                 />
               </div>
 
-              {/* Dark overlay (like screenshot) */}
+              {/* Dark overlay (unchanged) */}
               <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.72),rgba(0,0,0,0.35),rgba(0,0,0,0.08))]" />
 
               {/* Content */}
               <div className="absolute inset-0 p-4 sm:p-6 flex">
                 <div className="max-w-[75%] sm:max-w-[65%]">
                   <h3 className="text-white font-extrabold text-[16px] sm:text-[18px] lg:text-[24px]">
-                    Refer friends and start earning
+                    {title}
                   </h3>
 
                   <p
                     className="
-    mt-2 text-white/85
-    text-[12px] sm:text-[13px] lg:text-[18px]
-    leading-relaxed
-    line-clamp-2
-    sm:line-clamp-none
-  "
+                      mt-2 text-white/85
+                      text-[12px] sm:text-[13px] lg:text-[18px]
+                      leading-relaxed
+                      line-clamp-2
+                      sm:line-clamp-none
+                    "
                   >
-                    বাংলাদেশের নং ১ ফ্রেন্ড রেফারেল প্রোগ্রাম এখন এখানে! একজন
-                    বন্ধুকে রেফার করে ফ্রি ৳৫০০ উপভোগ করুন এবং আপনার বন্ধু
-                    প্রতিবার জমা দিলে আনলিমিটেড সর্বোচ্চ % কমিশন পান!
+                    {description}
                   </p>
 
                   <button
@@ -63,30 +74,34 @@ const TwoBanner = () => {
                       transition
                     "
                   >
-                    Refer Now
+                    {buttonText}
                   </button>
                 </div>
               </div>
 
-              {/* Soft glow on right like screenshot */}
+              {/* Soft glow on right (unchanged) */}
               <div className="pointer-events-none absolute right-0 top-0 h-full w-[45%] bg-[radial-gradient(circle_at_70%_40%,rgba(245,180,0,0.25),transparent_55%)]" />
             </div>
           </div>
 
-          {/* RIGHT (smaller) */}
+          {/* RIGHT (smaller) – no text, so unchanged */}
           <div className="lg:col-span-4">
             <div className="relative overflow-hidden rounded-2xl bg-[#2f2f2f] shadow-[0_18px_45px_rgba(0,0,0,0.25)]">
               <div className="h-[160px] sm:h-[190px] md:h-[210px] lg:h-[280px]">
                 <img
                   src={RIGHT_BANNER}
-                  alt="Exclusive betting pass"
+                  alt={
+                    isBangla
+                      ? "এক্সক্লুসিভ বেটিং পাস"
+                      : "Exclusive betting pass"
+                  }
                   className="h-full w-full object-cover"
                   loading="lazy"
                   draggable={false}
                 />
               </div>
 
-              {/* subtle overlay for readability / same vibe */}
+              {/* subtle overlay (unchanged) */}
               <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(0,0,0,0.18),rgba(0,0,0,0.05),rgba(0,0,0,0.18))]" />
             </div>
           </div>

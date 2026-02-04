@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { useNavigate } from "react-router";
+import { useLanguage } from "../../Context/LanguageProvider";
 
 const HotBadge = () => (
   <span className="absolute top-2 right-2 px-2 py-[2px] rounded-full text-[10px] font-extrabold bg-[#ff3b30] text-white shadow">
@@ -9,6 +10,7 @@ const HotBadge = () => (
 
 const HotGames = () => {
   const navigate = useNavigate();
+  const { isBangla } = useLanguage();
 
   // 🔁 এগুলো তোমার real data/API দিয়ে replace করবে
   const games = useMemo(
@@ -131,7 +133,7 @@ const HotGames = () => {
         {/* Title (same vibe) */}
         <div className="flex items-end justify-between">
           <h2 className="text-[28px] font-extrabold text-black tracking-tight">
-            হট গেমস
+            {isBangla ? "হট গেমস" : "Hot Games"}
           </h2>
         </div>
 

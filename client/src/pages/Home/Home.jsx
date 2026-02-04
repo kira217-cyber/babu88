@@ -11,12 +11,16 @@ import LiveGames from "../../components/LiveGames/LiveGames";
 import DownloadBanner from "../../components/DownloadBanner/DownloadBanner";
 import TwoBanner from "../../components/TwoBanner/TwoBanner";
 import SingleBanner from "../../components/SingleBanner/SingleBanner";
+import GameCategory from "../../components/GameCategory/GameCategory";
 
 const Home = () => {
   return (
     <div>
       <Slider />
       <Notice />
+      <div className="md:hidden">
+        <GameCategory />
+      </div>
       <SingleBanner />
       <HotGames />
       <Banner />

@@ -26,7 +26,7 @@ const SingleBanner = () => {
             <img
               src={BANNER_IMG}
               alt="Banner"
-              className="w-full h-52 object-center"
+              className="w-full h-32 md:h-52 object-center"
               loading="lazy"
               draggable={false}
               onError={(e) => {

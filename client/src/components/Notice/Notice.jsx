@@ -1,21 +1,26 @@
 import React, { useMemo } from "react";
+import { useLanguage } from "../../Context/LanguageProvider";
 
 const Notice = () => {
-  // 🔁 এখানে তোমার notice text পরিবর্তন করো
-  const noticeText = useMemo(
-    () =>
-      "পেমেন্ট কদই, বা OTP কারো সাথে শেয়ার করবেন না। এছাড়াও, তুমি প্যাকের রেটিং লিংকে ক্লিক করবেন না। সহায়তার জন্য, নিচে উল্লেখিত লাইভ চ্যাটের মাধ্যমে আমাদের সাথে যোগাযোগ করুন।",
-    [],
-  );
+  const { isBangla } = useLanguage();
+
+  // Notice text — now bilingual
+  const noticeText = useMemo(() => {
+    if (isBangla) {
+      return "পেমেন্ট কদই, বা OTP কারো সাথে শেয়ার করবেন না। এছাড়াও, তুমি প্যাকের রেটিং লিংকে ক্লিক করবেন না। সহায়তার জন্য, নিচে উল্লেখিত লাইভ চ্যাটের মাধ্যমে আমাদের সাথে যোগাযোগ করুন।";
+    }
+
+    return "Never share your payment code or OTP with anyone. Also, do not click on any suspicious rating or recharge links. For support, contact us via the live chat below.";
+  }, [isBangla]);
 
   return (
-    <section className="w-full mt-4  px-2 lg:px-0">
+    <section className="w-full mt-4 px-2 lg:px-0">
       <div className="w-full mx-auto max-w-[1500px] bg-[#3c3c3c] rounded-md overflow-hidden border border-black/20">
         <div className="flex items-center">
           {/* LEFT: marquee area */}
           <div className="relative flex-1 overflow-hidden py-2 sm:py-2.5">
             {/* fade edges like screenshot */}
-          
+            {/* You can add gradient fade if you want, but keeping it as it was */}
 
             {/* marquee track */}
             <div className="marquee-track">
@@ -29,11 +34,10 @@ const Notice = () => {
               </div>
             </div>
           </div>
-
         </div>
       </div>
 
-      {/* ✅ Smooth marquee styles */}
+      {/* ✅ Smooth marquee styles — unchanged */}
       <style>{`
         .marquee-track{
           width: 100%;

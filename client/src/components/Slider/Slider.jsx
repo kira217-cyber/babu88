@@ -83,7 +83,7 @@ const Slider = () => {
             group absolute cursor-pointer left-3 sm:left-4 top-1/2 -translate-y-1/2 z-20
             h-10 w-10 sm:h-11 sm:w-11
             rounded-full
-            bg-white/80 backdrop-blur-md
+            bg-white/40
             border border-black/10
             shadow-md
             flex items-center justify-center
@@ -110,7 +110,7 @@ const Slider = () => {
             group absolute cursor-pointer right-3 sm:right-4 top-1/2 -translate-y-1/2 z-20
             h-10 w-10 sm:h-11 sm:w-11
             rounded-full
-            bg-white/80 backdrop-blur-md
+            bg-white/40
             border border-black/10
             shadow-md
             flex items-center justify-center
