@@ -13,7 +13,7 @@ const RootLayout = () => {
       <DownloadHeader />
       <Navber />
       <MenuItems />
-      <FloatingSocial />
+      {/* <FloatingSocial /> */}
       <BottomNavbar />
       <Outlet />
       <Footer />

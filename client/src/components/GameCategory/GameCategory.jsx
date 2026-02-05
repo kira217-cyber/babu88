@@ -12,18 +12,35 @@ import {
   GiFishing,
   GiTwoCoins,
 } from "react-icons/gi";
+import { useLanguage } from "../../Context/LanguageProvider";
 
 const CATEGORIES = [
-  { key: "jackpot", label: "জ্যাকপট", icon: GiCrown },
-  { key: "hot", label: "হট", icon: GiFlame },
-  { key: "slot", label: "স্লট", icon: GiCardAceSpades },
-  { key: "casino", label: "ক্যাসিনো", icon: GiPokerHand },
-  { key: "crash", label: "ক্র্যাশ", icon: GiAirplane },
-  { key: "cricket", label: "ক্রিকেট", icon: GiCricketBat },
-  { key: "table", label: "টেবিল", icon: GiCardAceSpades },
-  { key: "fast", label: "ফাস্ট", icon: GiRabbit },
-  { key: "catching_fish", label: "ক্যাচিং ফিশ", icon: GiFishing },
-  { key: "asb", label: "ASB", icon: GiTwoCoins },
+  { key: "jackpot", label: { bn: "জ্যাকপট", en: "Jackpot" }, icon: GiCrown },
+  { key: "hot", label: { bn: "হট", en: "Hot" }, icon: GiFlame },
+  { key: "slot", label: { bn: "স্লট", en: "Slot" }, icon: GiCardAceSpades },
+  {
+    key: "casino",
+    label: { bn: "ক্যাসিনো", en: "Casino" },
+    icon: GiPokerHand,
+  },
+  { key: "crash", label: { bn: "ক্র্যাশ", en: "Crash" }, icon: GiAirplane },
+  {
+    key: "cricket",
+    label: { bn: "ক্রিকেট", en: "Cricket" },
+    icon: GiCricketBat,
+  },
+  {
+    key: "table",
+    label: { bn: "টেবিল", en: "Table" },
+    icon: GiCardAceSpades,
+  },
+  { key: "fast", label: { bn: "ফাস্ট", en: "Fast" }, icon: GiRabbit },
+  {
+    key: "catching_fish",
+    label: { bn: "ক্যাচিং ফিশ", en: "Catching Fish" },
+    icon: GiFishing,
+  },
+  { key: "asb", label: { bn: "ASB", en: "ASB" }, icon: GiTwoCoins },
 ];
 
 // ✅ Demo games (replace with API data)
@@ -147,6 +164,8 @@ const GameCard = ({ game, onClick }) => {
 
 const GameCategory = () => {
   const navigate = useNavigate();
+  const { isBangla } = useLanguage();
+
   const [active, setActive] = useState("hot");
 
   // ✅ category scroll refs
@@ -270,12 +289,16 @@ const GameCategory = () => {
                   px-4 py-2 rounded-full
                   font-extrabold text-sm
                   transition
-                  ${isActive ? "bg-[#F5B400] text-black" : "bg-white text-black/80"}
+                  ${
+                    isActive
+                      ? "bg-[#F5B400] text-black"
+                      : "bg-white text-black/80"
+                  }
                   ${isActive ? "shadow-sm" : "hover:bg-black/5"}
                 `}
               >
                 <Icon className="text-xl" />
-                <span>{c.label}</span>
+                <span>{isBangla ? c.label.bn : c.label.en}</span>
               </button>
             );
           })}
@@ -300,7 +323,9 @@ const GameCategory = () => {
       <div className="mt-4">
         {games.length === 0 ? (
           <div className="text-center py-10 text-black/60 font-semibold">
-            এই ক্যাটাগরিতে কোনো গেম নেই
+            {isBangla
+              ? "এই ক্যাটাগরিতে কোনো গেম নেই"
+              : "No games in this category"}
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-3 px-2">

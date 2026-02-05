@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Link, NavLink } from "react-router";
+import { Link, NavLink, useNavigate } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FaBars,
@@ -9,6 +9,10 @@ import {
   FaQuestionCircle,
   FaHeadset,
   FaDownload,
+  FaUserAlt,
+  FaBell,
+  FaPlus,
+  FaSignOutAlt,
 } from "react-icons/fa";
 import {
   FaTag,
@@ -26,6 +30,14 @@ import {
   FaFutbol,
 } from "react-icons/fa";
 import { useLanguage } from "../../Context/LanguageProvider";
+
+// ✅ redux
+import { useDispatch, useSelector } from "react-redux";
+import { logout } from "../../features/auth/authSlice";
+import {
+  selectAuth,
+  selectIsAuthenticated,
+} from "../../features/auth/authSelectors";
 
 // Tiny Flag components (unchanged)
 const BdFlag = ({ className = "" }) => (
@@ -87,7 +99,19 @@ const NavItem = ({ to, icon: Icon, label, badge, onClick }) => {
 };
 
 const Navber = () => {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+
   const { isBangla, language, changeLanguage } = useLanguage();
+
+  // ✅ redux auth
+  const auth = useSelector(selectAuth);
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+
+  const user = auth?.user;
+  const username = user?.username || user?.name || "User";
+  const notifCount = user?.notificationsCount ?? 0;
+  const balance = Number(user?.balance ?? 0);
 
   const t = useMemo(
     () => ({
@@ -114,9 +138,8 @@ const Navber = () => {
       fish: isBangla ? "মাছ ধরা" : "Fish",
       sportsBook: isBangla ? "খেলার বই" : "Sportsbook",
 
-      // Others section new items
-      faq: isBangla ? "প্রায়শ্চিত্য প্রস্তাবিলি" : "FAQ / Help",
-      liveChat: isBangla ? "সরাসরি কথোপকথন" : "Live Chat",
+      faq: isBangla ? "FAQ / সাহায্য" : "FAQ / Help",
+      liveChat: isBangla ? "লাইভ চ্যাট" : "Live Chat",
       download: isBangla ? "ডাউনলোড করুন" : "Download App",
     }),
     [isBangla],
@@ -124,7 +147,6 @@ const Navber = () => {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
-
   const langRef = useRef(null);
 
   useEffect(() => {
@@ -164,6 +186,13 @@ const Navber = () => {
     changeLanguage(lang);
     setLangOpen(false);
     setSidebarOpen(false);
+  };
+
+  const handleLogout = () => {
+    dispatch(logout());
+    setSidebarOpen(false);
+    setLangOpen(false);
+    navigate("/");
   };
 
   const promoItems = [
@@ -212,21 +241,9 @@ const Navber = () => {
   ];
 
   const otherItems = [
-    {
-      icon: FaQuestionCircle,
-      label: t.faq,
-      to: "/faq", // or "/help" – change as needed
-    },
-    {
-      icon: FaHeadset,
-      label: t.liveChat,
-      to: "/live-chat", // or use onClick for opening chat widget
-    },
-    {
-      icon: FaDownload,
-      label: t.download,
-      to: "/download", // or external link / onClick handler
-    },
+    { icon: FaQuestionCircle, label: t.faq, to: "/faq" },
+    { icon: FaHeadset, label: t.liveChat, to: "/live-chat" },
+    { icon: FaDownload, label: t.download, to: "/download" },
   ];
 
   const sidebarVariants = {
@@ -243,8 +260,8 @@ const Navber = () => {
 
   return (
     <>
-      {/* Top Navbar – unchanged */}
-      <header className="w-full bg-white border-t-2  border-black/70 shadow-[0_18px_40px_rgba(0,0,0,0.35)]">
+      {/* Top Navbar */}
+      <header className="w-full bg-white border-t-2 border-black/70 shadow-[0_18px_40px_rgba(0,0,0,0.35)]">
         <div className="mx-auto px-3 sm:px-4">
           <div className="h-[72px] flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -257,74 +274,187 @@ const Navber = () => {
                 <FaBars className="text-black/80" />
               </button>
 
-              <Link to={'/'} className="flex items-center gap-2 select-none">
+              <Link to="/" className="flex items-center gap-2 select-none">
                 <span className="text-[30px] font-extrabold tracking-tight italic text-black">
                   BABU<span className="text-[#f5b400]">88</span>
                 </span>
               </Link>
             </div>
 
+            {/* ✅ RIGHT SIDE: Logged out vs Logged in */}
             <div className="flex items-center gap-2 md:gap-8">
-              <button
-                className="hidden sm:inline-flex items-center justify-center h-10 px-4 rounded-lg bg-[#f5b400] text-black font-extrabold text-sm shadow-sm hover:brightness-95 active:scale-[0.99] transition"
-                type="button"
-              >
-                {t.login}
-              </button>
-
-              <button
-                className="hidden sm:inline-flex items-center justify-center h-10 px-4 rounded-lg bg-[#0b78f0] text-white font-extrabold text-sm shadow-sm hover:brightness-95 active:scale-[0.99] transition"
-                type="button"
-              >
-                {t.join}
-              </button>
-
-              <div className="relative z-[70]" ref={langRef}>
-                <button
-                  type="button"
-                  onClick={() => setLangOpen((v) => !v)}
-                  className="h-10 px-3 rounded-full bg-[#d9d9d9] flex items-center gap-2 border border-black/10 hover:brightness-95 active:scale-[0.99] transition"
-                  aria-haspopup="menu"
-                  aria-expanded={langOpen}
-                >
-                  {currentFlag}
-                  <FaChevronDown className="text-black/70 text-sm" />
-                </button>
-
-                {langOpen && (
-                  <div
-                    className="absolute right-0 mt-2 w-[180px] rounded-xl border border-black/10 bg-white shadow-lg overflow-hidden"
-                    role="menu"
+              {!isAuthenticated ? (
+                <>
+                  <Link
+                    to="/login"
+                    className="hidden sm:inline-flex items-center justify-center h-10 px-4 rounded-lg bg-[#f5b400] text-black font-extrabold text-sm shadow-sm hover:brightness-95 active:scale-[0.99] transition"
                   >
+                    {t.login}
+                  </Link>
+
+                  <Link
+                    to="/register"
+                    className="hidden sm:inline-flex items-center justify-center h-10 px-4 rounded-lg bg-[#0b78f0] text-white font-extrabold text-sm shadow-sm hover:brightness-95 active:scale-[0.99] transition"
+                  >
+                    {t.join}
+                  </Link>
+
+                  {/* language */}
+                  <div className="relative z-[70]" ref={langRef}>
                     <button
                       type="button"
-                      onClick={() => onSelectLang("Bangla")}
-                      className={`w-full px-3 py-2.5 flex items-center gap-2 text-sm font-semibold hover:bg-black/5 ${
-                        language === "Bangla" ? "bg-black/5" : ""
-                      }`}
+                      onClick={() => setLangOpen((v) => !v)}
+                      className="h-10 px-3 rounded-full bg-[#d9d9d9] flex items-center gap-2 border border-black/10 hover:brightness-95 active:scale-[0.99] transition"
+                      aria-haspopup="menu"
+                      aria-expanded={langOpen}
                     >
-                      <BdFlag className="h-6 w-6" />
-                      বাংলা
+                      {currentFlag}
+                      <FaChevronDown className="text-black/70 text-sm" />
                     </button>
+
+                    {langOpen && (
+                      <div
+                        className="absolute right-0 mt-2 w-[180px] rounded-xl border border-black/10 bg-white shadow-lg overflow-hidden"
+                        role="menu"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => onSelectLang("Bangla")}
+                          className={`w-full px-3 py-2.5 flex items-center gap-2 text-sm font-semibold hover:bg-black/5 ${
+                            language === "Bangla" ? "bg-black/5" : ""
+                          }`}
+                        >
+                          <BdFlag className="h-6 w-6" />
+                          বাংলা
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onSelectLang("English")}
+                          className={`w-full px-3 py-2.5 flex items-center gap-2 text-sm font-semibold hover:bg-black/5 ${
+                            language === "English" ? "bg-black/5" : ""
+                          }`}
+                        >
+                          <EnFlag className="h-6 w-6" />
+                          English
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* ✅ Screenshot-like logged in bar */}
+                  <div className="flex items-center gap-3">
+                    {/* username */}
+                    <span className="hidden sm:inline text-[14px] font-semibold text-black">
+                      {username}
+                    </span>
+
+                    {/* profile (yellow circle) */}
+                    <Link
+                      to="/profile"
+                      className="h-10 w-10 rounded-full bg-[#f5b400] flex items-center justify-center shadow-sm hover:brightness-95 active:scale-[0.99] transition"
+                      aria-label="Profile"
+                      title="Profile"
+                    >
+                      <FaUserAlt className="text-black text-[16px]" />
+                    </Link>
+
+                    {/* notification (yellow circle + badge) */}
+                    <Link
+                      to="/notifications"
+                      className="relative h-10 w-10 rounded-full bg-[#f5b400] flex items-center justify-center shadow-sm hover:brightness-95 active:scale-[0.99] transition"
+                      aria-label="Notifications"
+                      title="Notifications"
+                    >
+                      <FaBell className="text-black text-[16px]" />
+                      <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#0b78f0] text-white text-[11px] font-extrabold flex items-center justify-center">
+                        {notifCount}
+                      </span>
+                    </Link>
+
+                    {/* divider */}
+                    <span className="hidden sm:block w-px h-8 bg-black/20" />
+
+                    {/* balance pill */}
+                    <div className="hidden h-10 rounded-full bg-[#e6e6e6] md:flex items-center px-4 font-extrabold text-black text-[14px] shadow-sm">
+                      ৳ {balance.toFixed(2)}
+                    </div>
+
+                    {/* add balance blue circle */}
+                    <Link
+                      to="/deposit"
+                      className="hidden h-10 w-10 rounded-full bg-[#0b78f0] text-white md:flex items-center justify-center shadow-sm hover:brightness-95 active:scale-[0.99] transition"
+                      aria-label="Add balance"
+                      title="Add balance"
+                    >
+                      <FaPlus />
+                    </Link>
+
+                    {/* divider */}
+                    <span className="hidden sm:block w-px h-8 bg-black/20" />
+
+                    {/* language (keep same) */}
+                    <div className="hidden md:block relative z-[70]" ref={langRef}>
+                      <button
+                        type="button"
+                        onClick={() => setLangOpen((v) => !v)}
+                        className="h-10 px-3 rounded-full bg-[#d9d9d9] flex items-center gap-2 border border-black/10 hover:brightness-95 active:scale-[0.99] transition"
+                        aria-haspopup="menu"
+                        aria-expanded={langOpen}
+                      >
+                        {currentFlag}
+                        <FaChevronDown className="text-black/70 text-sm" />
+                      </button>
+
+                      {langOpen && (
+                        <div
+                          className="absolute right-0 mt-2 w-[180px] rounded-xl border border-black/10 bg-white shadow-lg overflow-hidden"
+                          role="menu"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => onSelectLang("Bangla")}
+                            className={`w-full px-3 py-2.5 flex items-center gap-2 text-sm font-semibold hover:bg-black/5 ${
+                              language === "Bangla" ? "bg-black/5" : ""
+                            }`}
+                          >
+                            <BdFlag className="h-6 w-6" />
+                            বাংলা
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onSelectLang("English")}
+                            className={`w-full px-3 py-2.5 flex items-center gap-2 text-sm font-semibold hover:bg-black/5 ${
+                              language === "English" ? "bg-black/5" : ""
+                            }`}
+                          >
+                            <EnFlag className="h-6 w-6" />
+                            English
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* logout icon */}
                     <button
                       type="button"
-                      onClick={() => onSelectLang("English")}
-                      className={`w-full px-3 py-2.5 flex items-center gap-2 text-sm font-semibold hover:bg-black/5 ${
-                        language === "English" ? "bg-black/5" : ""
-                      }`}
+                      onClick={handleLogout}
+                      className="h-10 w-10 rounded-md bg-black/5 flex items-center justify-center hover:bg-black/10 active:scale-[0.99] transition"
+                      aria-label="Logout"
+                      title="Logout"
                     >
-                      <EnFlag className="h-6 w-6" />
-                      English
+                      <FaSignOutAlt className="text-black/80" />
                     </button>
                   </div>
-                )}
-              </div>
+                </>
+              )}
             </div>
           </div>
         </div>
       </header>
 
-      {/* Mobile Sidebar */}
+      {/* Mobile Sidebar (same as before) */}
       <AnimatePresence>
         {sidebarOpen && (
           <>
@@ -402,7 +532,6 @@ const Navber = () => {
                 </div>
 
                 <div className="grid gap-1">
-                  {/* Language */}
                   <button
                     type="button"
                     onClick={() => setLangOpen(true)}
@@ -414,7 +543,6 @@ const Navber = () => {
                     <span>{t.language}</span>
                   </button>
 
-                  {/* New 3 items */}
                   {otherItems.map((item, index) => (
                     <NavItem
                       key={index}
@@ -424,6 +552,20 @@ const Navber = () => {
                       onClick={() => setSidebarOpen(false)}
                     />
                   ))}
+
+                  {/* ✅ optional: mobile logout in sidebar */}
+                  {isAuthenticated && (
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-[14px] font-semibold text-black/70 hover:bg-black/5 transition"
+                    >
+                      <span className="w-8 h-8 rounded-lg bg-black/5 flex items-center justify-center">
+                        <FaSignOutAlt className="text-black/70" />
+                      </span>
+                      <span>Logout</span>
+                    </button>
+                  )}
                 </div>
               </div>
             </motion.aside>

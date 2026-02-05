@@ -165,14 +165,14 @@ const MenuItems = () => {
 
   const t = useMemo(
     () => ({
-      slot: isBangla ? "স্লট গেম" : "Slot",
+      slot: isBangla ? "স্লট" : "Slot",
       casino: isBangla ? "ক্যাসিনো" : "Casino",
       crash: isBangla ? "ক্র্যাশ" : "Crash",
       cricket: isBangla ? "ক্রিকেট" : "Cricket",
-      table: isBangla ? "টেবিল গেম" : "Table Games",
+      table: isBangla ? "টেবিল" : "Table",
       fast: isBangla ? "ফাস্ট" : "Fast",
-      fish: isBangla ? "মাছ ধরা" : "Fish",
-      sportsbook: isBangla ? "খেলার বই" : "Sportsbook",
+      fish: isBangla ? "মাছ" : "Fish",
+      sportsbook: isBangla ? "বই" : "Book",
 
       promotion: isBangla ? "প্রমোশন" : "Promotion",
       bettingPass: isBangla ? "বেটিং পাস" : "Betting Pass",

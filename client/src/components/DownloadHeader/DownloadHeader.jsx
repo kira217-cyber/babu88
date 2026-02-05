@@ -1,15 +1,28 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { IoClose } from "react-icons/io5";
+import { useLanguage } from "../../Context/LanguageProvider";
 
 const STORAGE_KEY = "download_header_closed_v1";
 
 const DownloadHeader = ({
   apkUrl = "/app-release.apk", // ✅ তোমার APK লিংক/পাথ
-  appName = "APP সংস্করণ ডাউনলোড",
-  buttonText = "ডাউনলোড",
+  appName = "APP", // ✅ only name part (text will be localized)
+  buttonText, // optional override
 }) => {
+  const { isBangla } = useLanguage();
   const [visible, setVisible] = useState(false);
+
+  const t = useMemo(
+    () => ({
+      title: isBangla
+        ? `এখনই আমাদের ${appName} ডাউনলোড করুন`
+        : `Download our ${appName} now`,
+      download: isBangla ? "ডাউনলোড" : "Download",
+      close: isBangla ? "বন্ধ করুন" : "Close",
+    }),
+    [isBangla, appName],
+  );
 
   useEffect(() => {
     // ✅ আগে close করা থাকলে আর দেখাবে না
@@ -26,7 +39,7 @@ const DownloadHeader = ({
     // ✅ Direct download trigger
     const a = document.createElement("a");
     a.href = apkUrl;
-    a.setAttribute("download", ""); // server forced download না হলেও বেশিরভাগ ক্ষেত্রে কাজ করবে
+    a.setAttribute("download", "");
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -49,7 +62,8 @@ const DownloadHeader = ({
                 {/* Close */}
                 <button
                   onClick={handleClose}
-                  aria-label="Close"
+                  aria-label={t.close}
+                  title={t.close}
                   className="shrink-0 w-8 h-8 grid place-items-center rounded-full hover:bg-black/10 active:scale-95 transition"
                 >
                   <IoClose className="text-2xl text-black/80" />
@@ -65,7 +79,7 @@ const DownloadHeader = ({
                 {/* Text */}
                 <div className="flex-1 leading-tight">
                   <p className="text-[13px] font-extrabold text-black">
-                    এখনই আমাদের {appName}
+                    {t.title}
                   </p>
                 </div>
 
@@ -74,7 +88,7 @@ const DownloadHeader = ({
                   onClick={handleDownload}
                   className="shrink-0 bg-[#F5B400] text-black font-extrabold text-sm px-4 py-2 rounded-md shadow-sm border border-black/10 hover:brightness-95 active:scale-[0.98] transition"
                 >
-                  {buttonText}
+                  {buttonText ?? t.download}
                 </button>
               </div>
             </div>
