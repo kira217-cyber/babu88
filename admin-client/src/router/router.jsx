@@ -7,16 +7,28 @@ import Register from "../pages/Register/Register";
 import Withdraw from "../pages/Withdraw/Withdraw";
 import Deposit from "../pages/Deposit/Deposit";
 import PrivateRoute from "../PrivateRoute/PrivateRoute";
+import Profile from "../pages/Profile/Profile";
+import SliderController from "../pages/SliderController/SliderController";
 
 export const routes = createBrowserRouter([
   {
     path: "/",
-    element: <RootLayout />,
+    element: (
+      <PrivateRoute>
+        {" "}
+        <RootLayout />
+      </PrivateRoute>
+    ),
     errorElement: <NotFoundPage />,
     children: [
       {
         index: true,
-        element: <Home />,
+        element: (
+          <PrivateRoute>
+            {" "}
+            <Home />
+          </PrivateRoute>
+        ),
       },
       {
         path: "withdraw",
@@ -36,13 +48,25 @@ export const routes = createBrowserRouter([
         ),
       },
       {
-        path: "login",
-        element: <Login />,
+        path: "profile",
+        element: (
+          <PrivateRoute>
+            <Profile />
+          </PrivateRoute>
+        ),
       },
       {
-        path: "register",
-        element: <Register />,
+        path: "slider-controller",
+        element: (
+          <PrivateRoute>
+            <SliderController />
+          </PrivateRoute>
+        ),
       },
     ],
+  },
+  {
+    path: "login",
+    element: <Login />,
   },
 ]);
