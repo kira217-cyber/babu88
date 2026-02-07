@@ -6,141 +6,169 @@ import { useLanguage } from "../../Context/LanguageProvider";
 // ✅ Demo provider images (তুমি পরে real image বসাবে)
 const PROVIDERS = {
   slot: [
-    { id: "jili", name: "JILI", img: "https://i.ibb.co/7kQ5m2m/jili.png" },
-    { id: "pg", name: "PG", img: "https://i.ibb.co/YfQb0yD/pg.png" },
-    { id: "inout", name: "INOUT", img: "https://i.ibb.co/2Sg9P4w/inout.png" },
+    {
+      id: "jili",
+      name: "JILI",
+      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/aNJOerVVQkubX6fla08q94flSi1TJB50WTaFNpVC.png",
+    },
+    {
+      id: "pg",
+      name: "PG",
+      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/3qiY2geP8G221Ud6zB5yxVlAoUzOpHFYD8ipLWoz.png",
+    },
+    {
+      id: "inout",
+      name: "INOUT",
+      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/UHXACNNM1DBPatlH1u39P2N8Xp497h70g6LkVFh9.png",
+    },
     {
       id: "winspinity",
       name: "Winspinity",
-      img: "https://i.ibb.co/8sS7c7m/winspinity.png",
+      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/aMXdTiIdARFCVBmSuqp0e3SFOZmHnsOqyPvQfU10.png",
     },
-    { id: "jdb", name: "JDB", img: "https://i.ibb.co/8D2K2bD/jdb.png" },
-    { id: "bng", name: "BNG", img: "https://i.ibb.co/mB3z6tF/bng.png" },
+    {
+      id: "jdb",
+      name: "JDB",
+      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/FIS6fMldZFwpzL5HvXez8hWvPWHRvnpaa863glpm.png",
+    },
+    {
+      id: "bng",
+      name: "BNG",
+      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/uZeMqebF1pY4hyhI09nNJl8JPUdObpTZK8TNKRmn.png",
+    },
     {
       id: "habanero",
       name: "Habanero",
-      img: "https://i.ibb.co/3f8bPPv/habanero.png",
+      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/hRJKCIGfsKom04Ok44tFzyyHLxOTDSPXvPTQAvx6.jpg",
     },
     {
       id: "smartsoft",
       name: "SmartSoft",
-      img: "https://i.ibb.co/4K3MZfM/smartsoft.png",
+      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/XKMsslvB0bgiBJ41meWZH3mO02J0ysgOdnE8WMc5.jpg",
     },
     {
       id: "gambit",
       name: "Gambit",
-      img: "https://i.ibb.co/VvP3n1d/gambit.png",
+      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/hRWrzomQ5kEifPSkA7bYLWT7fahUHvakaLyvA4th.jpg",
     },
     {
       id: "million",
       name: "Million",
-      img: "https://i.ibb.co/3rj1x2y/million.png",
+      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/f2nWuCXKcdgH6K7sC8dGxzX8ALgAqvjPLnCaI9sm.jpg",
     },
     {
       id: "pragmatic",
       name: "Pragmatic Play",
-      img: "https://i.ibb.co/3mKcQ9t/pragmatic.png",
+      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/Cg4lgL5AQ5VS2uwhKGamGKwqSPbK7Xcj99bSWTno.jpg",
     },
     {
       id: "spade",
       name: "Spadegaming",
-      img: "https://i.ibb.co/1Zp3f9j/spade.png",
+      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/3Y8aCs6xtWTxk6xtaxnkS9Zk7qAsOsvhgc0Jg0me.jpg",
     },
     {
       id: "playngo",
       name: "Play'n GO",
-      img: "https://i.ibb.co/1Mck7Wb/playngo.png",
+      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/ad5CfULwpWYJ0qyEtT3a8Djc5eCghQwroEo1vLrv.jpg",
     },
     {
       id: "redtiger",
       name: "Red Tiger",
-      img: "https://i.ibb.co/fF2gQmG/redtiger.png",
+      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/1JbjzqcccNub15FEa8NFG8nBQbSqeO4Lzo3t33ad.jpg",
     },
     {
       id: "microgaming",
       name: "Microgaming",
-      img: "https://i.ibb.co/5h1sZsQ/microgaming.png",
+      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/9C93WgGFt5Hu2d4Zy8Oi4ZOTN4AfwpZ5YUFF1VRj.jpg",
     },
     {
       id: "onegame",
       name: "OneGame",
-      img: "https://i.ibb.co/9yQ3PpH/onegame.png",
+      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/games/Msd4TdpRpg3WVJ92WgAFEF2ya5Tse1vmUWzLwFl5.png",
     },
     {
       id: "playtech",
       name: "Playtech",
-      img: "https://i.ibb.co/6bJt7m4/playtech.png",
+      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/games/MXwTdiEJPVWU71nSJPlApAKtRqylFTXaaleP1jXi.png",
     },
     {
       id: "relax",
       name: "Relax Gaming",
-      img: "https://i.ibb.co/8Y7dB3f/relax.png",
+      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/games/MpWNkkw9jLLG4DNj15Wwj7Bk2DUBgVvBrWl6INM2.png",
     },
     {
       id: "netent",
       name: "NetEnt",
-      img: "https://i.ibb.co/0GZK9XJ/netent.png",
+      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/games/2NRSErKoMEtUKjscmP3joLhsmA9CQGuitXVXnw2T.png",
     },
     {
       id: "nolimit",
       name: "NoLimit",
-      img: "https://i.ibb.co/vc2qKc9/nolimit.png",
+      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/games/6V8M4TwJerxSH6sohn9wER6kxrnJ7Oio0Z5hsvbB.png",
     },
   ],
   casino: [
     {
       id: "evolution",
       name: "Evolution",
-      img: "https://i.ibb.co/8bKcJXJ/evolution.png",
+      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/games/JLeiXnqnwXlBOutJPWhmCwbJIrScgsYItaystVbT.png",
     },
     {
       id: "pragmatic-live",
       name: "Pragmatic Live",
-      img: "https://i.ibb.co/3mKcQ9t/pragmatic.png",
+      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/games/2U2R12bOlHk7ZSnTSWlIA2iYii38jEX6n7D53KGV.png",
     },
-    { id: "ezugi", name: "Ezugi", img: "https://i.ibb.co/3sKq9YQ/ezugi.png" },
+    {
+      id: "ezugi",
+      name: "Ezugi",
+      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/games/JVBrcYTOK5fBcqdSCOM1U8751fIAgF7WICtNyzNd.png",
+    },
   ],
   crash: [
     {
       id: "spribe",
       name: "SPRIBE",
-      img: "https://i.ibb.co/0y1s7b6/spribe.png",
+      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/games/kHAls9yoO4bW6G0waAlr4s8qSuOLSMuE4l0ahtjy.png",
     },
     {
       id: "smartsoft-crash",
       name: "SmartSoft",
-      img: "https://i.ibb.co/4K3MZfM/smartsoft.png",
+      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/j1Wsrf65POcVebSWX2lFMmGgonc1uvrB6pEtGX5q.png",
     },
   ],
   cricket: [
     {
       id: "cricket-1",
       name: "Cricket",
-      img: "https://i.ibb.co/0y1s7b6/spribe.png",
+      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/games/cRLkkUpTuq54uvS473Qc08xmKLVzDyr810ShJ0AS.png",
     },
   ],
   table: [
     {
       id: "table-1",
       name: "Table Games",
-      img: "https://i.ibb.co/5h1sZsQ/microgaming.png",
+      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/games/5oT0jy6Hf6siJuEF9GsMZqz3crTXQikKB0cvBbbB.png",
     },
   ],
   fast: [
     {
       id: "fast-1",
       name: "Fast Games",
-      img: "https://i.ibb.co/9yQ3PpH/onegame.png",
+      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/games/vbGv3pZBg8wcPb3vXgN4oDMlgkuP1fdMwlqIwAuu.png",
     },
   ],
   fish: [
-    { id: "fish-1", name: "Fish", img: "https://i.ibb.co/8Y7dB3f/relax.png" },
+    {
+      id: "fish-1",
+      name: "Fish",
+      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/games/UBTiSJcubDayg2OB4ZcgLVQ1JlIX45Wnb3wEJ3iJ.png",
+    },
   ],
   sportsbook: [
     {
       id: "sport-1",
       name: "Sportsbook",
-      img: "https://i.ibb.co/6bJt7m4/playtech.png",
+      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/games/AQLWXaYirseyIlqooFPuBtcbWxTXW4uj6w4RMo1h.png",
     },
   ],
 };
@@ -202,20 +230,20 @@ const MenuItems = () => {
         to: "/promotions",
         badge: null,
       },
-    //   {
-    //     key: "bettingPass",
-    //     label: t.bettingPass,
-    //     type: "nav",
-    //     to: "/betting-pass",
-    //     badge: "hot",
-    //   },
-    //   {
-    //     key: "superAffiliate",
-    //     label: t.superAffiliate,
-    //     type: "nav",
-    //     to: "/super-affiliate",
-    //     badge: "hot",
-    //   },
+      //   {
+      //     key: "bettingPass",
+      //     label: t.bettingPass,
+      //     type: "nav",
+      //     to: "/betting-pass",
+      //     badge: "hot",
+      //   },
+      //   {
+      //     key: "superAffiliate",
+      //     label: t.superAffiliate,
+      //     type: "nav",
+      //     to: "/super-affiliate",
+      //     badge: "hot",
+      //   },
       { key: "vip", label: t.vip, type: "nav", to: "/vip", badge: "new" },
       {
         key: "affiliate",
@@ -336,11 +364,11 @@ const MenuItems = () => {
           >
             {/* Transparent overlay area */}
             <div className="w-full">
-              <div className="mx-auto ">
+              <div className="mx-auto">
                 {/* Panel (semi transparent + blur) */}
                 <div className=" border border-white/10 bg-black/35 shadow-[0_18px_40px_rgba(0,0,0,0.55)]">
-                  <div className="p-5 max-w-7xl mx-auto">
-                    <div className="grid grid-cols-6 gap-4">
+                  <div className="p-5 max-w-6xl mx-auto">
+                    <div className="grid grid-cols-5 gap-8">
                       {(PROVIDERS[openKey] || []).map((p) => (
                         <motion.button
                           key={p.id}
@@ -359,24 +387,14 @@ const MenuItems = () => {
                           ].join(" ")}
                           title={p.name}
                         >
-                          <div className="p-3">
-                            <div className="aspect-[1/1] w-full rounded-lg overflow-hidden bg-black/20">
+                          <div>
+                            <div className="aspect-[1/1] w-full">
                               <img
                                 src={p.img}
                                 alt={p.name}
-                                className="w-full h-full object-cover"
+                                className="w-full h-66 cursor-pointer object-cover"
                                 loading="lazy"
-                                onError={(e) => {
-                                  e.currentTarget.src =
-                                    "https://i.ibb.co/2Sg9P4w/inout.png";
-                                }}
                               />
-                            </div>
-
-                            <div className="mt-2 text-center">
-                              <p className="text-xs font-extrabold text-white/85 group-hover:text-white">
-                                {p.name}
-                              </p>
                             </div>
                           </div>
 

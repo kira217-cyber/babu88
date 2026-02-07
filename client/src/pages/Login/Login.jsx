@@ -10,7 +10,7 @@ const Login = () => {
 
   const handleDemoLogin = () => {
     dispatch(demoLogin());
-    navigate("/withdraw");
+    navigate("/");
   };
 
   return (

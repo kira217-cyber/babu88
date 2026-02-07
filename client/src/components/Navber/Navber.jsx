@@ -89,8 +89,8 @@ const NavItem = ({ to, icon: Icon, label, badge, onClick }) => {
         ].join(" ")
       }
     >
-      <span className="w-8 h-8 rounded-lg bg-black/5 flex items-center justify-center">
-        <Icon className="text-black/70" />
+      <span className="w-10 h-10 rounded-lg  flex items-center justify-center">
+        <Icon className="text-black/80 text-2xl" />
       </span>
       <span className="truncate">{label}</span>
       {badge?.type ? <Badge variant={badge.type}>{badge.text}</Badge> : null}
@@ -201,7 +201,7 @@ const Navber = () => {
       to: "/rewards",
       icon: FaGift,
       label: t.rewards,
-      badge: { type: "new", text: "নতুন" },
+      badge: { type: "new", text: "new" },
     },
     {
       to: "/referral",
@@ -234,7 +234,7 @@ const Navber = () => {
       to: "/games/fast",
       icon: FaBolt,
       label: t.fast,
-      badge: { type: "new", text: "নতুন" },
+      badge: { type: "new", text: "new" },
     },
     { to: "/games/fish", icon: FaFish, label: t.fish },
     { to: "/sportsbook", icon: FaFutbol, label: t.sportsBook },
@@ -273,11 +273,9 @@ const Navber = () => {
               >
                 <FaBars className="text-black/80" />
               </button>
-
+              {/* logo */}
               <Link to="/" className="flex items-center gap-2 select-none">
-                <span className="text-[30px] font-extrabold tracking-tight italic text-black">
-                  BABU<span className="text-[#f5b400]">88</span>
-                </span>
+                <img className="w-38 h-12 md:w-40 md:h-14 lg:w-64 lg:h-16" src="https://babu88.gold/static/svg/bb88_logo_animation2.gif" alt="" />
               </Link>
             </div>
 
@@ -537,8 +535,8 @@ const Navber = () => {
                     onClick={() => setLangOpen(true)}
                     className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-[14px] font-semibold text-black/70 hover:bg-black/5 transition"
                   >
-                    <span className="w-8 h-8 rounded-lg bg-black/5 flex items-center justify-center">
-                      <FaGlobe className="text-black/70" />
+                    <span className="w-8 h-8 text-2xl rounded-lg  flex items-center justify-center">
+                      <FaGlobe className="text-black/80" />
                     </span>
                     <span>{t.language}</span>
                   </button>
@@ -560,8 +558,8 @@ const Navber = () => {
                       onClick={handleLogout}
                       className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-[14px] font-semibold text-black/70 hover:bg-black/5 transition"
                     >
-                      <span className="w-8 h-8 rounded-lg bg-black/5 flex items-center justify-center">
-                        <FaSignOutAlt className="text-black/70" />
+                      <span className="w-8 h-8 rounded-lg text-2xl flex items-center justify-center">
+                        <FaSignOutAlt className="text-black/80" />
                       </span>
                       <span>Logout</span>
                     </button>

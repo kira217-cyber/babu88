@@ -9,7 +9,7 @@ const DownloadBanner = () => {
   const APK_URL = "https://example.com/your-app.apk"; // ✅ replace
 
   // 🔁 Right side image (mockup) এখানে বসাও
-  const RIGHT_IMAGE = "https://i.ibb.co/6bJt7m4/playtech.png"; // ✅ replace (your screenshot image)
+  const RIGHT_IMAGE = "https://i.ibb.co.com/3mq02syP/Screenshot-2026-02-07-203514-removebg-preview.png"; // ✅ replace (your screenshot image)
 
   const t = useMemo(
     () => ({

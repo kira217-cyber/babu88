@@ -49,29 +49,28 @@ const Banner = () => {
       {
         id: 1,
         bannerImg:
-          "https://images.unsplash.com/photo-1521412644187-c49fa049e84d?auto=format&fit=crop&w=1600&q=60",
-        youtube: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+          "https://jiliwin.9terawolf.com/cms/banner/image/bd-desktop-67c43f6590c1b.jpg",
         title: isBangla ? "বাবু৮৮ × কলম্বো স্ট্রাইকার্স" : "BABU88 X Colombo Strikers",
       },
       {
         id: 2,
         bannerImg:
-          "https://images.unsplash.com/photo-1542751110-97427bbecf20?auto=format&fit=crop&w=1600&q=60",
-        youtube: "https://www.youtube.com/watch?v=ysz5S6PUM-U",
+          "https://jiliwin.9terawolf.com/cms/banner/image/bd-desktop-689c462a80042.jpg",
+        youtube: "https://www.youtube.com/watch?v=aHkO3-0qgxI",
         title: isBangla ? "অফিসিয়াল পার্টনার" : "Official Partner",
       },
       {
         id: 3,
         bannerImg:
-          "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1600&q=60",
-        youtube: "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+          "https://jiliwin.9terawolf.com/cms/banner/image/bd-desktop-6973429dc7447.jpg",
+        youtube: "https://www.youtube.com/watch?v=gzLE4HAimek",
         title: isBangla ? "স্পোর্টস প্রমো" : "Sports Promo",
       },
       {
         id: 4,
         bannerImg:
-          "https://images.unsplash.com/photo-1520975682031-a6ad9e93f4d3?auto=format&fit=crop&w=1600&q=60",
-        youtube: "https://www.youtube.com/watch?v=aqz-KE-bpKQ",
+          "https://jiliwin.9terawolf.com/cms/banner/image/bd-desktop-69803ffca296c.jpg",
+        youtube: "https://www.youtube.com/watch?v=hcYiz1Q_yqI",
         title: isBangla ? "বড় ইভেন্ট" : "Big Event",
       },
     ],

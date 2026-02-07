@@ -1,5 +1,15 @@
 import React, { useMemo } from "react";
 
+// ✅ Flag URL map (no design change)
+const flagMap = {
+  BD: "https://flagsapi.com/BD/shiny/64.png", // Bangladesh
+  IN: "https://flagsapi.com/IN/shiny/64.png", // India
+  NP: "https://flagsapi.com/NP/shiny/64.png", // Nepal
+  AF: "https://flagsapi.com/AF/shiny/64.png", // Afghanistan
+  ZA: "https://flagsapi.com/ZA/shiny/64.png", // South Africa
+  JM: "https://flagsapi.com/JM/shiny/64.png", // Jamaica (West Indies)
+};
+
 const StatusBadge = ({ text, variant }) => {
   const cls =
     variant === "upcoming" ? "bg-black text-white" : "bg-[#ff2d2d] text-white"; // innings red
@@ -24,8 +34,8 @@ const LiveGames = () => {
         title: "ICC U19 World Cup",
         datetime: "Feb 04, 2026 13:30:00",
         teams: [
-          { name: "India U19", flag: "🇮🇳", score: "16/0 (3)" },
-          { name: "Afghanistan U19", flag: "🇦🇫", score: "310/4 (50)" },
+          { name: "India U19", countryCode: "IN", score: "16/0 (3)" },
+          { name: "Afghanistan U19", countryCode: "AF", score: "310/4 (50)" },
         ],
       },
       {
@@ -35,8 +45,8 @@ const LiveGames = () => {
         title: "ICC Mens T20 World Cup Warm-up Match",
         datetime: "Feb 04, 2026 15:30:00",
         teams: [
-          { name: "Afghanistan", flag: "🇦🇫", score: "182/6 (20)" },
-          { name: "West Indies", flag: "🇯🇲", score: "38/2 (4.4)" },
+          { name: "Afghanistan", countryCode: "AF", score: "182/6 (20)" },
+          { name: "West Indies", countryCode: "JM", score: "38/2 (4.4)" },
         ],
       },
       {
@@ -46,8 +56,19 @@ const LiveGames = () => {
         title: "Emirates D10 Tournament",
         datetime: "Feb 04, 2026 17:00:00",
         teams: [
-          { name: "Sharjah", flag: "🏏", score: "0/0 (0)" },
-          { name: "Dubai", flag: "🏏", score: "145/5 (9)" },
+          // Tournament team: flag not a country → using generic cricket icon image
+          {
+            name: "Sharjah",
+            countryCode: "GEN",
+            score: "0/0 (0)",
+            flagUrl: "https://cdn-icons-png.flaticon.com/512/502/502195.png",
+          },
+          {
+            name: "Dubai",
+            countryCode: "GEN",
+            score: "145/5 (9)",
+            flagUrl: "https://cdn-icons-png.flaticon.com/512/502/502195.png",
+          },
         ],
       },
       {
@@ -57,8 +78,18 @@ const LiveGames = () => {
         title: "Emirates D10 Tournament",
         datetime: "Feb 04, 2026 19:15:00",
         teams: [
-          { name: "Emirates Blues", flag: "🏏", score: "" },
-          { name: "Emirates Red", flag: "🏏", score: "" },
+          {
+            name: "Emirates Blues",
+            countryCode: "GEN",
+            score: "",
+            flagUrl: "https://cdn-icons-png.flaticon.com/512/502/502195.png",
+          },
+          {
+            name: "Emirates Red",
+            countryCode: "GEN",
+            score: "",
+            flagUrl: "https://cdn-icons-png.flaticon.com/512/502/502195.png",
+          },
         ],
       },
       {
@@ -68,8 +99,8 @@ const LiveGames = () => {
         title: "ICC Mens T20 World Cup",
         datetime: "Feb 04, 2026 19:30:00",
         teams: [
-          { name: "India", flag: "🇮🇳", score: "" },
-          { name: "South Africa", flag: "🇿🇦", score: "" },
+          { name: "India", countryCode: "IN", score: "" },
+          { name: "South Africa", countryCode: "ZA", score: "" },
         ],
       },
     ],
@@ -125,7 +156,17 @@ const LiveGames = () => {
                       className="flex items-center justify-between gap-3"
                     >
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-[18px]">{t.flag}</span>
+                        {/* ✅ Flag image only (no design change) */}
+                        <img
+                          src={
+                            t.flagUrl ||
+                            flagMap[t.countryCode] ||
+                            "https://cdn-icons-png.flaticon.com/512/502/502195.png"
+                          }
+                          alt={t.name}
+                          className="w-[18px] h-[18px] object-cover"
+                          loading="lazy"
+                        />
                         <p className="text-[13px] font-extrabold text-black truncate">
                           {t.name}
                         </p>

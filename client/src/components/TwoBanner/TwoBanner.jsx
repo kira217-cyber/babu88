@@ -7,8 +7,8 @@ const TwoBanner = () => {
   const { isBangla } = useLanguage();
 
   // 🔁 replace with your real banner images
-  const LEFT_BANNER = "https://i.ibb.co/3f8bPPv/habanero.png"; // replace
-  const RIGHT_BANNER = "https://i.ibb.co/4K3MZfM/smartsoft.png"; // replace
+  const LEFT_BANNER = "https://babu88.gold/static/image/homepage/refer_banner.jpg"; // replace
+  const RIGHT_BANNER = "https://babu88.gold/static/image/homepage/bb88_bp_1400_560.jpg"; // replace
 
   // Bilingual texts
   const title = isBangla

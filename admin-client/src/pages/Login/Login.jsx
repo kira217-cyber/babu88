@@ -81,7 +81,7 @@ const Login = () => {
             </label>
             <input
               className="w-full rounded-xl bg-slate-900/60 border border-purple-700/50 px-5 py-3.5 
-                         text-cyan-100 placeholder-purple-300 outline-none 
+                         text-cyan-100 placeholder-purple-300/50 outline-none 
                          focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 
                          transition-all duration-300 cursor-text"
               placeholder="email@example.com"
@@ -104,7 +104,7 @@ const Login = () => {
             </label>
             <input
               className="w-full rounded-xl bg-slate-900/60 border border-purple-700/50 px-5 py-3.5 
-                         text-cyan-100 placeholder-purple-300 outline-none 
+                         text-cyan-100 placeholder-purple-300/50 outline-none 
                          focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 
                          transition-all duration-300 pr-12 cursor-text"
               placeholder="••••••••"

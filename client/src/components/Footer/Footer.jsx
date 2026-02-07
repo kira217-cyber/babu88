@@ -208,11 +208,11 @@ const Footer = () => {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6">
             {sponsors.map((s) => (
               <div key={s._id || s.name} className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden">
+                <div className="h-10 w-10 rounded-lg flex items-center justify-center overflow-hidden">
                   <img
                     src={`${BASE_URL}${s.img}`}
                     alt={s.name}
-                    className="h-9 w-9 object-contain opacity-95"
+                    className="h-10 w-10 object-contain"
                     loading="lazy"
                   />
                 </div>
@@ -241,7 +241,7 @@ const Footer = () => {
                   t.paymentMethods}
               </h3>
 
-              <div className="flex flex-wrap items-center gap-6">
+              <div className="flex flex-wrap items-center gap-2">
                 {payments.map((p) => (
                   <div
                     key={p._id || p.name}
@@ -266,7 +266,7 @@ const Footer = () => {
                   ?.responsibleGaming || t.responsibleGaming}
               </h3>
 
-              <div className="flex items-center justify-start lg:justify-start gap-4">
+              <div className="flex items-center justify-start lg:justify-start">
                 {responsible.map((r) => (
                   <div
                     key={r._id || r.name}
