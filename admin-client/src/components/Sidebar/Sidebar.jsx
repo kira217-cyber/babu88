@@ -82,7 +82,7 @@ const Sidebar = () => {
     { to: "/controller/payment-method", text: "Payment Method Image" },
     { to: "/controller/social", text: "Social Link Controller" },
     { to: "/controller/bottom-navbar", text: "Bottom Navbar Controller" },
-    { to: "/controller/footer", text: "Footer Controller" },
+    { to: "/footer-controller", text: "Footer Controller" },
   ];
 
   const handleLogout = () => {

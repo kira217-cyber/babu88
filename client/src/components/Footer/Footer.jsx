@@ -6,12 +6,35 @@ import {
   FaInstagram,
   FaXTwitter,
 } from "react-icons/fa6";
-import { useLanguage } from "../../Context/LanguageProvider"; // adjust path if needed
+import { useLanguage } from "../../Context/LanguageProvider";
+import { useQuery } from "@tanstack/react-query";
+import Skeleton from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
+import { api } from "../../api/axios";
+
+const BASE_URL = import.meta.env.VITE_API_URL;
+
+const fetchFooterData = async () => {
+  const { data } = await api.get("/api/footer");
+  return data;
+};
 
 const Footer = () => {
   const { isBangla } = useLanguage();
 
-  // All bilingual texts in one place
+  // API থেকে ডেটা লোড
+  const {
+    data: footerData,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["footer"],
+    queryFn: fetchFooterData,
+    staleTime: 5 * 60 * 1000, // 5 মিনিট ক্যাশে রাখবে
+    retry: 1,
+  });
+
+  // Bilingual texts fallback (যদি API থেকে না আসে)
   const t = useMemo(
     () => ({
       brandAmbassadors: isBangla
@@ -31,83 +54,113 @@ const Footer = () => {
         ? "বাংলাদেশের বিশ্বস্ত অনলাইন ক্যাসিনো এবং ক্রিকেট এক্সচেঞ্জ"
         : "Bangladesh's Trusted Online Casino and Cricket Exchange",
       description: isBangla
-        ? "Babu88 হল বাংলাদেশের প্রথম অনলাইন ক্যাসিনো, মোবাইল এবং ডেস্কটপ ব্যবহারকারীদের জন্য বিভিন্ন ধরনের গেম অফার করে। খেলোয়াড়রা অনলাইনে আসল টাকা জেতার সুযোগ সহ স্লট, পোকার, ব্যাকারাট, ব্ল্যাকজ্যাক এবং অন্যান্য ক্রিকেট এক্সচেঞ্জ গেম উপভোগ করতে পারে। আমাদের প্ল্যাটফর্ম সর্বোচ্চ নিরাপত্তা এবং দ্রুত লেনদেনের নিশ্চয়তা দেয়। আমরা 24/7 সাপোর্ট প্রদান করি যাতে আপনার অভিজ্ঞতা সবসময় স্মুথ থাকে।"
-        : "Babu88 is Bangladesh's premier online casino, offering a wide variety of games for both mobile and desktop users. Players can enjoy slots, poker, baccarat, blackjack, and other cricket exchange games with the chance to win real money online. Our platform guarantees maximum security and fast transactions. We provide 24/7 support to ensure your experience is always smooth.",
+        ? footerData?.description_bn ||
+          "Babu88 হল বাংলাদেশের প্রথম অনলাইন ক্যাসিনো..."
+        : footerData?.description_en ||
+          "Babu88 is Bangladesh's premier online casino...",
       official: isBangla ? "অফিসিয়াল" : "Official",
     }),
-    [isBangla],
+    [isBangla, footerData],
   );
 
-  // Data remains the same (images/alt can stay as-is or become dynamic if needed)
-  const data = useMemo(
-    () => ({
-      ambassadors: [
-        {
-          name: "Samira Mahi Khan",
-          season: "2024/2025",
-          img: "https://i.ibb.co/7kQ5m2m/jili.png",
-        },
-        {
-          name: "Apu Biswas",
-          season: "2023/2024",
-          img: "https://i.ibb.co/YfQb0yD/pg.png",
-        },
-      ],
-      sponsors: [
-        {
-          name: "Vegas Vikings",
-          season: "2025/2026",
-          img: "https://i.ibb.co/2Sg9P4w/inout.png",
-        },
-        {
-          name: "Sudurpaschim Royals",
-          season: "2024/2025",
-          img: "https://i.ibb.co/8D2K2bD/jdb.png",
-        },
-        {
-          name: "Telugu Warriors",
-          season: "2024/2025",
-          img: "https://i.ibb.co/mB3z6tF/bng.png",
-        },
-        {
-          name: "Colombo Strikers",
-          season: "2024/2025",
-          img: "https://i.ibb.co/3f8bPPv/habanero.png",
-        },
-        {
-          name: "Grand Cayman Jaguars",
-          season: "2024/2025",
-          img: "https://i.ibb.co/4K3MZfM/smartsoft.png",
-        },
-        {
-          name: "Montreal Tigers",
-          season: "2023/2024",
-          img: "https://i.ibb.co/5h1sZsQ/microgaming.png",
-        },
-        {
-          name: "Dambulla Aurea",
-          season: "2023/2024",
-          img: "https://i.ibb.co/9yQ3PpH/onegame.png",
-        },
-        {
-          name: "Northern Warriors",
-          season: "2023/2024",
-          img: "https://i.ibb.co/6bJt7m4/playtech.png",
-        },
-      ],
-      payments: [
-        { name: "bKash", img: "https://i.ibb.co/0GZK9XJ/netent.png" },
-        { name: "Nagad", img: "https://i.ibb.co/vc2qKc9/nolimit.png" },
-        { name: "Rocket", img: "https://i.ibb.co/8Y7dB3f/relax.png" },
-        { name: "Upay", img: "https://i.ibb.co/3mKcQ9t/pragmatic.png" },
-      ],
-      responsible: [
-        { name: "18+", img: "https://i.ibb.co/1Zp3f9j/spade.png" },
-        { name: "GamCare", img: "https://i.ibb.co/1Mck7Wb/playngo.png" },
-      ],
-    }),
-    [],
-  );
+  // API থেকে আসা ডেটা বা fallback
+  const ambassadors = footerData?.ambassadors || [];
+  const sponsors = footerData?.sponsors || [];
+  const payments = footerData?.payments || [];
+  const responsible = footerData?.responsible || [];
+  const social = footerData?.social || {};
+  const logo = footerData?.logo ? `${BASE_URL}${footerData.logo}` : "";
+
+  if (isLoading) {
+    return (
+      <footer className="w-full bg-transparent text-white mb-8 md:mb-0">
+        <div className="mx-auto max-w-[1500px] px-4 sm:px-6 py-10">
+          <div className="border-t border-dotted border-white/25 mb-10" />
+
+          {/* Skeleton for Brand Ambassadors */}
+          <div className="py-10">
+            <Skeleton width={220} height={28} className="mb-6" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <Skeleton circle width={64} height={64} />
+                  <div>
+                    <Skeleton width={140} height={20} className="mb-2" />
+                    <Skeleton width={100} height={16} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* অন্যান্য সেকশনের জন্য skeleton */}
+          <div className="py-10">
+            <Skeleton width={180} height={28} className="mb-6" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6">
+              {[...Array(8)].map((_, i) => (
+                <Skeleton key={i} height={80} />
+              ))}
+            </div>
+          </div>
+
+          <div className="border-t border-dotted border-white/25 my-10" />
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+            <div>
+              <Skeleton width={180} height={28} className="mb-6" />
+              <div className="flex flex-wrap gap-6">
+                {[...Array(4)].map((_, i) => (
+                  <Skeleton key={i} width={96} height={40} />
+                ))}
+              </div>
+            </div>
+            <div>
+              <Skeleton width={220} height={28} className="mb-6" />
+              <div className="flex gap-4">
+                {[...Array(2)].map((_, i) => (
+                  <Skeleton key={i} width={112} height={48} />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom skeleton */}
+          <div className="py-10">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+              <div>
+                <Skeleton width={192} height={48} className="mb-4" />
+                <Skeleton width={300} height={24} className="mb-2" />
+                <Skeleton width={220} height={20} />
+              </div>
+              <div className="lg:text-center">
+                <Skeleton width={140} height={28} className="mb-6 mx-auto" />
+                <div className="flex justify-center gap-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Skeleton key={i} circle width={48} height={48} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-dotted border-white/25 mt-10" />
+
+          <div className="pt-8">
+            <Skeleton width={280} height={28} className="mb-4" />
+            <Skeleton count={5} height={20} className="mt-2" />
+          </div>
+        </div>
+      </footer>
+    );
+  }
+
+  if (isError) {
+    return (
+      <footer className="w-full bg-transparent text-white py-10 text-center">
+        <p className="text-red-400">Failed to load footer content</p>
+      </footer>
+    );
+  }
 
   return (
     <footer className="w-full bg-[#3b3b3b] text-white mb-8 md:mb-0">
@@ -117,15 +170,16 @@ const Footer = () => {
         {/* Brand Ambassadors */}
         <section className="py-10">
           <h3 className="text-[#f5b400] font-extrabold text-lg mb-6">
-            {t.brandAmbassadors}
+            {footerData?.texts?.[isBangla ? "bn" : "en"]?.brandAmbassadors ||
+              t.brandAmbassadors}
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {data.ambassadors.map((a) => (
-              <div key={a.name} className="flex items-center gap-1">
+            {ambassadors.map((a) => (
+              <div key={a._id || a.name} className="flex items-center gap-1">
                 <div className="h-12 w-16 flex items-center justify-start">
                   <img
-                    src={a.img}
+                    src={`${BASE_URL}${a.img}`}
                     alt={a.name}
                     className="max-h-12 w-auto object-contain opacity-90"
                     loading="lazy"
@@ -147,15 +201,16 @@ const Footer = () => {
         {/* Sponsorship */}
         <section className="py-10">
           <h3 className="text-[#f5b400] font-extrabold text-lg mb-6">
-            {t.sponsorship}
+            {footerData?.texts?.[isBangla ? "bn" : "en"]?.sponsorship ||
+              t.sponsorship}
           </h3>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6">
-            {data.sponsors.map((s) => (
-              <div key={s.name} className="flex items-center gap-3">
+            {sponsors.map((s) => (
+              <div key={s._id || s.name} className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden">
                   <img
-                    src={s.img}
+                    src={`${BASE_URL}${s.img}`}
                     alt={s.name}
                     className="h-9 w-9 object-contain opacity-95"
                     loading="lazy"
@@ -182,18 +237,19 @@ const Footer = () => {
             {/* Payments */}
             <div>
               <h3 className="text-[#f5b400] font-extrabold text-lg mb-6">
-                {t.paymentMethods}
+                {footerData?.texts?.[isBangla ? "bn" : "en"]?.paymentMethods ||
+                  t.paymentMethods}
               </h3>
 
               <div className="flex flex-wrap items-center gap-6">
-                {data.payments.map((p) => (
+                {payments.map((p) => (
                   <div
-                    key={p.name}
+                    key={p._id || p.name}
                     className="h-10 w-24 flex items-center justify-start opacity-80 hover:opacity-100 transition"
                     title={p.name}
                   >
                     <img
-                      src={p.img}
+                      src={`${BASE_URL}${p.img}`}
                       alt={p.name}
                       className="max-h-10 w-auto object-contain"
                       loading="lazy"
@@ -206,18 +262,19 @@ const Footer = () => {
             {/* Responsible */}
             <div className="lg:text-start">
               <h3 className="text-[#f5b400] font-extrabold text-lg mb-6">
-                {t.responsibleGaming}
+                {footerData?.texts?.[isBangla ? "bn" : "en"]
+                  ?.responsibleGaming || t.responsibleGaming}
               </h3>
 
               <div className="flex items-center justify-start lg:justify-start gap-4">
-                {data.responsible.map((r) => (
+                {responsible.map((r) => (
                   <div
-                    key={r.name}
+                    key={r._id || r.name}
                     className="h-12 w-28 flex items-center justify-start opacity-70 hover:opacity-100 transition"
                     title={r.name}
                   >
                     <img
-                      src={r.img}
+                      src={`${BASE_URL}${r.img}`}
                       alt={r.name}
                       className="max-h-12 w-auto object-contain"
                       loading="lazy"
@@ -238,59 +295,79 @@ const Footer = () => {
             <div>
               <div className="flex items-end gap-3">
                 <div className="select-none">
-                  <p className="text-[34px] font-extrabold italic leading-none">
-                    BABU<span className="text-[#f5b400]">88</span>
-                  </p>
-                  <p className="text-white/90 font-bold italic -mt-1">
-                    {t.official}
-                  </p>
+                  <img
+                    className="w-48 h-12"
+                    src={
+                      logo ||
+                      "https://i.ibb.co.com/LhrtCJcH/babu88-official.png"
+                    }
+                    alt="Logo"
+                    loading="lazy"
+                  />
                 </div>
               </div>
 
-              <p className="mt-4 text-[#f5b400] font-extrabold">{t.tagline}</p>
+              <p className="mt-4 text-[#f5b400] font-extrabold">
+                {footerData?.texts?.[isBangla ? "bn" : "en"]?.tagline ||
+                  t.tagline}
+              </p>
 
-              <p className="mt-2 text-white/80 font-semibold">{t.copyright}</p>
+              <p className="mt-2 text-white/80 font-semibold">
+                {footerData?.texts?.[isBangla ? "bn" : "en"]?.copyright ||
+                  t.copyright}
+              </p>
             </div>
 
             {/* Right: Follow Us */}
             <div className="lg:text-center">
               <h3 className="text-[#f5b400] font-extrabold text-lg mb-6">
-                {t.followUs}
+                {footerData?.texts?.[isBangla ? "bn" : "en"]?.followUs ||
+                  t.followUs}
               </h3>
 
               <div className="flex items-center gap-4 justify-start lg:justify-center">
                 <a
-                  href="#"
-                  className="h-12 w-12 rounded-full bg-white/15 hover:bg-white/25 transition flex items-center justify-center"
+                  href={social.facebook || "#"}
+                  className="h-12 w-12 rounded-full bg-white/15 hover:bg-white/25 transition flex items-center justify-center cursor-pointer"
                   aria-label="Facebook"
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
                   <FaFacebookF className="text-white text-xl" />
                 </a>
                 <a
-                  href="#"
-                  className="h-12 w-12 rounded-full bg-white/15 hover:bg-white/25 transition flex items-center justify-center"
+                  href={social.youtube || "#"}
+                  className="h-12 w-12 rounded-full bg-white/15 hover:bg-white/25 transition flex items-center justify-center cursor-pointer"
                   aria-label="YouTube"
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
                   <FaYoutube className="text-white text-xl" />
                 </a>
                 <a
-                  href="#"
-                  className="h-12 w-12 rounded-full bg-white/15 hover:bg-white/25 transition flex items-center justify-center"
+                  href={social.instagram || "#"}
+                  className="h-12 w-12 rounded-full bg-white/15 hover:bg-white/25 transition flex items-center justify-center cursor-pointer"
                   aria-label="Instagram"
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
                   <FaInstagram className="text-white text-xl" />
                 </a>
                 <a
-                  href="#"
-                  className="h-12 w-12 rounded-full bg-white/15 hover:bg-white/25 transition flex items-center justify-center"
+                  href={social.twitter || "#"}
+                  className="h-12 w-12 rounded-full bg-white/15 hover:bg-white/25 transition flex items-center justify-center cursor-pointer"
                   aria-label="X"
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
                   <FaXTwitter className="text-white text-xl" />
                 </a>
                 <a
-                  href="#"
-                  className="h-12 w-12 rounded-full bg-white/15 hover:bg-white/25 transition flex items-center justify-center"
+                  href={social.telegram || "#"}
+                  className="h-12 w-12 rounded-full bg-white/15 hover:bg-white/25 transition flex items-center justify-center cursor-pointer"
                   aria-label="Telegram"
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
                   <FaTelegramPlane className="text-white text-xl" />
                 </a>
@@ -304,11 +381,13 @@ const Footer = () => {
         {/* Long description */}
         <section className="pt-8">
           <h3 className="text-[#f5b400] font-extrabold text-lg">
-            {t.trustedCasino}
+            {footerData?.texts?.[isBangla ? "bn" : "en"]?.trustedCasino ||
+              t.trustedCasino}
           </h3>
 
           <p className="mt-4 text-white/75 leading-relaxed font-medium">
-            {t.description}
+            {footerData?.texts?.[isBangla ? "bn" : "en"]?.description ||
+              t.description}
           </p>
         </section>
       </div>

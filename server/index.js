@@ -5,6 +5,7 @@ import cors from "cors";
 import connectDB from "./config/db.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import sliderRoutes from "./routes/sliderRoutes.js";
+import footerRoutes from "./routes/footerRoutes.js"; 
 
 
 
@@ -32,6 +33,7 @@ app.get("/", (req, res) => {
 // ✅ routes
 app.use("/api/admin", adminRoutes);
 app.use("/api/sliders", sliderRoutes);
+app.use("/api", footerRoutes);
 
 // ✅ port
 const PORT = process.env.PORT || 5008;

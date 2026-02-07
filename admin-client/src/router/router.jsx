@@ -9,6 +9,7 @@ import Deposit from "../pages/Deposit/Deposit";
 import PrivateRoute from "../PrivateRoute/PrivateRoute";
 import Profile from "../pages/Profile/Profile";
 import SliderController from "../pages/SliderController/SliderController";
+import FooterController from "../pages/FooterController/FooterController";
 
 export const routes = createBrowserRouter([
   {
@@ -60,6 +61,14 @@ export const routes = createBrowserRouter([
         element: (
           <PrivateRoute>
             <SliderController />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "footer-controller",
+        element: (
+          <PrivateRoute>
+            <FooterController />
           </PrivateRoute>
         ),
       },

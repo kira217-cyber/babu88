@@ -3,7 +3,7 @@ import React from "react";
 const SingleBanner = () => {
   // 🔁 এখানে তোমার আসল banner image URL বসাও
   const BANNER_IMG =
-    "https://i.ibb.co/5c0d7c21-fedc-4662-90f2-6d7da4d910f3/banner.png"; // replace
+    "https://jiliwin.9terawolf.com/images/babu/banner/ambas/bb88_banner-SKM.jpg"; // replace
 
   // ✅ Optional: banner click link (না চাইলে null রাখো)
   const CLICK_LINK = null; // e.g. "/register" or "https://example.com"
