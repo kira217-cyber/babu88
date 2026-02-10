@@ -10,6 +10,8 @@ import PrivateRoute from "../PrivateRoute/PrivateRoute";
 import Profile from "../pages/Profile/Profile";
 import SliderController from "../pages/SliderController/SliderController";
 import FooterController from "../pages/FooterController/FooterController";
+import NoticeController from "../pages/NoticeController/NoticeController";
+import DownloadBannerController from "../pages/DownloadBannerController/DownloadBannerController";
 
 export const routes = createBrowserRouter([
   {
@@ -69,6 +71,22 @@ export const routes = createBrowserRouter([
         element: (
           <PrivateRoute>
             <FooterController />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "notice-controller",
+        element: (
+          <PrivateRoute>
+            <NoticeController />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "download-banner-controller",
+        element: (
+          <PrivateRoute>
+            <DownloadBannerController />
           </PrivateRoute>
         ),
       },

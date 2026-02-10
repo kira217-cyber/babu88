@@ -6,6 +6,8 @@ import connectDB from "./config/db.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import sliderRoutes from "./routes/sliderRoutes.js";
 import footerRoutes from "./routes/footerRoutes.js"; 
+import noticeRoutes from "./routes/noticeRoutes.js";
+import downloadRoutes from "./routes/downloadRoutes.js";
 
 
 
@@ -34,6 +36,8 @@ app.get("/", (req, res) => {
 app.use("/api/admin", adminRoutes);
 app.use("/api/sliders", sliderRoutes);
 app.use("/api", footerRoutes);
+app.use("/api", noticeRoutes);
+app.use("/api", downloadRoutes);
 
 // ✅ port
 const PORT = process.env.PORT || 5008;
