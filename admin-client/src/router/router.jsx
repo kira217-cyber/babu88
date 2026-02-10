@@ -12,6 +12,7 @@ import SliderController from "../pages/SliderController/SliderController";
 import FooterController from "../pages/FooterController/FooterController";
 import NoticeController from "../pages/NoticeController/NoticeController";
 import DownloadBannerController from "../pages/DownloadBannerController/DownloadBannerController";
+import BannerController from "../pages/BannerController/BannerController";
 
 export const routes = createBrowserRouter([
   {
@@ -87,6 +88,14 @@ export const routes = createBrowserRouter([
         element: (
           <PrivateRoute>
             <DownloadBannerController />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "banner-video-controller",
+        element: (
+          <PrivateRoute>
+            <BannerController />
           </PrivateRoute>
         ),
       },

@@ -78,6 +78,7 @@ const Sidebar = () => {
     { to: "/controller/slider2", text: "Slider 2 Controller" },
     { to: "/notice-controller", text: "Notice Controller" },
     { to: "/controller/favivon-icon-title", text: "Favicon And Title" },
+    { to: "/banner-video-Controller", text: "Banner Video Controller" },
     { to: "/download-banner-controller", text: "Download Banner Controller" },
     { to: "/controller/payment-method", text: "Payment Method Image" },
     { to: "/controller/social", text: "Social Link Controller" },
@@ -108,7 +109,10 @@ const Sidebar = () => {
             <FaBell className="text-xl text-cyan-200 hover:text-white transition-colors" />
             <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-pink-500 rounded-full ring-2 ring-pink-400/60"></span>
           </button>
-         <Link to={'/profile'}> <FaUserCircle className="text-2xl text-cyan-200 hover:text-white transition-colors cursor-pointer" /></Link>
+          <Link to={"/profile"}>
+            {" "}
+            <FaUserCircle className="text-2xl text-cyan-200 hover:text-white transition-colors cursor-pointer" />
+          </Link>
         </div>
       </div>
 

@@ -8,6 +8,7 @@ import sliderRoutes from "./routes/sliderRoutes.js";
 import footerRoutes from "./routes/footerRoutes.js"; 
 import noticeRoutes from "./routes/noticeRoutes.js";
 import downloadRoutes from "./routes/downloadRoutes.js";
+import bannerVideoRoutes from "./routes/bannerVideoRoutes.js";
 
 
 
@@ -38,6 +39,7 @@ app.use("/api/sliders", sliderRoutes);
 app.use("/api", footerRoutes);
 app.use("/api", noticeRoutes);
 app.use("/api", downloadRoutes);
+app.use("/api", bannerVideoRoutes);
 
 // ✅ port
 const PORT = process.env.PORT || 5008;

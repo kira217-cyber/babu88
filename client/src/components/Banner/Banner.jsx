@@ -4,21 +4,30 @@ import { Autoplay, Pagination, Controller } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 import { useLanguage } from "../../Context/LanguageProvider";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "../../api/axios";
+import Skeleton from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
 
-// ✅ YouTube embed helper (updated: add origin + api)
 const toEmbedUrl = (url) => {
   try {
     const u = new URL(url);
     let id = "";
     if (u.hostname.includes("youtu.be")) id = u.pathname.replace("/", "");
     if (u.hostname.includes("youtube.com")) id = u.searchParams.get("v") || "";
-    if (!id && url.includes("embed/")) id = url.split("embed/")[1]?.split("?")[0] || "";
+    if (!id && url.includes("embed/"))
+      id = url.split("embed/")[1]?.split("?")[0] || "";
 
     const origin = encodeURIComponent(window.location.origin);
     return `https://www.youtube.com/embed/${id}?rel=0&modestbranding=1&playsinline=1&enablejsapi=1&origin=${origin}`;
   } catch {
     return url;
   }
+};
+
+const fetchBanners = async () => {
+  const { data } = await api.get("/api/banner-videos?active=true");
+  return data;
 };
 
 const Banner = () => {
@@ -30,11 +39,20 @@ const Banner = () => {
   const bgSwiperRef = useRef(null);
   const videoSwiperRef = useRef(null);
 
-  // ✅ keep track of youtube players for all iframes
   const ytPlayersRef = useRef(new Map());
   const ytApiReadyRef = useRef(false);
 
-  // Translations – unchanged
+  const {
+    data: banners = [],
+    isLoading,
+    isFetching,
+    isError,
+  } = useQuery({
+    queryKey: ["banner-videos"],
+    queryFn: fetchBanners,
+    staleTime: 1000 * 60 * 5,
+  });
+
   const t = useMemo(
     () => ({
       sports: isBangla ? "বাবু৮৮ স্পোর্টস" : "BABU88 SPORTS",
@@ -44,46 +62,21 @@ const Banner = () => {
     [isBangla],
   );
 
-  const slides = useMemo(
-    () => [
-      {
-        id: 1,
-        bannerImg:
-          "https://jiliwin.9terawolf.com/cms/banner/image/bd-desktop-67c43f6590c1b.jpg",
-        title: isBangla ? "বাবু৮৮ × কলম্বো স্ট্রাইকার্স" : "BABU88 X Colombo Strikers",
-      },
-      {
-        id: 2,
-        bannerImg:
-          "https://jiliwin.9terawolf.com/cms/banner/image/bd-desktop-689c462a80042.jpg",
-        youtube: "https://www.youtube.com/watch?v=aHkO3-0qgxI",
-        title: isBangla ? "অফিসিয়াল পার্টনার" : "Official Partner",
-      },
-      {
-        id: 3,
-        bannerImg:
-          "https://jiliwin.9terawolf.com/cms/banner/image/bd-desktop-6973429dc7447.jpg",
-        youtube: "https://www.youtube.com/watch?v=gzLE4HAimek",
-        title: isBangla ? "স্পোর্টস প্রমো" : "Sports Promo",
-      },
-      {
-        id: 4,
-        bannerImg:
-          "https://jiliwin.9terawolf.com/cms/banner/image/bd-desktop-69803ffca296c.jpg",
-        youtube: "https://www.youtube.com/watch?v=hcYiz1Q_yqI",
-        title: isBangla ? "বড় ইভেন্ট" : "Big Event",
-      },
-    ],
-    [isBangla],
-  );
+  const slides = useMemo(() => {
+    return banners.map((b) => ({
+      id: b._id,
+      bannerImg: `${api.defaults.baseURL}${b.bannerImg}`,
+      youtube: b.youtube || "",
+      title: isBangla ? b.titleBn : b.titleEn,
+    }));
+  }, [banners, isBangla]);
 
-  // ✅ Load YouTube Iframe API once
+  // ✅ hooks ALWAYS run (no early return before this)
   useEffect(() => {
     const ensureYTApi = () =>
       new Promise((resolve) => {
         if (window.YT && window.YT.Player) return resolve(true);
 
-        // if script already added, wait for it
         const existing = document.getElementById("yt-iframe-api");
         if (existing) {
           const check = setInterval(() => {
@@ -95,13 +88,11 @@ const Banner = () => {
           return;
         }
 
-        // add script
         const tag = document.createElement("script");
         tag.id = "yt-iframe-api";
         tag.src = "https://www.youtube.com/iframe_api";
         document.body.appendChild(tag);
 
-        // youtube calls global function when ready
         window.onYouTubeIframeAPIReady = () => resolve(true);
       });
 
@@ -110,21 +101,19 @@ const Banner = () => {
     });
   }, []);
 
-  // ✅ create players after render (and whenever slides change language)
   useEffect(() => {
     if (!ytApiReadyRef.current) return;
     if (!window.YT || !window.YT.Player) return;
 
     const onStateChange = (e) => {
-      // states: 1 playing, 2 paused, 0 ended
       if (e.data === 1) setShouldAutoplay(false);
       if (e.data === 2 || e.data === 0) setShouldAutoplay(true);
     };
 
-    // create players for any iframe not registered yet
+    // ✅ only create players for slides that have youtube
     slides.forEach((s) => {
+      if (!s.youtube) return;
       const iframeId = `yt-iframe-${s.id}`;
-
       if (ytPlayersRef.current.has(iframeId)) return;
       const el = document.getElementById(iframeId);
       if (!el) return;
@@ -134,23 +123,43 @@ const Banner = () => {
           events: { onStateChange },
         });
         ytPlayersRef.current.set(iframeId, player);
-      } catch {
-        // ignore if player fails (rare)
-      }
+      } catch {}
     });
-
-    return () => {
-      // cleanup players on unmount
-      // (don’t destroy between language toggles; just let it be handled by React re-render)
-    };
   }, [slides]);
 
-  // ✅ helper: unique iframe id
+  // ✅ after all hooks, now safe to return conditionally
+  if (isLoading || isFetching) {
+    return (
+      <section className="w-full">
+        <div className="hidden lg:block w-full mx-auto max-w-[1500px]">
+          <div className="relative w-full overflow-hidden rounded-3xl border border-white/10">
+            <div className="h-[390px] w-full">
+              <Skeleton height={"100%"} />
+            </div>
+          </div>
+        </div>
+
+        <div className="lg:hidden w-full">
+          <div className="mx-auto w-full max-w-[520px] px-2 py-3">
+            <div className="rounded-xl overflow-hidden border border-white/10">
+              <div className="aspect-[16/9] w-full">
+                <Skeleton height={"100%"} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (isError) return null;
+  if (!slides.length) return null;
+
   const iframeId = (slideId) => `yt-iframe-${slideId}`;
 
   return (
     <section className="w-full">
-      {/* =================== MOBILE (video only) =================== */}
+      {/* MOBILE */}
       <div className="lg:hidden w-full">
         <div className="mx-auto w-full max-w-[520px] px-2 py-3">
           <div className="relative w-full">
@@ -158,7 +167,11 @@ const Banner = () => {
               modules={[Autoplay, Pagination]}
               loop
               speed={650}
-              autoplay={shouldAutoplay ? { delay: 3000, disableOnInteraction: false } : false}
+              autoplay={
+                shouldAutoplay
+                  ? { delay: 3000, disableOnInteraction: false }
+                  : false
+              }
               pagination={{
                 el: ".mobile-dots",
                 clickable: true,
@@ -172,15 +185,25 @@ const Banner = () => {
                 <SwiperSlide key={s.id}>
                   <div className="relative w-full rounded-xl overflow-hidden border border-white/10">
                     <div className="aspect-[16/9] w-full">
-                      <iframe
-                        id={iframeId(s.id)}
-                        className="w-full h-full"
-                        src={toEmbedUrl(s.youtube)}
-                        title={s.title}
-                        frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        allowFullScreen
-                      />
+                      {s.youtube ? (
+                        <iframe
+                          id={iframeId(s.id)}
+                          className="w-full h-full"
+                          src={toEmbedUrl(s.youtube)}
+                          title={s.title}
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                          allowFullScreen
+                        />
+                      ) : (
+                        <img
+                          src={s.bannerImg}
+                          alt={s.title}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                          draggable={false}
+                        />
+                      )}
                     </div>
                   </div>
                 </SwiperSlide>
@@ -192,17 +215,20 @@ const Banner = () => {
         </div>
       </div>
 
-      {/* =================== DESKTOP/LAPTOP =================== */}
+      {/* DESKTOP */}
       <div className="hidden lg:block w-full mx-auto max-w-[1500px]">
         <div className="relative w-full overflow-hidden rounded-3xl border border-white/10 ">
-          {/* Background slider */}
           <Swiper
             modules={[Autoplay, Controller]}
             onSwiper={(s) => (bgSwiperRef.current = s)}
             controller={{ control: videoSwiperRef.current }}
             loop
             speed={650}
-            autoplay={shouldAutoplay ? { delay: 3000, disableOnInteraction: false } : false}
+            autoplay={
+              shouldAutoplay
+                ? { delay: 3000, disableOnInteraction: false }
+                : false
+            }
             onSlideChange={(s) => setActive(s.realIndex)}
             className="w-full"
           >
@@ -221,7 +247,6 @@ const Banner = () => {
             ))}
           </Swiper>
 
-          {/* Floating video */}
           <div className="absolute right-6 top-1/2 -translate-y-1/2 z-[30] w-[520px] xl:w-[560px]">
             <Swiper
               modules={[Autoplay, Pagination, Controller]}
@@ -229,7 +254,11 @@ const Banner = () => {
               controller={{ control: bgSwiperRef.current }}
               loop
               speed={650}
-              autoplay={shouldAutoplay ? { delay: 3000, disableOnInteraction: false } : false}
+              autoplay={
+                shouldAutoplay
+                  ? { delay: 3000, disableOnInteraction: false }
+                  : false
+              }
               pagination={{
                 el: ".desktop-dots",
                 clickable: true,
@@ -243,15 +272,25 @@ const Banner = () => {
                 <SwiperSlide key={s.id}>
                   <div className="relative rounded-3xl overflow-hidden bg-black border border-white/10">
                     <div className="aspect-[16/9] w-full">
-                      <iframe
-                        id={iframeId(s.id)}
-                        className="w-full h-full"
-                        src={toEmbedUrl(s.youtube)}
-                        title={s.title}
-                        frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        allowFullScreen
-                      />
+                      {s.youtube ? (
+                        <iframe
+                          id={iframeId(s.id)}
+                          className="w-full h-full"
+                          src={toEmbedUrl(s.youtube)}
+                          title={s.title}
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                          allowFullScreen
+                        />
+                      ) : (
+                        <img
+                          src={s.bannerImg}
+                          alt={s.title}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                          draggable={false}
+                        />
+                      )}
                     </div>
                   </div>
                 </SwiperSlide>
@@ -261,21 +300,22 @@ const Banner = () => {
             <div className="mt-4 flex items-center justify-center gap-2 desktop-dots" />
           </div>
 
-          {/* Left branding text – unchanged */}
           <div className="absolute left-10 top-1/2 -translate-y-1/2 z-[20] max-w-[42%]">
-            <p className="text-white/90 font-extrabold tracking-widest text-sm">{t.sports}</p>
-            <h2 className="mt-2 text-white font-extrabold text-4xl leading-tight">{t.partner}</h2>
+            <p className="text-white/90 font-extrabold tracking-widest text-sm">
+              {t.sports}
+            </p>
+            <h2 className="mt-2 text-white font-extrabold text-4xl leading-tight">
+              {t.partner}
+            </h2>
             <p className="mt-2 text-white/85 font-bold text-lg">{t.strikers}</p>
           </div>
 
-          {/* Slide counter */}
           <div className="absolute right-6 bottom-4 z-[25] text-white/70 text-xs font-bold">
             {active + 1}/{slides.length}
           </div>
         </div>
       </div>
 
-      {/* Custom pagination bullets – unchanged */}
       <style>{`
         .banner-bullet{
           width:10px;
