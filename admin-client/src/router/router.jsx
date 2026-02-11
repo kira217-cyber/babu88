@@ -13,6 +13,8 @@ import FooterController from "../pages/FooterController/FooterController";
 import NoticeController from "../pages/NoticeController/NoticeController";
 import DownloadBannerController from "../pages/DownloadBannerController/DownloadBannerController";
 import BannerController from "../pages/BannerController/BannerController";
+import TwoBannerController from "../pages/TwoBannerController/TwoBannerController";
+import SingleBannerController from "../pages/SingleBannerController/SingleBannerController";
 
 export const routes = createBrowserRouter([
   {
@@ -96,6 +98,22 @@ export const routes = createBrowserRouter([
         element: (
           <PrivateRoute>
             <BannerController />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "two-banner-controller",
+        element: (
+          <PrivateRoute>
+            <TwoBannerController />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "single-banner-controller",
+        element: (
+          <PrivateRoute>
+            <SingleBannerController />
           </PrivateRoute>
         ),
       },

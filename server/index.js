@@ -9,6 +9,11 @@ import footerRoutes from "./routes/footerRoutes.js";
 import noticeRoutes from "./routes/noticeRoutes.js";
 import downloadRoutes from "./routes/downloadRoutes.js";
 import bannerVideoRoutes from "./routes/bannerVideoRoutes.js";
+import twoBannerRoutes from "./routes/twoBannerRoutes.js";
+import singleBannerRoutes from "./routes/singleBannerRoutes.js";
+
+
+
 
 
 
@@ -40,6 +45,8 @@ app.use("/api", footerRoutes);
 app.use("/api", noticeRoutes);
 app.use("/api", downloadRoutes);
 app.use("/api", bannerVideoRoutes);
+app.use("/api", twoBannerRoutes);
+app.use("/api", singleBannerRoutes);
 
 // ✅ port
 const PORT = process.env.PORT || 5008;
