@@ -163,32 +163,32 @@ const BannerController = () => {
   };
 
   return (
-    <div className="min-h-screen p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950">
+    <div className="min-h-screen p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-black via-yellow-950/10 to-black">
       <div className="max-w-7xl mx-auto space-y-10 lg:space-y-12">
         {/* FORM SECTION */}
-        <div className="bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950 border border-purple-800/40 rounded-2xl p-6 sm:p-8 lg:p-10 shadow-xl shadow-purple-500/20">
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-7 tracking-tight">
+        <div className="bg-gradient-to-b from-black via-yellow-950/30 to-black border border-yellow-700/40 rounded-2xl p-6 sm:p-8 lg:p-10 shadow-xl shadow-yellow-900/30">
+          <h2 className="text-white font-extrabold text-2xl sm:text-3xl lg:text-4xl mb-7 tracking-tight">
             {editingId ? "Edit Banner" : "Create New Banner"}
           </h2>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-7">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-cyan-100/90 text-sm font-bold mb-2 cursor-pointer">
+                <label className="block text-yellow-100/90 text-sm font-bold mb-2 cursor-pointer">
                   Title (Bangla)
                 </label>
                 <input
-                  className="w-full bg-slate-900/70 text-cyan-50 border border-purple-600/50 rounded-xl p-4 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/40 transition-all placeholder-purple-400"
+                  className="w-full bg-black/70 text-white border border-yellow-700/50 rounded-xl p-4 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 transition-all placeholder-yellow-500/60"
                   placeholder="ব্যানারের টাইটেল (বাংলা)"
                   {...register("titleBn")}
                 />
               </div>
               <div>
-                <label className="block text-cyan-100/90 text-sm font-bold mb-2 cursor-pointer">
+                <label className="block text-yellow-100/90 text-sm font-bold mb-2 cursor-pointer">
                   Title (English)
                 </label>
                 <input
-                  className="w-full bg-slate-900/70 text-cyan-50 border border-purple-600/50 rounded-xl p-4 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/40 transition-all placeholder-purple-400"
+                  className="w-full bg-black/70 text-white border border-yellow-700/50 rounded-xl p-4 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 transition-all placeholder-yellow-500/60"
                   placeholder="Banner Title (English)"
                   {...register("titleEn")}
                 />
@@ -196,11 +196,11 @@ const BannerController = () => {
             </div>
 
             <div>
-              <label className="block text-cyan-100/90 text-sm font-bold mb-2 cursor-pointer">
+              <label className="block text-yellow-100/90 text-sm font-bold mb-2 cursor-pointer">
                 YouTube Video URL (optional)
               </label>
               <input
-                className="w-full bg-slate-900/70 text-cyan-50 border border-purple-600/50 rounded-xl p-4 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/40 transition-all placeholder-purple-400"
+                className="w-full bg-black/70 text-white border border-yellow-700/50 rounded-xl p-4 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 transition-all placeholder-yellow-500/60"
                 placeholder="https://www.youtube.com/watch?v=..."
                 {...register("youtube")}
               />
@@ -208,18 +208,18 @@ const BannerController = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-7">
               <div className="space-y-4">
-                <label className="block text-cyan-100 font-bold text-lg cursor-pointer">
+                <label className="block text-yellow-100 font-bold text-lg cursor-pointer">
                   Banner Image
                 </label>
                 <input
                   type="file"
                   accept="image/*"
-                  className="block w-full text-sm text-cyan-200 file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-purple-800/70 file:text-white hover:file:bg-purple-700/90 file:cursor-pointer cursor-pointer bg-slate-900/60 border border-purple-600/50 rounded-xl p-4"
+                  className="block w-full text-sm text-yellow-200 file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-yellow-700/30 file:text-black hover:file:bg-yellow-600/50 file:cursor-pointer cursor-pointer bg-black/70 border border-yellow-700/50 rounded-xl p-4"
                   {...register("bannerImg")}
                 />
 
                 {preview && (
-                  <div className="rounded-xl overflow-hidden border-2 border-purple-700/50 bg-black/50 shadow-inner">
+                  <div className="rounded-xl overflow-hidden border-2 border-yellow-700/50 bg-black/50 shadow-inner">
                     <img
                       src={preview}
                       alt="Banner Preview"
@@ -231,13 +231,13 @@ const BannerController = () => {
 
               <div className="flex flex-col justify-between space-y-6">
                 <div>
-                  <label className="block text-cyan-100/90 text-sm font-bold mb-2 cursor-pointer">
+                  <label className="block text-yellow-100/90 text-sm font-bold mb-2 cursor-pointer">
                     Display Order
                   </label>
                   <input
                     type="number"
                     min="0"
-                    className="w-full bg-slate-900/70 text-cyan-50 border border-purple-600/50 rounded-xl p-4 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/40 transition-all"
+                    className="w-full bg-black/70 text-white border border-yellow-700/50 rounded-xl p-4 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 transition-all"
                     {...register("order")}
                   />
                 </div>
@@ -246,12 +246,12 @@ const BannerController = () => {
                   <input
                     id="isActive"
                     type="checkbox"
-                    className="w-5 h-5 accent-cyan-500 cursor-pointer"
+                    className="w-5 h-5 accent-yellow-500 cursor-pointer"
                     {...register("isActive")}
                   />
                   <label
                     htmlFor="isActive"
-                    className="text-cyan-100 font-semibold cursor-pointer"
+                    className="text-yellow-100 font-semibold cursor-pointer"
                   >
                     Active (Visible on client site)
                   </label>
@@ -263,7 +263,7 @@ const BannerController = () => {
                     disabled={
                       isSubmitting || createMut.isPending || updateMut.isPending
                     }
-                    className="flex-1 py-4 px-8 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 rounded-xl text-white font-bold shadow-lg shadow-purple-600/40 transition-all disabled:opacity-60 cursor-pointer text-lg"
+                    className="flex-1 py-4 px-8 bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 rounded-xl text-black font-bold shadow-lg shadow-yellow-600/50 hover:shadow-yellow-500/70 transition-all disabled:opacity-60 cursor-pointer text-lg"
                   >
                     {editingId
                       ? updateMut.isPending
@@ -278,7 +278,7 @@ const BannerController = () => {
                     <button
                       type="button"
                       onClick={cancelEdit}
-                      className="flex-1 py-4 px-8 bg-slate-800 hover:bg-slate-700 text-cyan-200 font-bold rounded-xl border border-purple-700/50 transition-all cursor-pointer text-lg"
+                      className="flex-1 py-4 px-8 bg-black/70 hover:bg-black/90 text-yellow-200 font-bold rounded-xl border border-yellow-700/50 transition-all cursor-pointer text-lg"
                     >
                       Cancel
                     </button>
@@ -296,11 +296,11 @@ const BannerController = () => {
           </h2>
 
           {isLoading ? (
-            <div className="text-cyan-300 text-center py-16 text-xl font-medium">
+            <div className="text-yellow-300 text-center py-16 text-xl font-medium">
               Loading banners...
             </div>
           ) : banners.length === 0 ? (
-            <div className="text-cyan-400/80 text-center py-16 text-xl bg-slate-900/40 rounded-2xl border border-purple-800/30">
+            <div className="text-yellow-400/80 text-center py-16 text-xl bg-black/50 rounded-2xl border border-yellow-700/30">
               No banners found
             </div>
           ) : (
@@ -311,7 +311,7 @@ const BannerController = () => {
                 return (
                   <div
                     key={banner._id}
-                    className="bg-gradient-to-br from-slate-900 to-indigo-950 border border-purple-800/40 rounded-2xl overflow-hidden shadow-xl shadow-purple-500/20 hover:shadow-purple-500/40 transition-all duration-300 flex flex-col"
+                    className="bg-gradient-to-b from-black via-yellow-950/30 to-black border border-yellow-700/40 rounded-2xl overflow-hidden shadow-xl shadow-yellow-900/30 hover:shadow-yellow-900/50 transition-all duration-300 flex flex-col"
                   >
                     {/* Banner Image - ALWAYS ON TOP */}
                     <div className="w-full h-56 sm:h-64 lg:h-72 bg-black relative">
@@ -330,14 +330,14 @@ const BannerController = () => {
                       </h3>
 
                       {banner.titleBn && banner.titleEn !== banner.titleBn && (
-                        <p className="text-cyan-300/90 text-base mb-4 line-clamp-2">
+                        <p className="text-yellow-300/90 text-base mb-4 line-clamp-2">
                           {banner.titleBn}
                         </p>
                       )}
 
                       {/* YouTube Video - BELOW TITLE if exists */}
                       {embedUrl && (
-                        <div className="mb-5 rounded-xl overflow-hidden border border-purple-700/40 bg-black shadow-inner">
+                        <div className="mb-5 rounded-xl overflow-hidden border border-yellow-700/40 bg-black shadow-inner">
                           <div className="aspect-video">
                             <iframe
                               src={embedUrl}
@@ -352,18 +352,18 @@ const BannerController = () => {
 
                       {/* Info */}
                       <div className="mt-auto space-y-3 text-sm">
-                        <div className="flex justify-between items-center text-cyan-200/90">
+                        <div className="flex justify-between items-center text-yellow-200/90">
                           <span className="font-medium">Order</span>
                           <span className="font-bold text-lg">
                             {banner.order ?? 0}
                           </span>
                         </div>
-                        <div className="flex justify-between items-center text-cyan-200/90">
+                        <div className="flex justify-between items-center text-yellow-200/90">
                           <span className="font-medium">Status</span>
                           <span
                             className={`font-bold text-base px-4 py-1.5 rounded-full ${
                               banner.isActive
-                                ? "bg-emerald-900/70 text-emerald-300"
+                                ? "bg-yellow-900/70 text-yellow-300"
                                 : "bg-rose-900/70 text-rose-300"
                             }`}
                           >
@@ -371,7 +371,7 @@ const BannerController = () => {
                           </span>
                         </div>
                         {banner.youtube && !embedUrl && (
-                          <div className="text-cyan-300/70 text-xs truncate pt-2 border-t border-purple-800/30">
+                          <div className="text-yellow-300/70 text-xs truncate pt-2 border-t border-yellow-800/30">
                             YouTube Linked:{" "}
                             {banner.youtube.substring(0, 30) + "..."}
                           </div>
@@ -379,10 +379,10 @@ const BannerController = () => {
                       </div>
 
                       {/* Buttons */}
-                      <div className="flex gap-4 mt-6 pt-5 border-t border-purple-800/30">
+                      <div className="flex gap-4 mt-6 pt-5 border-t border-yellow-800/30">
                         <button
                           onClick={() => startEdit(banner)}
-                          className="flex-1 py-3 bg-purple-800/60 hover:bg-purple-700/70 text-white font-medium rounded-xl transition-all cursor-pointer"
+                          className="flex-1 py-3 bg-yellow-700/60 hover:bg-yellow-600/70 text-black font-medium rounded-xl transition-all cursor-pointer"
                         >
                           Edit
                         </button>

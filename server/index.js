@@ -13,6 +13,10 @@ import twoBannerRoutes from "./routes/twoBannerRoutes.js";
 import singleBannerRoutes from "./routes/singleBannerRoutes.js";
 import siteBrandingRoutes from "./routes/siteBrandingRoutes.js";
 import floatingSocialRoutes from "./routes/floatingSocialRoutes.js";
+import downloadHeaderRoutes from "./routes/downloadHeaderRoutes.js";
+import Promotions from "./models/Promotions.js"; // ✅ Import Promotion model
+
+
 
 
 
@@ -55,6 +59,9 @@ app.use("/api", twoBannerRoutes);
 app.use("/api", singleBannerRoutes);
 app.use("/api", siteBrandingRoutes);
 app.use("/api", floatingSocialRoutes);
+app.use("/api", downloadHeaderRoutes);
+app.use("/api", Promotions); // ✅ Add this line to use promotions routes
+
 
 
 

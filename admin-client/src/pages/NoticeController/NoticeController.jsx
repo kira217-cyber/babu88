@@ -67,23 +67,23 @@ const NoticeController = () => {
 
   if (isLoading) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8">
-        <div className="text-cyan-100 font-bold">Loading notice...</div>
+      <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gradient-to-br from-black via-yellow-950/10 to-black">
+        <div className="text-yellow-100 font-bold">Loading notice...</div>
       </div>
     );
   }
 
   if (isError) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8">
-        <div className="text-pink-500 font-bold">Failed to load notice</div>
+      <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gradient-to-br from-black via-yellow-950/10 to-black">
+        <div className="text-red-400 font-bold">Failed to load notice</div>
       </div>
     );
   }
 
   return (
-    <div className="p-4 lg:p-8">
-      <div className="w-full max-w-4xl mx-auto bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950 border border-purple-800/40 rounded-xl p-4 lg:p-8 shadow-lg shadow-purple-500/20">
+    <div className="p-4 lg:p-8 min-h-screen bg-gradient-to-br from-black via-yellow-950/10 to-black">
+      <div className="w-full max-w-4xl mx-auto bg-gradient-to-b from-black via-yellow-950/30 to-black border border-yellow-700/40 rounded-xl p-4 lg:p-8 shadow-lg shadow-yellow-900/30">
         <h2 className="text-white font-extrabold text-lg sm:text-xl lg:text-2xl mb-4 sm:mb-6 tracking-tight">
           Notice Controller
         </h2>
@@ -93,47 +93,50 @@ const NoticeController = () => {
         >
           {/* Bangla */}
           <div>
-            <label className="block text-cyan-100/80 text-sm font-bold mb-2 cursor-pointer">
+            <label className="block text-yellow-100/90 text-sm font-bold mb-2 cursor-pointer">
               Notice Text (Bangla)
             </label>
             <textarea
               rows={4}
-              className="w-full bg-slate-900/60 text-cyan-100 border border-purple-700/50 rounded-xl p-3 sm:p-4 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all placeholder-purple-300"
+              className="w-full bg-black/70 text-white border border-yellow-700/50 rounded-xl p-3 sm:p-4 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 transition-all placeholder-yellow-500/60 resize-y"
               placeholder="বাংলা নোটিশ লিখো..."
               {...register("noticeBn", { required: true })}
             />
           </div>
+
           {/* English */}
           <div>
-            <label className="block text-cyan-100/80 text-sm font-bold mb-2 cursor-pointer">
+            <label className="block text-yellow-100/90 text-sm font-bold mb-2 cursor-pointer">
               Notice Text (English)
             </label>
             <textarea
               rows={4}
-              className="w-full bg-slate-900/60 text-cyan-100 border border-purple-700/50 rounded-xl p-3 sm:p-4 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all placeholder-purple-300"
+              className="w-full bg-black/70 text-white border border-yellow-700/50 rounded-xl p-3 sm:p-4 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 transition-all placeholder-yellow-500/60 resize-y"
               placeholder="Write English notice..."
               {...register("noticeEn", { required: true })}
             />
           </div>
+
           {/* Active */}
           <div className="flex items-center gap-3">
             <input
               id="isActive"
               type="checkbox"
-              className="w-5 h-5 accent-cyan-500 rounded focus:ring-cyan-500/30 cursor-pointer"
+              className="w-5 h-5 accent-yellow-500 rounded focus:ring-yellow-400/40 cursor-pointer"
               {...register("isActive")}
             />
             <label
               htmlFor="isActive"
-              className="text-cyan-100 font-bold cursor-pointer"
+              className="text-yellow-100 font-bold cursor-pointer"
             >
               Active (Client এ দেখাবে)
             </label>
           </div>
+
           <button
             type="submit"
             disabled={isSubmitting || mutation.isPending}
-            className="w-full flex items-center justify-center gap-3 py-3 sm:py-3.5 px-5 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 rounded-xl text-white font-medium transition-all duration-300 shadow-lg shadow-purple-500/40 border border-purple-500/30 disabled:opacity-60 cursor-pointer"
+            className="w-full flex items-center justify-center gap-3 py-3 sm:py-3.5 px-5 bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 rounded-xl text-black font-medium transition-all duration-300 shadow-lg shadow-yellow-600/50 hover:shadow-yellow-500/70 border border-yellow-500/30 disabled:opacity-60 cursor-pointer"
           >
             {mutation.isPending ? "Saving..." : "Save Notice"}
           </button>

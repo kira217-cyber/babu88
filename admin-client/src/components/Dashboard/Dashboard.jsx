@@ -35,7 +35,7 @@ const CardShell = ({ className = "", children }) => (
     whileHover={{ y: -4, scale: 1.02 }}
     transition={{ type: "spring", stiffness: 300, damping: 20 }}
     className={[
-      "rounded-2xl shadow-xl border border-indigo-500/20 overflow-hidden",
+      "rounded-2xl shadow-xl border border-yellow-700/30 overflow-hidden",
       className,
     ].join(" ")}
   >
@@ -43,16 +43,25 @@ const CardShell = ({ className = "", children }) => (
   </motion.div>
 );
 
-const StatCard = ({ icon: Icon, label, value, accent = "from-fuchsia-600 to-purple-600" }) => {
-  const [prefix, numStr] = value.match(/^([^\d]*)(\d+(?:,\d+)*)$/)?.slice(1) || ["", value];
+const StatCard = ({
+  icon: Icon,
+  label,
+  value,
+  accent = "from-yellow-600 to-amber-600",
+}) => {
+  const [prefix, numStr] = value
+    .match(/^([^\d]*)(\d+(?:,\d+)*)$/)
+    ?.slice(1) || ["", value];
   const num = parseInt(numStr.replace(/,/g, ""), 10) || 0;
 
   return (
-    <CardShell className="bg-gradient-to-br from-slate-900 to-indigo-900">
+    <CardShell className="bg-gradient-to-br from-black to-yellow-950/40">
       <div className="p-5">
         <div className="flex items-center justify-between">
           <div className="min-w-0">
-            <p className="text-cyan-200 text-sm font-semibold truncate">{label}</p>
+            <p className="text-yellow-200 text-sm font-semibold truncate">
+              {label}
+            </p>
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -63,13 +72,15 @@ const StatCard = ({ icon: Icon, label, value, accent = "from-fuchsia-600 to-purp
             </motion.p>
           </div>
 
-          <div className={`shrink-0 p-3 rounded-xl bg-gradient-to-br ${accent} shadow-lg shadow-purple-500/30`}>
-            <Icon className="text-white text-xl" />
+          <div
+            className={`shrink-0 p-3 rounded-xl bg-gradient-to-br ${accent} shadow-lg shadow-yellow-600/40`}
+          >
+            <Icon className="text-black text-xl" />
           </div>
         </div>
 
-        <div className="mt-4 h-[1px] bg-cyan-500/20" />
-        <p className="mt-3 text-xs text-cyan-300/60">
+        <div className="mt-4 h-[1px] bg-yellow-500/20" />
+        <p className="mt-3 text-xs text-yellow-300/70">
           Real-time data • updated just now
         </p>
       </div>
@@ -88,7 +99,7 @@ const TinyBarChart = () => {
       className="w-full h-[120px]"
     >
       {/* grid */}
-      <g opacity="0.2" stroke="cyan">
+      <g opacity="0.2" stroke="yellow">
         <line x1="12" y1="25" x2="288" y2="25" />
         <line x1="12" y1="55" x2="288" y2="55" />
         <line x1="12" y1="85" x2="288" y2="85" />
@@ -114,15 +125,15 @@ const TinyBarChart = () => {
               width={w}
               height={h}
               rx={r}
-              fill={isAccent ? "url(#barGrad)" : "rgba(255,255,255,0.95)"}
-              opacity={isAccent ? 1 : 0.95}
+              fill={isAccent ? "url(#barGrad)" : "rgba(255,255,255,0.9)"}
+              opacity={isAccent ? 1 : 0.92}
             />
           </motion.g>
         );
       })}
 
       {/* axis labels */}
-      <g fill="rgba(255,255,255,0.5)" fontSize="10" fontWeight="700">
+      <g fill="rgba(255,255,255,0.6)" fontSize="10" fontWeight="700">
         {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
           <text key={i} x={32 + i * 38} y={116} textAnchor="middle">
             {d}
@@ -132,8 +143,8 @@ const TinyBarChart = () => {
 
       <defs>
         <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#A855F7" />
-          <stop offset="100%" stopColor="#EC4899" />
+          <stop offset="0%" stopColor="#FACC15" />
+          <stop offset="100%" stopColor="#F59E0B" />
         </linearGradient>
       </defs>
     </motion.svg>
@@ -152,21 +163,21 @@ const TinyAreaCard = () => {
       {/* dark bg wave */}
       <path
         d="M0,55 C40,10 85,10 120,50 C155,90 205,100 250,70 C295,40 330,45 360,60 L360,0 L0,0 Z"
-        fill="rgba(255,255,255,0.1)"
+        fill="rgba(255,255,255,0.08)"
       />
 
       {/* main gradient area */}
       <path
         d="M0,70 C45,10 110,25 150,65 C185,95 235,120 285,85 C315,65 338,65 360,75 L360,140 L0,140 Z"
         fill="url(#areaGrad)"
-        opacity="0.98"
+        opacity="0.97"
       />
 
       <defs>
         <linearGradient id="areaGrad" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#EC4899" />
-          <stop offset="55%" stopColor="#A855F7" />
-          <stop offset="100%" stopColor="#6366F1" />
+          <stop offset="0%" stopColor="#FACC15" />
+          <stop offset="50%" stopColor="#F59E0B" />
+          <stop offset="100%" stopColor="#D97706" />
         </linearGradient>
       </defs>
     </motion.svg>
@@ -174,18 +185,20 @@ const TinyAreaCard = () => {
 };
 
 const EarningsCard = () => (
-  <CardShell className="bg-gradient-to-br from-slate-900 to-indigo-900">
+  <CardShell className="bg-gradient-to-br from-black to-yellow-950/40">
     <div className="p-5">
-      <p className="text-cyan-200 text-sm font-semibold">Earnings</p>
+      <p className="text-yellow-200 text-sm font-semibold">Earnings</p>
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="mt-3 text-4xl font-extrabold tracking-tight bg-gradient-to-r from-fuchsia-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent"
+        className="mt-3 text-4xl font-extrabold tracking-tight bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 bg-clip-text text-transparent"
       >
         $
         <CountUp end={911.4} duration={2} decimals={1} />
       </motion.p>
-      <p className="mt-2 text-xs text-cyan-300/60">Overview of total earnings</p>
+      <p className="mt-2 text-xs text-yellow-300/70">
+        Overview of total earnings
+      </p>
     </div>
   </CardShell>
 );
@@ -226,7 +239,11 @@ const Gauge = ({ value = 63 }) => {
               y1={y1}
               x2={x2}
               y2={y2}
-              stroke={i * (280 / 48) <= progress * 2.8 ? "#A855F7" : "rgba(255,255,255,0.2)"}
+              stroke={
+                i * (280 / 48) <= progress * 2.8
+                  ? "#F59E0B"
+                  : "rgba(255,255,255,0.18)"
+              }
               strokeWidth={i % 3 === 0 ? 2.4 : 1.4}
               strokeLinecap="round"
             />
@@ -239,7 +256,7 @@ const Gauge = ({ value = 63 }) => {
           cy={cy}
           r={radius}
           fill="none"
-          stroke="rgba(255,255,255,0.15)"
+          stroke="rgba(255,255,255,0.12)"
           strokeWidth="10"
           strokeLinecap="round"
           strokeDasharray={`${circumference * 0.78} ${circumference}`}
@@ -264,7 +281,7 @@ const Gauge = ({ value = 63 }) => {
         />
 
         {/* center */}
-        <circle cx={cx} cy={cy} r="62" fill="rgba(0,0,0,0.3)" />
+        <circle cx={cx} cy={cy} r="62" fill="rgba(0,0,0,0.35)" />
         <text
           x="110"
           y="110"
@@ -272,7 +289,7 @@ const Gauge = ({ value = 63 }) => {
           dominantBaseline="middle"
           fontSize="34"
           fontWeight="800"
-          fill="#EC4899"
+          fill="#F59E0B"
         >
           {progress}%
         </text>
@@ -282,16 +299,16 @@ const Gauge = ({ value = 63 }) => {
           textAnchor="middle"
           fontSize="10"
           fontWeight="700"
-          fill="rgba(255,255,255,0.5)"
+          fill="rgba(255,255,255,0.55)"
         >
           PERFORMANCE
         </text>
 
         <defs>
           <linearGradient id="gGrad" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#EC4899" />
-            <stop offset="60%" stopColor="#A855F7" />
-            <stop offset="100%" stopColor="#6366F1" />
+            <stop offset="0%" stopColor="#FACC15" />
+            <stop offset="60%" stopColor="#F59E0B" />
+            <stop offset="100%" stopColor="#D97706" />
           </linearGradient>
         </defs>
       </motion.svg>
@@ -318,12 +335,12 @@ const RealCalendar = () => {
       className="w-full"
     >
       <div className="flex items-center gap-2 mb-4">
-        <FaCalendarAlt className="text-purple-400" />
-        <p className="text-cyan-200 text-sm font-semibold">
+        <FaCalendarAlt className="text-yellow-400" />
+        <p className="text-yellow-200 text-sm font-semibold">
           {format(now, "MMMM yyyy")}
         </p>
       </div>
-      <div className="grid grid-cols-7 gap-2 text-xs font-extrabold text-cyan-300/50">
+      <div className="grid grid-cols-7 gap-2 text-xs font-extrabold text-yellow-300/60">
         {days.map((d) => (
           <div key={d} className="text-center">
             {d}
@@ -343,10 +360,10 @@ const RealCalendar = () => {
               className={[
                 "h-8 flex items-center justify-center rounded-lg cursor-pointer",
                 isCurrent
-                  ? "bg-gradient-to-br from-fuchsia-600 to-purple-600 text-white shadow-md"
+                  ? "bg-gradient-to-br from-yellow-600 to-amber-600 text-black shadow-md"
                   : isThisMonth
-                  ? "text-cyan-100 hover:bg-purple-800/30"
-                  : "text-cyan-100/30",
+                    ? "text-yellow-100 hover:bg-yellow-800/40"
+                    : "text-yellow-100/35",
               ].join(" ")}
             >
               {format(date, "d")}
@@ -366,7 +383,7 @@ const PercentArea = () => {
       transition={{ duration: 0.8 }}
       className="w-full"
     >
-      <p className="text-3xl font-extrabold text-pink-500">
+      <p className="text-3xl font-extrabold text-yellow-400">
         <CountUp end={72.4} duration={2} decimals={1} />%
       </p>
       <div className="mt-2">
@@ -374,19 +391,19 @@ const PercentArea = () => {
           <path
             d="M0,95 C55,30 120,40 160,80 C195,115 240,120 275,85 C305,55 330,60 360,75 L360,140 L0,140 Z"
             fill="url(#pGrad)"
-            opacity="0.95"
+            opacity="0.94"
           />
           <path
             d="M0,95 C55,30 120,40 160,80 C195,115 240,120 275,85 C305,55 330,60 360,75"
             fill="none"
-            stroke="rgba(0,0,0,0.15)"
+            stroke="rgba(0,0,0,0.2)"
             strokeWidth="2.5"
           />
           <defs>
             <linearGradient id="pGrad" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#EC4899" />
-              <stop offset="55%" stopColor="#A855F7" />
-              <stop offset="100%" stopColor="#6366F1" />
+              <stop offset="0%" stopColor="#FACC15" />
+              <stop offset="55%" stopColor="#F59E0B" />
+              <stop offset="100%" stopColor="#D97706" />
             </linearGradient>
           </defs>
         </svg>
@@ -396,7 +413,7 @@ const PercentArea = () => {
 };
 
 const BottomStrip = () => (
-  <CardShell className="bg-gradient-to-br from-slate-900 to-indigo-900">
+  <CardShell className="bg-gradient-to-br from-black to-yellow-950/40">
     <div className="px-5 py-4 flex items-center justify-between gap-4">
       <div className="min-w-0">
         <motion.p
@@ -405,13 +422,13 @@ const BottomStrip = () => (
           className="text-white text-xl font-extrabold leading-none"
         >
           <CountUp end={16.4} duration={2} decimals={1} />M{" "}
-          <span className="text-xs font-extrabold text-pink-500 align-middle ml-2">
+          <span className="text-xs font-extrabold text-yellow-400 align-middle ml-2">
             +35%
           </span>
         </motion.p>
       </div>
 
-      <div className="h-10 w-[1px] bg-cyan-500/20" />
+      <div className="h-10 w-[1px] bg-yellow-500/20" />
 
       <div className="flex-1 text-center min-w-0">
         <p className="text-white text-xl font-extrabold tracking-wide">
@@ -419,13 +436,13 @@ const BottomStrip = () => (
         </p>
       </div>
 
-      <div className="h-10 w-[1px] bg-cyan-500/20" />
+      <div className="h-10 w-[1px] bg-yellow-500/20" />
 
       <div className="flex items-center gap-3 min-w-0">
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-cyan-100 text-sm font-extrabold"
+          className="text-yellow-100 text-sm font-extrabold"
         >
           <CountUp end={14577} duration={2} separator="," />
         </motion.p>
@@ -440,9 +457,9 @@ const BottomStrip = () => (
           />
           <defs>
             <linearGradient id="sGrad" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#EC4899" />
-              <stop offset="60%" stopColor="#A855F7" />
-              <stop offset="100%" stopColor="#6366F1" />
+              <stop offset="0%" stopColor="#FACC15" />
+              <stop offset="60%" stopColor="#F59E0B" />
+              <stop offset="100%" stopColor="#D97706" />
             </linearGradient>
           </defs>
         </svg>
@@ -466,44 +483,44 @@ const Dashboard = () => {
         label: "All Users",
         value: "12,540",
         icon: FaUsers,
-        accent: "from-indigo-600 to-purple-600",
+        accent: "from-yellow-600 to-amber-600",
       },
       {
         label: "All Affiliate Users",
         value: "3,210",
         icon: FaUserFriends,
-        accent: "from-fuchsia-600 to-purple-600",
+        accent: "from-amber-600 to-yellow-600",
       },
       {
         label: "All Deposit Balances",
         value: "৳ 8,92,300",
         icon: FaWallet,
-        accent: "from-emerald-600 to-teal-600",
+        accent: "from-emerald-600 to-teal-600", // kept green for money feel
       },
       {
         label: "All Withdraw Balance",
         value: "৳ 4,21,900",
         icon: FaHandHoldingUsd,
-        accent: "from-orange-600 to-pink-600",
+        accent: "from-orange-600 to-amber-600",
       },
       {
         label: "Pending Deposit Requests",
         value: "46",
         icon: FaClock,
-        accent: "from-cyan-600 to-indigo-600",
+        accent: "from-yellow-600 to-amber-500",
       },
       {
         label: "Pending Withdraw Requests",
         value: "19",
         icon: FaMoneyCheckAlt,
-        accent: "from-pink-600 to-rose-600",
+        accent: "from-amber-600 to-orange-600",
       },
     ],
-    []
+    [],
   );
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950 text-gray-100">
+    <div className="w-full min-h-screen bg-gradient-to-br from-black via-yellow-950/20 to-black text-gray-100">
       <div className="w-full max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
         {/* Title with real-time clock */}
         <motion.div
@@ -516,11 +533,11 @@ const Dashboard = () => {
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
               Dashboard
             </h1>
-            <p className="text-sm text-cyan-300 mt-1">
+            <p className="text-sm text-yellow-300 mt-1">
               Real-time Overview • Professional Admin Panel
             </p>
           </div>
-          <div className="mt-4 sm:mt-0 text-cyan-200 font-semibold">
+          <div className="mt-4 sm:mt-0 text-yellow-200 font-semibold">
             {format(currentTime, "PPPpp")}
           </div>
         </motion.div>
@@ -548,9 +565,11 @@ const Dashboard = () => {
             custom={0}
             className="col-span-12 md:col-span-5"
           >
-            <CardShell className="bg-gradient-to-br from-slate-900 to-indigo-900">
+            <CardShell className="bg-gradient-to-br from-black to-yellow-950/40">
               <div className="p-5">
-                <p className="text-cyan-200 text-sm font-semibold">Weekly Activity</p>
+                <p className="text-yellow-200 text-sm font-semibold">
+                  Weekly Activity
+                </p>
                 <div className="mt-3">
                   <TinyBarChart />
                 </div>
@@ -565,9 +584,11 @@ const Dashboard = () => {
             custom={1}
             className="col-span-12 md:col-span-5"
           >
-            <CardShell className="bg-gradient-to-br from-slate-900 to-indigo-900">
+            <CardShell className="bg-gradient-to-br from-black to-yellow-950/40">
               <div className="p-5">
-                <p className="text-cyan-200 text-sm font-semibold">Growth Trend</p>
+                <p className="text-yellow-200 text-sm font-semibold">
+                  Growth Trend
+                </p>
               </div>
               <div className="-mt-2">
                 <TinyAreaCard />
@@ -593,14 +614,16 @@ const Dashboard = () => {
             custom={3}
             className="col-span-12 lg:col-span-5"
           >
-            <CardShell className="bg-gradient-to-br from-slate-900 to-indigo-900">
+            <CardShell className="bg-gradient-to-br from-black to-yellow-950/40">
               <div className="p-5">
-                <p className="text-cyan-200 text-sm font-semibold">Performance Metrics</p>
+                <p className="text-yellow-200 text-sm font-semibold">
+                  Performance Metrics
+                </p>
                 <div className="mt-2">
                   <Gauge value={63} />
                 </div>
-                <div className="mt-2 flex items-center justify-end gap-2 text-xs text-cyan-300/60">
-                  <span className="inline-block w-2.5 h-2.5 rounded-full bg-gradient-to-r from-fuchsia-600 to-purple-600" />
+                <div className="mt-2 flex items-center justify-end gap-2 text-xs text-yellow-300/70">
+                  <span className="inline-block w-2.5 h-2.5 rounded-full bg-gradient-to-r from-yellow-600 to-amber-600" />
                   <span>Optimal Range</span>
                 </div>
               </div>
@@ -614,9 +637,11 @@ const Dashboard = () => {
             custom={4}
             className="col-span-12 lg:col-span-4"
           >
-            <CardShell className="bg-gradient-to-br from-slate-900 to-indigo-900">
+            <CardShell className="bg-gradient-to-br from-black to-yellow-950/40">
               <div className="p-5">
-                <p className="text-cyan-200 text-sm font-semibold">Calendar</p>
+                <p className="text-yellow-200 text-sm font-semibold">
+                  Calendar
+                </p>
                 <div className="mt-4">
                   <RealCalendar />
                 </div>
@@ -631,9 +656,11 @@ const Dashboard = () => {
             custom={5}
             className="col-span-12 lg:col-span-3"
           >
-            <CardShell className="bg-gradient-to-br from-slate-900 to-indigo-900">
+            <CardShell className="bg-gradient-to-br from-black to-yellow-950/40">
               <div className="p-5">
-                <p className="text-cyan-200 text-sm font-semibold">Completion Rate</p>
+                <p className="text-yellow-200 text-sm font-semibold">
+                  Completion Rate
+                </p>
                 <div className="mt-3">
                   <PercentArea />
                 </div>

@@ -139,15 +139,15 @@ const TwoBannerController = () => {
   );
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <div className="w-full max-w-5xl mx-auto bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950 border border-purple-800/40 rounded-2xl p-6 sm:p-8 lg:p-10 shadow-xl shadow-purple-500/20">
+    <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gradient-to-br from-black via-yellow-950/10 to-black">
+      <div className="w-full max-w-5xl mx-auto bg-gradient-to-b from-black via-yellow-950/30 to-black border border-yellow-700/40 rounded-2xl p-6 sm:p-8 lg:p-10 shadow-xl shadow-yellow-900/30">
         <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-2 tracking-tight">
           Two Banner Controller
         </h2>
-        <p className="text-cyan-200/80 text-sm mb-8">{exampleHint}</p>
+        <p className="text-yellow-200/80 text-sm mb-8">{exampleHint}</p>
 
         {isLoading ? (
-          <div className="text-cyan-300 text-center py-12 text-lg font-medium">
+          <div className="text-yellow-300 text-center py-12 text-lg font-medium">
             Loading banner data...
           </div>
         ) : (
@@ -155,21 +155,21 @@ const TwoBannerController = () => {
             {/* Titles */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-cyan-100/90 text-sm font-bold mb-2 cursor-pointer">
+                <label className="block text-yellow-100/90 text-sm font-bold mb-2 cursor-pointer">
                   Title (Bangla)
                 </label>
                 <input
-                  className="w-full bg-slate-900/70 text-cyan-50 border border-purple-600/50 rounded-xl p-4 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/40 transition-all placeholder-purple-400"
+                  className="w-full bg-black/70 text-white border border-yellow-700/50 rounded-xl p-4 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 transition-all placeholder-yellow-500/60"
                   placeholder="বাম/ডান ব্যানারের টাইটেল (বাংলা)"
                   {...register("titleBn")}
                 />
               </div>
               <div>
-                <label className="block text-cyan-100/90 text-sm font-bold mb-2 cursor-pointer">
+                <label className="block text-yellow-100/90 text-sm font-bold mb-2 cursor-pointer">
                   Title (English)
                 </label>
                 <input
-                  className="w-full bg-slate-900/70 text-cyan-50 border border-purple-600/50 rounded-xl p-4 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/40 transition-all placeholder-purple-400"
+                  className="w-full bg-black/70 text-white border border-yellow-700/50 rounded-xl p-4 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 transition-all placeholder-yellow-500/60"
                   placeholder="Banner Title (English)"
                   {...register("titleEn")}
                 />
@@ -179,23 +179,23 @@ const TwoBannerController = () => {
             {/* Descriptions */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-cyan-100/90 text-sm font-bold mb-2 cursor-pointer">
+                <label className="block text-yellow-100/90 text-sm font-bold mb-2 cursor-pointer">
                   Description (Bangla)
                 </label>
                 <textarea
                   rows={4}
-                  className="w-full bg-slate-900/70 text-cyan-50 border border-purple-600/50 rounded-xl p-4 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/40 transition-all placeholder-purple-400 resize-y"
+                  className="w-full bg-black/70 text-white border border-yellow-700/50 rounded-xl p-4 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 transition-all placeholder-yellow-500/60 resize-y"
                   placeholder="বিস্তারিত বর্ণনা (বাংলা)"
                   {...register("descriptionBn")}
                 />
               </div>
               <div>
-                <label className="block text-cyan-100/90 text-sm font-bold mb-2 cursor-pointer">
+                <label className="block text-yellow-100/90 text-sm font-bold mb-2 cursor-pointer">
                   Description (English)
                 </label>
                 <textarea
                   rows={4}
-                  className="w-full bg-slate-900/70 text-cyan-50 border border-purple-600/50 rounded-xl p-4 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/40 transition-all placeholder-purple-400 resize-y"
+                  className="w-full bg-black/70 text-white border border-yellow-700/50 rounded-xl p-4 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 transition-all placeholder-yellow-500/60 resize-y"
                   placeholder="Detailed description (English)"
                   {...register("descriptionEn")}
                 />
@@ -205,21 +205,21 @@ const TwoBannerController = () => {
             {/* Button Texts */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-cyan-100/90 text-sm font-bold mb-2 cursor-pointer">
+                <label className="block text-yellow-100/90 text-sm font-bold mb-2 cursor-pointer">
                   Button Text (Bangla)
                 </label>
                 <input
-                  className="w-full bg-slate-900/70 text-cyan-50 border border-purple-600/50 rounded-xl p-4 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/40 transition-all placeholder-purple-400"
+                  className="w-full bg-black/70 text-white border border-yellow-700/50 rounded-xl p-4 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 transition-all placeholder-yellow-500/60"
                   placeholder="বাটনের টেক্সট (বাংলা)"
                   {...register("buttonTextBn")}
                 />
               </div>
               <div>
-                <label className="block text-cyan-100/90 text-sm font-bold mb-2 cursor-pointer">
+                <label className="block text-yellow-100/90 text-sm font-bold mb-2 cursor-pointer">
                   Button Text (English)
                 </label>
                 <input
-                  className="w-full bg-slate-900/70 text-cyan-50 border border-purple-600/50 rounded-xl p-4 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/40 transition-all placeholder-purple-400"
+                  className="w-full bg-black/70 text-white border border-yellow-700/50 rounded-xl p-4 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 transition-all placeholder-yellow-500/60"
                   placeholder="Button Text (English)"
                   {...register("buttonTextEn")}
                 />
@@ -229,11 +229,11 @@ const TwoBannerController = () => {
             {/* Link & Checkboxes */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-cyan-100/90 text-sm font-bold mb-2 cursor-pointer">
+                <label className="block text-yellow-100/90 text-sm font-bold mb-2 cursor-pointer">
                   Button Link
                 </label>
                 <input
-                  className="w-full bg-slate-900/70 text-cyan-50 border border-purple-600/50 rounded-xl p-4 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/40 transition-all placeholder-purple-400"
+                  className="w-full bg-black/70 text-white border border-yellow-700/50 rounded-xl p-4 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 transition-all placeholder-yellow-500/60"
                   placeholder="/refer  অথবা  https://example.com"
                   {...register("buttonLink")}
                 />
@@ -244,12 +244,12 @@ const TwoBannerController = () => {
                   <input
                     id="openInNewTab"
                     type="checkbox"
-                    className="w-5 h-5 accent-cyan-500 rounded cursor-pointer"
+                    className="w-5 h-5 accent-yellow-500 rounded cursor-pointer"
                     {...register("openInNewTab")}
                   />
                   <label
                     htmlFor="openInNewTab"
-                    className="text-cyan-100 font-semibold cursor-pointer"
+                    className="text-yellow-100 font-semibold cursor-pointer"
                   >
                     Open in New Tab
                   </label>
@@ -259,12 +259,12 @@ const TwoBannerController = () => {
                   <input
                     id="isActive"
                     type="checkbox"
-                    className="w-5 h-5 accent-cyan-500 rounded cursor-pointer"
+                    className="w-5 h-5 accent-yellow-500 rounded cursor-pointer"
                     {...register("isActive")}
                   />
                   <label
                     htmlFor="isActive"
-                    className="text-cyan-100 font-semibold cursor-pointer"
+                    className="text-yellow-100 font-semibold cursor-pointer"
                   >
                     Active (Show on Client)
                   </label>
@@ -276,17 +276,17 @@ const TwoBannerController = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-7">
               {/* Left Banner */}
               <div className="space-y-4">
-                <label className="block text-cyan-100 font-bold text-lg cursor-pointer">
+                <label className="block text-yellow-100 font-bold text-lg cursor-pointer">
                   Left Banner Image
                 </label>
                 <input
                   type="file"
                   accept="image/*"
-                  className="block w-full text-sm text-cyan-200 file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-purple-800/70 file:text-white hover:file:bg-purple-700/90 file:cursor-pointer cursor-pointer bg-slate-900/60 border border-purple-600/50 rounded-xl p-4"
+                  className="block w-full text-sm text-yellow-200 file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-yellow-700/30 file:text-black hover:file:bg-yellow-600/50 file:cursor-pointer cursor-pointer bg-black/70 border border-yellow-700/50 rounded-xl p-4"
                   {...register("leftBanner")}
                 />
                 {leftPreview && (
-                  <div className="rounded-xl overflow-hidden border-2 border-purple-700/50 bg-black/50 shadow-inner">
+                  <div className="rounded-xl overflow-hidden border-2 border-yellow-700/50 bg-black/50 shadow-inner">
                     <img
                       src={leftPreview}
                       alt="Left Banner Preview"
@@ -298,17 +298,17 @@ const TwoBannerController = () => {
 
               {/* Right Banner */}
               <div className="space-y-4">
-                <label className="block text-cyan-100 font-bold text-lg cursor-pointer">
+                <label className="block text-yellow-100 font-bold text-lg cursor-pointer">
                   Right Banner Image
                 </label>
                 <input
                   type="file"
                   accept="image/*"
-                  className="block w-full text-sm text-cyan-200 file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-purple-800/70 file:text-white hover:file:bg-purple-700/90 file:cursor-pointer cursor-pointer bg-slate-900/60 border border-purple-600/50 rounded-xl p-4"
+                  className="block w-full text-sm text-yellow-200 file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-yellow-700/30 file:text-black hover:file:bg-yellow-600/50 file:cursor-pointer cursor-pointer bg-black/70 border border-yellow-700/50 rounded-xl p-4"
                   {...register("rightBanner")}
                 />
                 {rightPreview && (
-                  <div className="rounded-xl overflow-hidden border-2 border-purple-700/50 bg-black/50 shadow-inner">
+                  <div className="rounded-xl overflow-hidden border-2 border-yellow-700/50 bg-black/50 shadow-inner">
                     <img
                       src={rightPreview}
                       alt="Right Banner Preview"
@@ -323,7 +323,7 @@ const TwoBannerController = () => {
             <button
               type="submit"
               disabled={isSubmitting || mutation.isPending}
-              className="w-full flex items-center justify-center gap-3 py-4 px-8 mt-8 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 rounded-xl text-white font-bold text-lg shadow-lg shadow-purple-600/40 transition-all duration-300 disabled:opacity-60 cursor-pointer border border-purple-500/30"
+              className="w-full flex items-center justify-center gap-3 py-4 px-8 mt-8 bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 rounded-xl text-black font-bold text-lg shadow-lg shadow-yellow-600/50 hover:shadow-yellow-500/70 transition-all duration-300 disabled:opacity-60 cursor-pointer border border-yellow-500/30"
             >
               {mutation.isPending ? "Saving..." : "Save Two Banner Settings"}
             </button>

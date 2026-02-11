@@ -84,14 +84,12 @@ const DownloadBannerController = () => {
   const onSubmit = (values) => {
     const formData = new FormData();
 
-    // Append text fields
     Object.entries(values).forEach(([key, value]) => {
       if (key !== "apkFile" && key !== "rightImage") {
         formData.append(key, String(value));
       }
     });
 
-    // Append files if selected
     const apkFile = values.apkFile?.[0];
     const rightImage = values.rightImage?.[0];
 
@@ -101,7 +99,6 @@ const DownloadBannerController = () => {
     mutation.mutate(formData);
   };
 
-  // Watch for file previews
   const rightImageWatch = watch("rightImage");
   useEffect(() => {
     const file = rightImageWatch?.[0];
@@ -120,8 +117,8 @@ const DownloadBannerController = () => {
 
   if (isLoading) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8">
-        <div className="text-cyan-100 font-bold">
+      <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gradient-to-br from-black via-yellow-950/10 to-black">
+        <div className="text-yellow-100 font-bold">
           Loading download banner...
         </div>
       </div>
@@ -130,8 +127,8 @@ const DownloadBannerController = () => {
 
   if (isError) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8">
-        <div className="text-pink-500 font-bold">
+      <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gradient-to-br from-black via-yellow-950/10 to-black">
+        <div className="text-red-400 font-bold">
           Failed to load download banner
         </div>
       </div>
@@ -139,8 +136,8 @@ const DownloadBannerController = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <div className="w-full max-w-5xl mx-auto bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950 border border-purple-800/40 rounded-xl p-5 sm:p-7 lg:p-9 shadow-lg shadow-purple-500/20">
+    <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gradient-to-br from-black via-yellow-950/10 to-black">
+      <div className="w-full max-w-5xl mx-auto bg-gradient-to-b from-black via-yellow-950/30 to-black border border-yellow-700/40 rounded-xl p-5 sm:p-7 lg:p-9 shadow-lg shadow-yellow-900/30">
         <h2 className="text-white font-extrabold text-xl sm:text-2xl lg:text-3xl mb-6 sm:mb-8 tracking-tight">
           Download Banner Controller
         </h2>
@@ -152,23 +149,23 @@ const DownloadBannerController = () => {
           {/* Titles */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
             <div>
-              <label className="block text-cyan-100/80 text-sm font-bold mb-2 cursor-pointer">
+              <label className="block text-yellow-100/90 text-sm font-bold mb-2 cursor-pointer">
                 Title (Bangla)
               </label>
               <textarea
                 rows={3}
-                className="w-full bg-slate-900/60 text-cyan-100 border border-purple-700/50 rounded-xl p-3 sm:p-4 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all placeholder-purple-300 resize-y min-h-[90px]"
+                className="w-full bg-black/70 text-white border border-yellow-700/50 rounded-xl p-3 sm:p-4 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 transition-all placeholder-yellow-500/60 resize-y min-h-[90px]"
                 placeholder="ডাউনলোড ব্যানারের টাইটেল (বাংলা)"
                 {...register("titleBn")}
               />
             </div>
             <div>
-              <label className="block text-cyan-100/80 text-sm font-bold mb-2 cursor-pointer">
+              <label className="block text-yellow-100/90 text-sm font-bold mb-2 cursor-pointer">
                 Title (English)
               </label>
               <textarea
                 rows={3}
-                className="w-full bg-slate-900/60 text-cyan-100 border border-purple-700/50 rounded-xl p-3 sm:p-4 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all placeholder-purple-300 resize-y min-h-[90px]"
+                className="w-full bg-black/70 text-white border border-yellow-700/50 rounded-xl p-3 sm:p-4 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 transition-all placeholder-yellow-500/60 resize-y min-h-[90px]"
                 placeholder="Download Banner Title (English)"
                 {...register("titleEn")}
               />
@@ -178,21 +175,21 @@ const DownloadBannerController = () => {
           {/* Subtitles */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
             <div>
-              <label className="block text-cyan-100/80 text-sm font-bold mb-2 cursor-pointer">
+              <label className="block text-yellow-100/90 text-sm font-bold mb-2 cursor-pointer">
                 Subtitle (Bangla)
               </label>
               <input
-                className="w-full bg-slate-900/60 text-cyan-100 border border-purple-700/50 rounded-xl p-3 sm:p-4 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all placeholder-purple-300"
+                className="w-full bg-black/70 text-white border border-yellow-700/50 rounded-xl p-3 sm:p-4 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 transition-all placeholder-yellow-500/60"
                 placeholder="সাবটাইটেল (বাংলা)"
                 {...register("subBn")}
               />
             </div>
             <div>
-              <label className="block text-cyan-100/80 text-sm font-bold mb-2 cursor-pointer">
+              <label className="block text-yellow-100/90 text-sm font-bold mb-2 cursor-pointer">
                 Subtitle (English)
               </label>
               <input
-                className="w-full bg-slate-900/60 text-cyan-100 border border-purple-700/50 rounded-xl p-3 sm:p-4 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all placeholder-purple-300"
+                className="w-full bg-black/70 text-white border border-yellow-700/50 rounded-xl p-3 sm:p-4 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 transition-all placeholder-yellow-500/60"
                 placeholder="Subtitle (English)"
                 {...register("subEn")}
               />
@@ -203,21 +200,21 @@ const DownloadBannerController = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
             <div className="space-y-4">
               <div>
-                <label className="block text-cyan-100/80 text-sm font-bold mb-2 cursor-pointer">
+                <label className="block text-yellow-100/90 text-sm font-bold mb-2 cursor-pointer">
                   Download Button (Bangla)
                 </label>
                 <input
-                  className="w-full bg-slate-900/60 text-cyan-100 border border-purple-700/50 rounded-xl p-3 sm:p-4 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all placeholder-purple-300"
+                  className="w-full bg-black/70 text-white border border-yellow-700/50 rounded-xl p-3 sm:p-4 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 transition-all placeholder-yellow-500/60"
                   placeholder="ডাউনলোড বাটন টেক্সট"
                   {...register("btnDownloadBn")}
                 />
               </div>
               <div>
-                <label className="block text-cyan-100/80 text-sm font-bold mb-2 cursor-pointer">
+                <label className="block text-yellow-100/90 text-sm font-bold mb-2 cursor-pointer">
                   Android Button (Bangla)
                 </label>
                 <input
-                  className="w-full bg-slate-900/60 text-cyan-100 border border-purple-700/50 rounded-xl p-3 sm:p-4 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all placeholder-purple-300"
+                  className="w-full bg-black/70 text-white border border-yellow-700/50 rounded-xl p-3 sm:p-4 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 transition-all placeholder-yellow-500/60"
                   placeholder="অ্যান্ড্রয়েড বাটন টেক্সট"
                   {...register("btnAndroidBn")}
                 />
@@ -226,21 +223,21 @@ const DownloadBannerController = () => {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-cyan-100/80 text-sm font-bold mb-2 cursor-pointer">
+                <label className="block text-yellow-100/90 text-sm font-bold mb-2 cursor-pointer">
                   Download Button (English)
                 </label>
                 <input
-                  className="w-full bg-slate-900/60 text-cyan-100 border border-purple-700/50 rounded-xl p-3 sm:p-4 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all placeholder-purple-300"
+                  className="w-full bg-black/70 text-white border border-yellow-700/50 rounded-xl p-3 sm:p-4 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 transition-all placeholder-yellow-500/60"
                   placeholder="Download Button Text"
                   {...register("btnDownloadEn")}
                 />
               </div>
               <div>
-                <label className="block text-cyan-100/80 text-sm font-bold mb-2 cursor-pointer">
+                <label className="block text-yellow-100/90 text-sm font-bold mb-2 cursor-pointer">
                   Android Button (English)
                 </label>
                 <input
-                  className="w-full bg-slate-900/60 text-cyan-100 border border-purple-700/50 rounded-xl p-3 sm:p-4 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all placeholder-purple-300"
+                  className="w-full bg-black/70 text-white border border-yellow-700/50 rounded-xl p-3 sm:p-4 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 transition-all placeholder-yellow-500/60"
                   placeholder="Android Button Text"
                   {...register("btnAndroidEn")}
                 />
@@ -251,17 +248,17 @@ const DownloadBannerController = () => {
           {/* File Uploads */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
             {/* APK Upload */}
-            <div className="bg-slate-900/40 border border-purple-700/40 rounded-xl p-5 sm:p-6">
-              <label className="block text-cyan-100 font-bold mb-3 cursor-pointer">
+            <div className="bg-black/50 border border-yellow-700/40 rounded-xl p-5 sm:p-6">
+              <label className="block text-yellow-100 font-bold mb-3 cursor-pointer">
                 Upload APK File (.apk)
               </label>
               <input
                 type="file"
                 accept=".apk"
-                className="w-full text-cyan-100/80 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-700/60 file:text-cyan-100 hover:file:bg-purple-600/70 file:cursor-pointer cursor-pointer"
+                className="w-full text-yellow-200 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-yellow-700/30 file:text-black hover:file:bg-yellow-600/50 file:cursor-pointer cursor-pointer"
                 {...register("apkFile")}
               />
-              <div className="mt-3 text-sm text-cyan-200/70">
+              <div className="mt-3 text-sm text-yellow-200/80">
                 {apkName
                   ? `Selected: ${apkName}`
                   : data?.apkUrl
@@ -271,19 +268,19 @@ const DownloadBannerController = () => {
             </div>
 
             {/* Right Image Upload */}
-            <div className="bg-slate-900/40 border border-purple-700/40 rounded-xl p-5 sm:p-6">
-              <label className="block text-cyan-100 font-bold mb-3 cursor-pointer">
+            <div className="bg-black/50 border border-yellow-700/40 rounded-xl p-5 sm:p-6">
+              <label className="block text-yellow-100 font-bold mb-3 cursor-pointer">
                 Upload Right Side Image
               </label>
               <input
                 type="file"
                 accept="image/*"
-                className="w-full text-cyan-100/80 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-700/60 file:text-cyan-100 hover:file:bg-purple-600/70 file:cursor-pointer cursor-pointer"
+                className="w-full text-yellow-200 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-yellow-700/30 file:text-black hover:file:bg-yellow-600/50 cursor-pointer"
                 {...register("rightImage")}
               />
 
               {imgPreview ? (
-                <div className="mt-4 rounded-lg overflow-hidden bg-black/30 border border-purple-700/30">
+                <div className="mt-4 rounded-lg overflow-hidden bg-black/40 border border-yellow-700/30">
                   <img
                     src={imgPreview}
                     alt="Right banner preview"
@@ -291,7 +288,7 @@ const DownloadBannerController = () => {
                   />
                 </div>
               ) : (
-                <div className="mt-4 text-center text-cyan-200/60 text-sm py-6">
+                <div className="mt-4 text-center text-yellow-200/70 text-sm py-6">
                   No preview available
                 </div>
               )}
@@ -303,12 +300,12 @@ const DownloadBannerController = () => {
             <input
               id="isActive"
               type="checkbox"
-              className="w-5 h-5 accent-cyan-500 rounded focus:ring-cyan-500/30 cursor-pointer"
+              className="w-5 h-5 accent-yellow-500 rounded focus:ring-yellow-400/40 cursor-pointer"
               {...register("isActive")}
             />
             <label
               htmlFor="isActive"
-              className="text-cyan-100 font-bold cursor-pointer"
+              className="text-yellow-100 font-bold cursor-pointer"
             >
               Active (Show on Client Site)
             </label>
@@ -318,7 +315,7 @@ const DownloadBannerController = () => {
           <button
             type="submit"
             disabled={isSubmitting || mutation.isPending}
-            className="w-full flex items-center justify-center gap-3 py-3.5 sm:py-4 px-6 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 rounded-xl text-white font-medium text-lg transition-all duration-300 shadow-lg shadow-purple-500/40 border border-purple-500/30 disabled:opacity-60 cursor-pointer"
+            className="w-full flex items-center justify-center gap-3 py-3.5 sm:py-4 px-6 bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 rounded-xl text-black font-medium text-lg transition-all duration-300 shadow-lg shadow-yellow-600/50 hover:shadow-yellow-500/70 border border-yellow-500/30 disabled:opacity-60 cursor-pointer"
           >
             {mutation.isPending ? "Saving..." : "Save Download Banner"}
           </button>

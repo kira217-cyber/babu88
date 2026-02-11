@@ -7,12 +7,14 @@ import MenuItems from "../components/MenuItems/MenuItems";
 import BottomNavbar from "../components/BottomNavbar/BottomNavbar";
 import DownloadHeader from "../components/DownloadHeader/DownloadHeader";
 import FavIconAndLogo from "../components/FavIconAndLogo/FavIconAndLogo";
+import PromotionModal from "../components/PromotionModal/PromotionModal";
 
 const RootLayout = () => {
   return (
     <div>
       <DownloadHeader />
       <Navber />
+      {/* <PromotionModal navigateTo="/promotions" /> */}
       <MenuItems />
       <FavIconAndLogo />
       <FloatingSocial />

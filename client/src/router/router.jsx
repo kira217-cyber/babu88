@@ -7,7 +7,7 @@ import Register from "../pages/Register/Register";
 import Withdraw from "../pages/Withdraw/Withdraw";
 import Deposit from "../pages/Deposit/Deposit";
 import PrivateRoute from "../PrivateRoute/PrivateRoute";
-import Promotion from "../pages/Promotion/Promotion";
+import Promotions from "../pages/Promotions/Promotions";
 
 export const routes = createBrowserRouter([
   {
@@ -21,7 +21,7 @@ export const routes = createBrowserRouter([
       },
       {
         path: "promotions",
-        element: <Promotion />,
+        element: <Promotions />,
       },
       {
         path: "withdraw",

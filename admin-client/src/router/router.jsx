@@ -18,6 +18,8 @@ import SingleBannerController from "../pages/SingleBannerController/SingleBanner
 import FavIconAndLogoController from "../pages/FavIconAndLogoController/FavIconAndLogoController";
 import FloatingSocialController from "../pages/FloatingSocialController/FloatingSocialController";
 import AllUser from "../pages/AllUser/AllUser";
+import DownloadHeaderController from "../pages/DownloadHeaderController/DownloadHeaderController";
+import AddPromotion from "../pages/AddPromotion/AddPromotion";
 
 export const routes = createBrowserRouter([
   {
@@ -141,6 +143,22 @@ export const routes = createBrowserRouter([
         element: (
           <PrivateRoute>
             <AllUser />
+          </PrivateRoute>
+        ),
+      },
+       {
+        path: "download-header-controller",
+        element: (
+          <PrivateRoute>
+            <DownloadHeaderController />
+          </PrivateRoute>
+        ),
+      },
+       {
+        path: "add-promotion",
+        element: (
+          <PrivateRoute>
+            <AddPromotion />
           </PrivateRoute>
         ),
       },

@@ -23,11 +23,11 @@ const uploadImage = async (file) => {
 const Modal = ({ isOpen, onClose, children, title }) => {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 px-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-gradient-to-b from-indigo-950/90 to-purple-950/80 border border-purple-700/50 rounded-2xl p-6 max-w-lg w-full shadow-2xl shadow-purple-900/50 max-h-[90vh] overflow-y-auto"
+        className="bg-gradient-to-b from-black via-yellow-950/40 to-black border border-yellow-700/50 rounded-2xl p-6 max-w-lg w-full shadow-2xl shadow-yellow-900/50 max-h-[90vh] overflow-y-auto"
       >
         {title && (
           <h3 className="text-xl font-bold text-white mb-5 text-center">
@@ -46,7 +46,7 @@ const Modal = ({ isOpen, onClose, children, title }) => {
   );
 };
 
-const BASE_URL = import.meta.env.VITE_API_URL; // আপনার দেওয়া বেস URL
+const BASE_URL = import.meta.env.VITE_API_URL;
 
 const FooterController = () => {
   const queryClient = useQueryClient();
@@ -60,7 +60,6 @@ const FooterController = () => {
     sec: null,
   });
 
-  // Fetch footer data
   const {
     data: footer,
     isLoading,
@@ -240,10 +239,14 @@ const FooterController = () => {
   if (isLoading) {
     return (
       <div className="p-6 max-w-7xl mx-auto">
-        <Skeleton height={50} className="mb-8 rounded-xl" />
+        <Skeleton height={50} className="mb-8 rounded-xl bg-yellow-950/50" />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} height={400} className="rounded-2xl" />
+            <Skeleton
+              key={i}
+              height={400}
+              className="rounded-2xl bg-yellow-950/50"
+            />
           ))}
         </div>
       </div>
@@ -256,17 +259,17 @@ const FooterController = () => {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="bg-gradient-to-b from-indigo-950/70 to-purple-950/60 border border-purple-700/40 rounded-2xl p-8 max-w-2xl mx-auto shadow-xl"
+          className="bg-gradient-to-b from-black via-yellow-950/30 to-black border border-yellow-700/40 rounded-2xl p-8 max-w-2xl mx-auto shadow-xl shadow-yellow-900/30"
         >
           <p className="text-red-400 text-xl font-medium mb-4">
             Failed to load footer data
           </p>
-          <p className="text-cyan-200/80 mb-6">
+          <p className="text-yellow-200/80 mb-6">
             {error?.message || "Unknown error"}
           </p>
           <button
             onClick={() => queryClient.invalidateQueries(["footer"])}
-            className="bg-cyan-600 hover:bg-cyan-500 text-white px-8 py-3 rounded-xl font-medium transition-all cursor-pointer shadow-lg shadow-cyan-600/30"
+            className="bg-yellow-600 hover:bg-yellow-500 text-black px-8 py-3 rounded-xl font-medium transition-all cursor-pointer shadow-lg shadow-yellow-600/40"
           >
             Try Again
           </button>
@@ -277,14 +280,14 @@ const FooterController = () => {
 
   if (!footer) {
     return (
-      <div className="p-8 text-center text-cyan-300 text-xl">
+      <div className="p-8 text-center text-yellow-300 text-xl">
         No footer data found. Please check server configuration.
       </div>
     );
   }
 
   return (
-    <div className="p-4 lg:p-6 max-w-7xl mx-auto min-h-screen">
+    <div className="p-4 lg:p-6 max-w-7xl mx-auto min-h-screen bg-gradient-to-br from-black via-yellow-950/10 to-black">
       <h1 className="text-3xl lg:text-4xl font-bold text-white mb-8 text-center lg:text-left tracking-tight">
         Footer Controller
       </h1>
@@ -293,7 +296,7 @@ const FooterController = () => {
       <motion.section
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-12 bg-gradient-to-b from-indigo-950/70 to-purple-950/60 border border-purple-700/40 rounded-2xl p-6 lg:p-8 shadow-xl shadow-purple-900/30 backdrop-blur-sm"
+        className="mb-12 bg-gradient-to-b from-black via-yellow-950/30 to-black border border-yellow-700/40 rounded-2xl p-6 lg:p-8 shadow-xl shadow-yellow-900/30 backdrop-blur-sm"
       >
         <h2 className="text-2xl lg:text-3xl font-bold text-white mb-6">
           Texts, Social Links & Logo
@@ -306,21 +309,21 @@ const FooterController = () => {
           {Object.keys(footer.texts?.en || {}).map((key) => (
             <div key={key} className="space-y-4">
               <div>
-                <label className="block text-sm text-cyan-100 mb-1.5 font-medium capitalize">
+                <label className="block text-sm text-yellow-100 mb-1.5 font-medium capitalize">
                   {key} (English)
                 </label>
                 <input
                   {...textsForm.register(`${key}_en`)}
-                  className="w-full rounded-xl bg-slate-900/60 border border-purple-700/50 px-4 py-3 text-cyan-100 placeholder-purple-300 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all cursor-text"
+                  className="w-full rounded-xl bg-black/70 border border-yellow-700/50 px-4 py-3 text-white placeholder-yellow-400/60 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 transition-all cursor-text"
                 />
               </div>
               <div>
-                <label className="block text-sm text-cyan-100 mb-1.5 font-medium capitalize">
+                <label className="block text-sm text-yellow-100 mb-1.5 font-medium capitalize">
                   {key} (বাংলা)
                 </label>
                 <input
                   {...textsForm.register(`${key}_bn`)}
-                  className="w-full rounded-xl bg-slate-900/60 border border-purple-700/50 px-4 py-3 text-cyan-100 placeholder-purple-300 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all cursor-text"
+                  className="w-full rounded-xl bg-black/70 border border-yellow-700/50 px-4 py-3 text-white placeholder-yellow-400/60 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 transition-all cursor-text"
                 />
               </div>
             </div>
@@ -334,12 +337,12 @@ const FooterController = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {Object.keys(footer.social || {}).map((key) => (
                 <div key={key}>
-                  <label className="block text-sm text-cyan-100 mb-1.5 font-medium capitalize">
+                  <label className="block text-sm text-yellow-100 mb-1.5 font-medium capitalize">
                     {key}
                   </label>
                   <input
                     {...textsForm.register(key)}
-                    className="w-full rounded-xl bg-slate-900/60 border border-purple-700/50 px-4 py-3 text-cyan-100 placeholder-purple-300 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all cursor-text"
+                    className="w-full rounded-xl bg-black/70 border border-yellow-700/50 px-4 py-3 text-white placeholder-yellow-400/60 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 transition-all cursor-text"
                     placeholder="https://..."
                   />
                 </div>
@@ -349,22 +352,22 @@ const FooterController = () => {
 
           {/* Logo Upload */}
           <div className="md:col-span-2 mt-6">
-            <label className="block text-sm text-cyan-100 mb-1.5 font-medium">
+            <label className="block text-sm text-yellow-100 mb-1.5 font-medium">
               Upload Logo
             </label>
             <input
               type="file"
               accept="image/*"
               {...textsForm.register("logoFile")}
-              className="w-full text-cyan-200 file:mr-4 file:py-3 file:px-5 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-purple-700/30 file:text-cyan-100 hover:file:bg-purple-600/40 file:transition-all cursor-pointer"
+              className="w-full text-sm text-yellow-200 file:mr-4 file:py-3 file:px-5 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-yellow-700/30 file:text-black hover:file:bg-yellow-600/50 file:transition-all cursor-pointer"
             />
             {textsForm.watch("logoPreview") && (
               <div className="mt-4">
-                <p className="text-sm text-cyan-200 mb-2">Current Logo:</p>
+                <p className="text-sm text-yellow-200 mb-2">Current Logo:</p>
                 <img
                   src={textsForm.watch("logoPreview")}
                   alt="Current Logo"
-                  className="max-h-24 w-auto object-contain rounded-xl border border-purple-700/50 shadow-md"
+                  className="max-h-24 w-auto object-contain rounded-xl border border-yellow-700/50 shadow-md"
                 />
               </div>
             )}
@@ -376,7 +379,7 @@ const FooterController = () => {
               whileTap={{ scale: updateMutation.isLoading ? 1 : 0.97 }}
               disabled={updateMutation.isLoading}
               type="submit"
-              className="w-full py-3.5 bg-gradient-to-r from-cyan-600 via-purple-600 to-indigo-600 hover:from-cyan-500 hover:via-purple-500 hover:to-indigo-500 text-white font-semibold rounded-xl shadow-lg shadow-purple-600/40 hover:shadow-purple-500/60 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full py-3.5 bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 text-black font-semibold rounded-xl shadow-lg shadow-yellow-600/50 hover:shadow-yellow-500/70 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {updateMutation.isLoading ? "Saving..." : "Save All Changes"}
             </motion.button>
@@ -391,7 +394,7 @@ const FooterController = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="mb-12 bg-gradient-to-b from-indigo-950/70 to-purple-950/60 border border-purple-700/40 rounded-2xl p-6 lg:p-8 shadow-xl shadow-purple-900/30 backdrop-blur-sm"
+          className="mb-12 bg-gradient-to-b from-black via-yellow-950/30 to-black border border-yellow-700/40 rounded-2xl p-6 lg:p-8 shadow-xl shadow-yellow-900/30 backdrop-blur-sm"
         >
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
             <h2 className="text-2xl lg:text-3xl font-bold text-white capitalize">
@@ -405,16 +408,16 @@ const FooterController = () => {
             </h2>
             <button
               onClick={() => openModal("add", sec)}
-              className="flex items-center gap-2 px-5 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-medium transition-all cursor-pointer shadow-lg shadow-cyan-600/30"
+              className="flex items-center gap-2 px-5 py-3 bg-yellow-600 hover:bg-yellow-500 text-black rounded-xl font-medium transition-all cursor-pointer shadow-lg shadow-yellow-600/40"
             >
               <FaPlus /> Add New
             </button>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-cyan-100">
+            <table className="w-full border-collapse text-yellow-100">
               <thead>
-                <tr className="bg-purple-900/30">
+                <tr className="bg-yellow-900/20">
                   <th className="p-4 text-left font-medium">Name</th>
                   {(sec === "ambassadors" || sec === "sponsors") && (
                     <th className="p-4 text-left font-medium">Season</th>
@@ -427,7 +430,7 @@ const FooterController = () => {
                 {(footer[sec] || []).map((item) => (
                   <tr
                     key={item._id}
-                    className="border-b border-purple-800/30 hover:bg-purple-900/20 transition-colors"
+                    className="border-b border-yellow-800/30 hover:bg-yellow-900/20 transition-colors"
                   >
                     <td className="p-4">{item.name}</td>
                     {(sec === "ambassadors" || sec === "sponsors") && (
@@ -438,7 +441,7 @@ const FooterController = () => {
                         <img
                           src={`${BASE_URL}${item.img}`}
                           alt={item.name}
-                          className="h-16 w-auto object-contain rounded-lg border border-purple-700/50"
+                          className="h-16 w-auto object-contain rounded-lg border border-yellow-700/50"
                         />
                       ) : (
                         "—"
@@ -447,7 +450,7 @@ const FooterController = () => {
                     <td className="p-4 text-center flex justify-center gap-6">
                       <button
                         onClick={() => openModal("edit", sec, item)}
-                        className="text-cyan-400 hover:text-cyan-300 transition-colors cursor-pointer"
+                        className="text-yellow-400 hover:text-yellow-300 transition-colors cursor-pointer"
                         title="Edit"
                       >
                         <FaEdit size={22} />
@@ -466,7 +469,7 @@ const FooterController = () => {
                   <tr>
                     <td
                       colSpan={4}
-                      className="p-8 text-center text-cyan-200/70"
+                      className="p-8 text-center text-yellow-200/70"
                     >
                       No items found in this section
                     </td>
@@ -493,12 +496,12 @@ const FooterController = () => {
           className="space-y-5"
         >
           <div>
-            <label className="block text-sm text-cyan-100 mb-1.5 font-medium">
+            <label className="block text-sm text-yellow-100 mb-1.5 font-medium">
               Name *
             </label>
             <input
               {...itemForm.register("name", { required: "Name is required" })}
-              className="w-full rounded-xl bg-slate-900/60 border border-purple-700/50 px-4 py-3 text-cyan-100 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all cursor-text"
+              className="w-full rounded-xl bg-black/70 border border-yellow-700/50 px-4 py-3 text-white outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 transition-all cursor-text"
             />
             {itemForm.formState.errors.name && (
               <p className="text-red-400 text-xs mt-1.5">
@@ -509,34 +512,34 @@ const FooterController = () => {
 
           {(section === "ambassadors" || section === "sponsors") && (
             <div>
-              <label className="block text-sm text-cyan-100 mb-1.5 font-medium">
+              <label className="block text-sm text-yellow-100 mb-1.5 font-medium">
                 Season
               </label>
               <input
                 {...itemForm.register("season")}
-                className="w-full rounded-xl bg-slate-900/60 border border-purple-700/50 px-4 py-3 text-cyan-100 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all cursor-text"
+                className="w-full rounded-xl bg-black/70 border border-yellow-700/50 px-4 py-3 text-white outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 transition-all cursor-text"
                 placeholder="e.g. 2024/2025"
               />
             </div>
           )}
 
           <div>
-            <label className="block text-sm text-cyan-100 mb-1.5 font-medium">
+            <label className="block text-sm text-yellow-100 mb-1.5 font-medium">
               Image
             </label>
             <input
               type="file"
               accept="image/*"
               {...itemForm.register("imageFile")}
-              className="w-full text-cyan-200 file:mr-4 file:py-3 file:px-5 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-purple-700/30 file:text-cyan-100 hover:file:bg-purple-600/40 cursor-pointer"
+              className="w-full text-yellow-200 file:mr-4 file:py-3 file:px-5 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-yellow-700/30 file:text-black hover:file:bg-yellow-600/50 cursor-pointer"
             />
             {editItem?.img && (
               <div className="mt-4">
-                <p className="text-sm text-cyan-200 mb-2">Current Image:</p>
+                <p className="text-sm text-yellow-200 mb-2">Current Image:</p>
                 <img
                   src={`${BASE_URL}${editItem.img}`}
                   alt="Current"
-                  className="max-h-32 w-auto object-contain rounded-xl border border-purple-700/50 shadow-md"
+                  className="max-h-32 w-auto object-contain rounded-xl border border-yellow-700/50 shadow-md"
                 />
               </div>
             )}
@@ -547,7 +550,7 @@ const FooterController = () => {
             whileTap={{ scale: updateMutation.isLoading ? 1 : 0.97 }}
             disabled={updateMutation.isLoading}
             type="submit"
-            className="w-full py-3.5 bg-gradient-to-r from-cyan-600 via-purple-600 to-indigo-600 hover:from-cyan-500 hover:via-purple-500 hover:to-indigo-500 text-white font-semibold rounded-xl shadow-lg cursor-pointer disabled:opacity-60"
+            className="w-full py-3.5 bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 text-black font-semibold rounded-xl shadow-lg shadow-yellow-600/50 hover:shadow-yellow-500/70 transition-all cursor-pointer disabled:opacity-60"
           >
             {updateMutation.isLoading
               ? "Saving..."
@@ -566,7 +569,7 @@ const FooterController = () => {
         <h3 className="text-xl font-bold text-white mb-5 text-center">
           Confirm Deletion
         </h3>
-        <p className="text-cyan-200/90 mb-6 text-center">
+        <p className="text-yellow-200/90 mb-6 text-center">
           Are you sure you want to delete this item? This action cannot be
           undone.
         </p>
@@ -582,7 +585,7 @@ const FooterController = () => {
             onClick={() =>
               setDeleteConfirm({ open: false, id: null, sec: null })
             }
-            className="flex-1 py-3 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-100 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2"
+            className="flex-1 py-3 bg-yellow-600/30 hover:bg-yellow-600/50 text-yellow-100 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2"
           >
             <FaTimes /> Cancel
           </button>

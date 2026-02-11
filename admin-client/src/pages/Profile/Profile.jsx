@@ -82,7 +82,7 @@ const Profile = () => {
   if (isLoading) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-12 h-12 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -94,11 +94,11 @@ const Profile = () => {
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="max-w-md w-full bg-gradient-to-b from-indigo-950/70 to-purple-950/60 
-                     border border-purple-700/40 rounded-2xl p-8 text-center shadow-xl shadow-purple-900/30 backdrop-blur-sm"
+          className="max-w-md w-full bg-gradient-to-b from-black via-yellow-950/30 to-black 
+                     border border-yellow-700/40 rounded-2xl p-8 text-center shadow-xl shadow-yellow-900/30 backdrop-blur-sm"
         >
-          <p className="text-red-300 text-lg font-medium">{msg}</p>
-          <p className="text-cyan-200/80 mt-3 text-sm">
+          <p className="text-red-400 text-lg font-medium">{msg}</p>
+          <p className="text-yellow-200/80 mt-3 text-sm">
             Please try again later or contact support
           </p>
         </motion.div>
@@ -107,19 +107,19 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-[70vh] flex items-center justify-center px-4 bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950">
+    <div className="min-h-[70vh] flex items-center justify-center px-4 bg-gradient-to-br from-black via-yellow-950/20 to-black">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
-        className="w-full max-w-md bg-gradient-to-b from-indigo-950/70 via-purple-950/60 to-slate-950/80 
-                   border border-purple-700/40 rounded-2xl shadow-2xl shadow-purple-900/40 p-8 backdrop-blur-sm"
+        className="w-full max-w-md bg-gradient-to-b from-black via-yellow-950/30 to-black 
+                   border border-yellow-700/40 rounded-2xl shadow-2xl shadow-yellow-900/40 p-8 backdrop-blur-sm"
       >
         <div className="flex flex-col items-center mb-6">
           <h2 className="text-3xl font-bold text-white tracking-tight">
             Admin Profile
           </h2>
-          <p className="text-sm text-cyan-200/80 mt-2 text-center">
+          <p className="text-sm text-yellow-200/80 mt-2 text-center">
             Changing email or password will require you to log in again
           </p>
         </div>
@@ -127,13 +127,13 @@ const Profile = () => {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           {/* Email */}
           <div>
-            <label className="block text-sm text-cyan-100 mb-1.5 font-medium">
+            <label className="block text-sm text-yellow-100 mb-1.5 font-medium">
               Email
             </label>
             <input
-              className="w-full rounded-xl bg-slate-900/60 border border-purple-700/50 px-5 py-3.5 
-                         text-cyan-100 placeholder-purple-300 outline-none 
-                         focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 
+              className="w-full rounded-xl bg-black/70 border border-yellow-700/50 px-5 py-3.5 
+                         text-white placeholder-yellow-400/60 outline-none 
+                         focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 
                          transition-all duration-300 cursor-text"
               type="email"
               placeholder="admin@example.com"
@@ -148,13 +148,13 @@ const Profile = () => {
 
           {/* Current Password */}
           <div className="relative">
-            <label className="block text-sm text-cyan-100 mb-1.5 font-medium">
+            <label className="block text-sm text-yellow-100 mb-1.5 font-medium">
               Current Password
             </label>
             <input
-              className="w-full rounded-xl bg-slate-900/60 border border-purple-700/50 px-5 py-3.5 
-                         text-cyan-100 placeholder-purple-300 outline-none 
-                         focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 
+              className="w-full rounded-xl bg-black/70 border border-yellow-700/50 px-5 py-3.5 
+                         text-white placeholder-yellow-400/60 outline-none 
+                         focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 
                          transition-all duration-300 pr-12 cursor-text"
               type={showCurrentPassword ? "text" : "password"}
               placeholder="Current password"
@@ -165,7 +165,7 @@ const Profile = () => {
             <button
               type="button"
               onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-              className="absolute right-4 top-[2.8rem] text-cyan-300 hover:text-cyan-100 
+              className="absolute right-4 top-[2.8rem] text-yellow-300 hover:text-yellow-100 
                          transition-colors duration-200 cursor-pointer"
             >
               {showCurrentPassword ? (
@@ -183,13 +183,13 @@ const Profile = () => {
 
           {/* New Password (Optional) */}
           <div className="relative">
-            <label className="block text-sm text-cyan-100 mb-1.5 font-medium">
+            <label className="block text-sm text-yellow-100 mb-1.5 font-medium">
               New Password (Optional)
             </label>
             <input
-              className="w-full rounded-xl bg-slate-900/60 border border-purple-700/50 px-5 py-3.5 
-                         text-cyan-100 placeholder-purple-300 outline-none 
-                         focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 
+              className="w-full rounded-xl bg-black/70 border border-yellow-700/50 px-5 py-3.5 
+                         text-white placeholder-yellow-400/60 outline-none 
+                         focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 
                          transition-all duration-300 pr-12 cursor-text"
               type={showNewPassword ? "text" : "password"}
               placeholder="New password (leave blank to keep current)"
@@ -200,7 +200,7 @@ const Profile = () => {
             <button
               type="button"
               onClick={() => setShowNewPassword(!showNewPassword)}
-              className="absolute right-4 top-[2.8rem] text-cyan-300 hover:text-cyan-100 
+              className="absolute right-4 top-[2.8rem] text-yellow-300 hover:text-yellow-100 
                          transition-colors duration-200 cursor-pointer"
             >
               {showNewPassword ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
@@ -219,17 +219,17 @@ const Profile = () => {
             disabled={isPending}
             type="submit"
             className="w-full flex items-center justify-center gap-2 
-                       bg-gradient-to-r from-cyan-600 via-purple-600 to-indigo-600 
-                       hover:from-cyan-500 hover:via-purple-500 hover:to-indigo-500 
-                       text-white font-semibold py-3.5 rounded-xl 
-                       shadow-lg shadow-purple-600/40 hover:shadow-purple-500/60 
+                       bg-gradient-to-r from-yellow-500 to-amber-500 
+                       hover:from-yellow-400 hover:to-amber-400 
+                       text-black font-semibold py-3.5 rounded-xl 
+                       shadow-lg shadow-yellow-600/50 hover:shadow-yellow-500/70 
                        transition-all duration-300 cursor-pointer
                        disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none"
           >
             {isPending ? "Updating..." : "Update Profile"}
           </motion.button>
 
-          <div className="text-xs text-cyan-200/70 text-center mt-2">
+          <div className="text-xs text-yellow-200/70 text-center mt-2">
             ✅ After successful update you will be automatically logged out
           </div>
         </form>

@@ -31,7 +31,6 @@ const Sidebar = () => {
   const [depositOpen, setDepositOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
-
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -49,7 +48,7 @@ const Sidebar = () => {
     { to: "/", icon: <FaHome />, text: "Dashboard", end: true },
     { to: "/all-user", icon: <FaUsers />, text: "All Users" },
     { to: "/add-game", icon: <IoAppsSharp />, text: "Add Game" },
-    { to: "/add-promotion", icon: <IoAppsSharp />, text: "Promotion Game" },
+    { to: "/add-promotion", icon: <IoAppsSharp />, text: "Add Promotion" },
   ];
 
   const depositSubItems = [
@@ -72,11 +71,13 @@ const Sidebar = () => {
 
   const promotionSubItems = [
     { to: "/fav-icon-and-logo-controller", text: "Favicon Logo Controller" },
+    { to: "/download-header-controller", text: "Download Header Controller" },
     { to: "/slider-controller", text: "Slider Controller" },
     { to: "/notice-controller", text: "Notice Controller" },
     { to: "/two-banner-controller", text: "Two Banner Controller" },
     { to: "/single-banner-controller", text: "Single Banner Controller" },
     { to: "/download-banner-controller", text: "Download Banner Controller" },
+    { to: "/banner-video-controller", text: "Banner Video Controller" },
     { to: "/floating-social-controller", text: "Social Link Controller" },
     { to: "/footer-controller", text: "Footer Controller" },
   ];
@@ -90,23 +91,22 @@ const Sidebar = () => {
   };
 
   return (
-    <div className="h-screen w-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950 text-gray-100">
+    <div className="h-screen w-full flex flex-col overflow-hidden bg-gradient-to-br from-black via-yellow-950/20 to-black text-white">
       {/* Mobile Top Bar */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-indigo-700 via-purple-700 to-purple-900 px-4 py-3 flex items-center justify-between shadow-lg">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-yellow-600 via-amber-500 to-yellow-500 px-4 py-3 flex items-center justify-between shadow-lg shadow-yellow-900/30">
         <button
           onClick={() => setOpen(true)}
-          className="p-2 rounded-lg hover:bg-purple-800/50 transition-colors"
+          className="p-2 rounded-lg hover:bg-yellow-700/60 transition-colors"
         >
-          <RxHamburgerMenu className="text-2xl text-cyan-200" />
+          <RxHamburgerMenu className="text-2xl text-white" />
         </button>
         <div className="flex items-center gap-5">
           <button className="relative p-1.5">
-            <FaBell className="text-xl text-cyan-200 hover:text-white transition-colors" />
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-pink-500 rounded-full ring-2 ring-pink-400/60"></span>
+            <FaBell className="text-xl text-white hover:text-yellow-200 transition-colors" />
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-red-400/70"></span>
           </button>
-          <Link to={"/profile"}>
-            {" "}
-            <FaUserCircle className="text-2xl text-cyan-200 hover:text-white transition-colors cursor-pointer" />
+          <Link to="/profile">
+            <FaUserCircle className="text-2xl text-white hover:text-yellow-200 transition-colors cursor-pointer" />
           </Link>
         </div>
       </div>
@@ -114,7 +114,7 @@ const Sidebar = () => {
       {/* Mobile Overlay */}
       {open && !isDesktop && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 md:hidden"
           onClick={() => setOpen(false)}
         />
       )}
@@ -125,7 +125,7 @@ const Sidebar = () => {
           initial={false}
           animate={{ x: open || isDesktop ? 0 : "-100%" }}
           transition={{ type: "spring", damping: 25, stiffness: 180 }}
-          className="fixed md:static top-0 left-0 z-50 h-full w-72 bg-gradient-to-b from-indigo-950 via-purple-950/90 to-slate-950 border-r border-purple-800/30 shadow-2xl flex flex-col overflow-hidden"
+          className="fixed md:static top-0 left-0 z-50 h-full w-72 bg-gradient-to-b from-black via-yellow-950/30 to-black border-r border-yellow-700/40 shadow-2xl flex flex-col overflow-hidden"
         >
           <SidebarContent
             menuItems={menuItems}
@@ -146,27 +146,27 @@ const Sidebar = () => {
         {/* Main Content */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Desktop Top Bar */}
-          <div className="hidden md:flex items-center justify-between px-6 lg:px-10 py-6 border-b border-purple-800/40 bg-gradient-to-r from-indigo-900/70 via-purple-900/60 to-slate-900/70 backdrop-blur-md sticky top-0 z-40 shadow-sm">
+          <div className="hidden md:flex items-center justify-between px-6 lg:px-10 py-6 border-b border-yellow-700/40 bg-gradient-to-r from-black/90 via-yellow-950/40 to-black/90 backdrop-blur-md sticky top-0 z-40 shadow-sm">
             <div className="flex-1 max-w-2xl">
               <div className="relative">
-                <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-300 text-lg" />
+                <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-yellow-400 text-lg" />
                 <input
                   type="text"
                   placeholder="Search games, users, stats..."
-                  className="w-full pl-12 pr-5 py-3 bg-slate-800/60 border border-purple-700/50 rounded-xl text-cyan-100 placeholder-purple-300 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all"
+                  className="w-full pl-12 pr-5 py-3 bg-black/70 border border-yellow-700/50 rounded-xl text-white placeholder-yellow-400/70 focus:outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 transition-all"
                 />
               </div>
             </div>
             <div className="flex items-center gap-6">
-              <button className="relative p-2.5 hover:bg-purple-800/40 rounded-xl transition-colors">
-                <FaBell className="text-xl text-cyan-200 hover:text-cyan-100 transition-colors" />
-                <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-pink-500 rounded-full ring-2 ring-pink-400/50"></span>
+              <button className="relative p-2.5 hover:bg-yellow-800/40 rounded-xl transition-colors">
+                <FaBell className="text-xl text-yellow-300 hover:text-white transition-colors" />
+                <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-red-400/60"></span>
               </button>
               <Link
                 to="/profile"
-                className="p-1 hover:bg-purple-800/40 rounded-full transition-colors"
+                className="p-1 hover:bg-yellow-800/40 rounded-full transition-colors"
               >
-                <FaUserCircle className="text-3xl text-cyan-200 hover:text-cyan-100 transition-colors" />
+                <FaUserCircle className="text-3xl text-yellow-300 hover:text-white transition-colors" />
               </Link>
             </div>
           </div>
@@ -201,10 +201,10 @@ const SidebarContent = ({
   return (
     <div className="flex flex-col h-full">
       {/* Header / Logo */}
-      <div className="p-6 border-b border-purple-800/40 bg-gradient-to-r from-indigo-900/50 to-purple-900/40 shrink-0">
+      <div className="p-6 border-b border-yellow-700/40 bg-gradient-to-r from-black/70 to-yellow-950/20 shrink-0">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/40">
-            <span className="text-white font-black text-3xl tracking-wider">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center shadow-lg shadow-yellow-500/50">
+            <span className="text-black font-black text-3xl tracking-wider">
               B
             </span>
           </div>
@@ -212,7 +212,7 @@ const SidebarContent = ({
             <h2 className="text-2xl font-bold text-white tracking-tight">
               BABU88
             </h2>
-            <p className="text-sm text-cyan-200/90">Admin Panel</p>
+            <p className="text-sm text-yellow-200/90">Mother Admin Panel</p>
           </div>
         </div>
       </div>
@@ -221,7 +221,7 @@ const SidebarContent = ({
       {onClose && (
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2.5 rounded-xl hover:bg-purple-800/40 text-cyan-300 hover:text-cyan-100 md:hidden transition-colors"
+          className="absolute top-5 right-5 p-2.5 rounded-xl hover:bg-yellow-800/50 text-white hover:text-yellow-200 md:hidden transition-colors"
         >
           <FaTimes size={24} />
         </button>
@@ -238,12 +238,12 @@ const SidebarContent = ({
             className={({ isActive }) =>
               `flex items-center gap-4 px-5 py-3.5 rounded-xl mb-1.5 text-base font-medium transition-all duration-200 group ${
                 isActive
-                  ? "bg-gradient-to-r from-cyan-600/80 to-purple-600/80 text-white shadow-lg shadow-purple-500/30"
-                  : "text-cyan-100 hover:bg-purple-900/50 hover:text-white"
+                  ? "bg-gradient-to-r from-yellow-500/90 to-amber-500/90 text-black shadow-lg shadow-yellow-600/50"
+                  : "text-white hover:bg-yellow-900/40 hover:text-yellow-100"
               }`
             }
           >
-            <span className="text-2xl opacity-90 group-hover:scale-110 transition-transform duration-200">
+            <span className="text-2xl opacity-90 group-hover:scale-110 transition-transform duration-200 text-white">
               {item.icon}
             </span>
             <span>{item.text}</span>
@@ -254,18 +254,18 @@ const SidebarContent = ({
         <div className="mt-4">
           <button
             onClick={() => setDepositOpen(!depositOpen)}
-            className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl text-cyan-100 hover:bg-purple-900/50 hover:text-white transition-all duration-200"
+            className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl text-white hover:bg-yellow-900/40 hover:text-yellow-100 transition-all duration-200"
           >
             <div className="flex items-center gap-4">
-              <span className="text-2xl">
+              <span className="text-2xl text-white">
                 <PiHandDepositBold />
               </span>
               <span className="font-medium">Deposit</span>
             </div>
             {depositOpen ? (
-              <FaChevronUp size={18} />
+              <FaChevronUp size={18} className="text-white" />
             ) : (
-              <FaChevronDown size={18} />
+              <FaChevronDown size={18} className="text-white" />
             )}
           </button>
           {depositOpen && (
@@ -278,12 +278,14 @@ const SidebarContent = ({
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-5 py-3 rounded-lg text-sm transition-all duration-200 ${
                       isActive
-                        ? "bg-cyan-700/50 text-cyan-50 font-medium shadow-sm shadow-purple-500/30"
-                        : "text-cyan-200/90 hover:text-white hover:bg-purple-900/60"
+                        ? "bg-yellow-600/80 text-black font-medium shadow-sm shadow-yellow-500/40"
+                        : "text-yellow-100 hover:text-white hover:bg-yellow-800/50"
                     }`
                   }
                 >
-                  <span className="text-xl opacity-80">{sub.icon}</span>
+                  <span className="text-xl opacity-90 text-white">
+                    {sub.icon}
+                  </span>
                   <span>{sub.text}</span>
                 </NavLink>
               ))}
@@ -291,22 +293,22 @@ const SidebarContent = ({
           )}
         </div>
 
-        {/* Withdraw Dropdown - similar changes */}
+        {/* Withdraw Dropdown */}
         <div className="mt-2">
           <button
             onClick={() => setWithdrawOpen(!withdrawOpen)}
-            className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl text-cyan-100 hover:bg-purple-900/50 hover:text-white transition-all duration-200"
+            className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl text-white hover:bg-yellow-900/40 hover:text-yellow-100 transition-all duration-200"
           >
             <div className="flex items-center gap-4">
-              <span className="text-2xl">
+              <span className="text-2xl text-white">
                 <PiHandWithdrawBold />
               </span>
               <span className="font-medium">Withdraw</span>
             </div>
             {withdrawOpen ? (
-              <FaChevronUp size={18} />
+              <FaChevronUp size={18} className="text-white" />
             ) : (
-              <FaChevronDown size={18} />
+              <FaChevronDown size={18} className="text-white" />
             )}
           </button>
           {withdrawOpen && (
@@ -319,12 +321,14 @@ const SidebarContent = ({
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-5 py-3 rounded-lg text-sm transition-all duration-200 ${
                       isActive
-                        ? "bg-cyan-700/50 text-cyan-50 font-medium shadow-sm shadow-purple-500/30"
-                        : "text-cyan-200/90 hover:text-white hover:bg-purple-900/60"
+                        ? "bg-yellow-600/80 text-black font-medium shadow-sm shadow-yellow-500/40"
+                        : "text-yellow-100 hover:text-white hover:bg-yellow-800/50"
                     }`
                   }
                 >
-                  <span className="text-xl opacity-80">{sub.icon}</span>
+                  <span className="text-xl opacity-90 text-white">
+                    {sub.icon}
+                  </span>
                   <span>{sub.text}</span>
                 </NavLink>
               ))}
@@ -336,18 +340,18 @@ const SidebarContent = ({
         <div className="mt-4">
           <button
             onClick={() => setPromotionsOpen(!promotionsOpen)}
-            className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl text-cyan-100 hover:bg-purple-900/50 hover:text-white transition-all duration-200"
+            className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl text-white hover:bg-yellow-900/40 hover:text-yellow-100 transition-all duration-200"
           >
             <div className="flex items-center gap-4">
-              <span className="text-2xl">
+              <span className="text-2xl text-white">
                 <GrAnnounce />
               </span>
               <span className="font-medium">Client Site Controller</span>
             </div>
             {promotionsOpen ? (
-              <FaChevronUp size={18} />
+              <FaChevronUp size={18} className="text-white" />
             ) : (
-              <FaChevronDown size={18} />
+              <FaChevronDown size={18} className="text-white" />
             )}
           </button>
           {promotionsOpen && (
@@ -360,8 +364,8 @@ const SidebarContent = ({
                   className={({ isActive }) =>
                     `block px-5 py-3 rounded-lg text-sm transition-all duration-200 ${
                       isActive
-                        ? "bg-cyan-700/50 text-cyan-50 font-medium shadow-sm shadow-purple-500/30"
-                        : "text-cyan-200/90 hover:text-white hover:bg-purple-900/60"
+                        ? "bg-yellow-600/80 text-black font-medium shadow-sm shadow-yellow-500/40"
+                        : "text-yellow-100 hover:text-white hover:bg-yellow-800/50"
                     }`
                   }
                 >
@@ -374,12 +378,12 @@ const SidebarContent = ({
       </nav>
 
       {/* Logout */}
-      <div className="p-5 border-t border-purple-800/40 mt-auto shrink-0">
+      <div className="p-5 border-t border-yellow-700/40 mt-auto shrink-0">
         <button
           onClick={onLogout}
-          className="w-full flex cursor-pointer items-center justify-center gap-3 py-3.5 px-5 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 rounded-xl text-white font-medium transition-all duration-300 shadow-lg shadow-purple-500/40 border border-purple-500/30"
+          className="w-full cursor-pointer flex items-center justify-center gap-3 py-3.5 px-5 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 rounded-xl text-black font-medium transition-all duration-300 shadow-lg shadow-yellow-600/50 border border-yellow-400/40"
         >
-          <FaSignOutAlt />
+          <FaSignOutAlt className="text-black" />
           Logout
         </button>
       </div>

@@ -1,11 +1,11 @@
 import React from 'react';
 
-const Promotion = () => {
+const AddPromotion = () => {
     return (
         <div>
-            Promotion
+            Add Promotion 
         </div>
     );
 };
 
-export default Promotion;
+export default AddPromotion;

@@ -53,22 +53,22 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950">
+    <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-black via-yellow-950/20 to-black">
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
-        className="w-full max-w-md bg-gradient-to-b from-indigo-950/70 via-purple-950/60 to-slate-950/80 
-                   border border-purple-700/40 rounded-2xl shadow-2xl shadow-purple-900/40 p-8 backdrop-blur-sm"
+        className="w-full max-w-md bg-gradient-to-b from-black via-yellow-950/30 to-black 
+                   border border-yellow-700/40 rounded-2xl shadow-2xl shadow-yellow-900/30 p-8 backdrop-blur-sm"
       >
         <div className="flex flex-col items-center mb-6">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center mb-3 shadow-lg shadow-purple-500/40">
-            <FaUserShield className="text-3xl text-white" />
+          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center mb-3 shadow-lg shadow-yellow-500/50">
+            <FaUserShield className="text-3xl text-black" />
           </div>
           <h2 className="text-3xl font-bold text-white tracking-tight">
             Admin Login
           </h2>
-          {/* <p className="text-sm text-cyan-200/80 mt-2">
+          {/* <p className="text-sm text-yellow-200/80 mt-2">
             শুধুমাত্র Admin email + password দিয়ে লগইন করুন
           </p> */}
         </div>
@@ -76,13 +76,13 @@ const Login = () => {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           {/* Email */}
           <div>
-            <label className="block text-sm text-cyan-100 mb-1.5 font-medium">
+            <label className="block text-sm text-yellow-100 mb-1.5 font-medium">
               Email
             </label>
             <input
-              className="w-full rounded-xl bg-slate-900/60 border border-purple-700/50 px-5 py-3.5 
-                         text-cyan-100 placeholder-purple-300/50 outline-none 
-                         focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 
+              className="w-full rounded-xl bg-black/70 border border-yellow-700/50 px-5 py-3.5 
+                         text-white placeholder-yellow-400/60 outline-none 
+                         focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 
                          transition-all duration-300 cursor-text"
               placeholder="email@example.com"
               type="email"
@@ -99,13 +99,13 @@ const Login = () => {
 
           {/* Password */}
           <div className="relative">
-            <label className="block text-sm text-cyan-100 mb-1.5 font-medium">
+            <label className="block text-sm text-yellow-100 mb-1.5 font-medium">
               Password
             </label>
             <input
-              className="w-full rounded-xl bg-slate-900/60 border border-purple-700/50 px-5 py-3.5 
-                         text-cyan-100 placeholder-purple-300/50 outline-none 
-                         focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 
+              className="w-full rounded-xl bg-black/70 border border-yellow-700/50 px-5 py-3.5 
+                         text-white placeholder-yellow-400/60 outline-none 
+                         focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 
                          transition-all duration-300 pr-12 cursor-text"
               placeholder="••••••••"
               type={showPassword ? "text" : "password"}
@@ -117,7 +117,7 @@ const Login = () => {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-[2.8rem] text-cyan-300 hover:text-cyan-100 
+              className="absolute right-4 top-[2.8rem] text-yellow-300 hover:text-yellow-100 
                          transition-colors duration-200 cursor-pointer"
             >
               {showPassword ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
@@ -136,14 +136,14 @@ const Login = () => {
             disabled={isPending}
             type="submit"
             className="w-full flex items-center justify-center gap-3 
-                       bg-gradient-to-r from-cyan-600 via-purple-600 to-indigo-600 
-                       hover:from-cyan-500 hover:via-purple-500 hover:to-indigo-500 
-                       text-white font-semibold py-3.5 rounded-xl 
-                       shadow-lg shadow-purple-600/40 hover:shadow-purple-500/60 
+                       bg-gradient-to-r from-yellow-500 to-amber-500 
+                       hover:from-yellow-400 hover:to-amber-400 
+                       text-black font-semibold py-3.5 rounded-xl 
+                       shadow-lg shadow-yellow-600/50 hover:shadow-yellow-500/70 
                        transition-all duration-300 cursor-pointer
                        disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none"
           >
-            <FaUserShield className="text-lg" />
+            <FaUserShield className="text-lg text-black" />
             {isPending ? "Logging in..." : "Login"}
           </motion.button>
         </form>
