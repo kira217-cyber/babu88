@@ -11,6 +11,12 @@ import downloadRoutes from "./routes/downloadRoutes.js";
 import bannerVideoRoutes from "./routes/bannerVideoRoutes.js";
 import twoBannerRoutes from "./routes/twoBannerRoutes.js";
 import singleBannerRoutes from "./routes/singleBannerRoutes.js";
+import siteBrandingRoutes from "./routes/siteBrandingRoutes.js";
+import floatingSocialRoutes from "./routes/floatingSocialRoutes.js";
+
+
+
+
 
 
 
@@ -47,6 +53,10 @@ app.use("/api", downloadRoutes);
 app.use("/api", bannerVideoRoutes);
 app.use("/api", twoBannerRoutes);
 app.use("/api", singleBannerRoutes);
+app.use("/api", siteBrandingRoutes);
+app.use("/api", floatingSocialRoutes);
+
+
 
 // ✅ port
 const PORT = process.env.PORT || 5008;

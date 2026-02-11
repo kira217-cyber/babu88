@@ -6,6 +6,7 @@ import FloatingSocial from "../components/FloatingSocial/FloatingSocial";
 import MenuItems from "../components/MenuItems/MenuItems";
 import BottomNavbar from "../components/BottomNavbar/BottomNavbar";
 import DownloadHeader from "../components/DownloadHeader/DownloadHeader";
+import FavIconAndLogo from "../components/FavIconAndLogo/FavIconAndLogo";
 
 const RootLayout = () => {
   return (
@@ -13,7 +14,8 @@ const RootLayout = () => {
       <DownloadHeader />
       <Navber />
       <MenuItems />
-      {/* <FloatingSocial /> */}
+      <FavIconAndLogo />
+      <FloatingSocial />
       <BottomNavbar />
       <Outlet />
       <Footer />

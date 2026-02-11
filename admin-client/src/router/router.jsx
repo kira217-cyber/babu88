@@ -15,6 +15,9 @@ import DownloadBannerController from "../pages/DownloadBannerController/Download
 import BannerController from "../pages/BannerController/BannerController";
 import TwoBannerController from "../pages/TwoBannerController/TwoBannerController";
 import SingleBannerController from "../pages/SingleBannerController/SingleBannerController";
+import FavIconAndLogoController from "../pages/FavIconAndLogoController/FavIconAndLogoController";
+import FloatingSocialController from "../pages/FloatingSocialController/FloatingSocialController";
+import AllUser from "../pages/AllUser/AllUser";
 
 export const routes = createBrowserRouter([
   {
@@ -114,6 +117,30 @@ export const routes = createBrowserRouter([
         element: (
           <PrivateRoute>
             <SingleBannerController />
+          </PrivateRoute>
+        ),
+      },
+        {
+        path: "fav-icon-and-logo-controller",
+        element: (
+          <PrivateRoute>
+            <FavIconAndLogoController />
+          </PrivateRoute>
+        ),
+      },
+       {
+        path: "floating-social-controller",
+        element: (
+          <PrivateRoute>
+            <FloatingSocialController />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "all-user",
+        element: (
+          <PrivateRoute>
+            <AllUser />
           </PrivateRoute>
         ),
       },

@@ -71,19 +71,13 @@ const Sidebar = () => {
   ];
 
   const promotionSubItems = [
-    { to: "/controller/logos", text: "Logos Controller" },
-    { to: "/controller/theme", text: "Theme Controller" },
-    { to: "/controller/navbar", text: "Navbar Controller" },
+    { to: "/fav-icon-and-logo-controller", text: "Favicon Logo Controller" },
     { to: "/slider-controller", text: "Slider Controller" },
-    { to: "/controller/slider2", text: "Slider 2 Controller" },
     { to: "/notice-controller", text: "Notice Controller" },
-    { to: "/controller/favivon-icon-title", text: "Favicon And Title" },
     { to: "/two-banner-controller", text: "Two Banner Controller" },
     { to: "/single-banner-controller", text: "Single Banner Controller" },
     { to: "/download-banner-controller", text: "Download Banner Controller" },
-    { to: "/controller/payment-method", text: "Payment Method Image" },
-    { to: "/controller/social", text: "Social Link Controller" },
-    { to: "/controller/bottom-navbar", text: "Bottom Navbar Controller" },
+    { to: "/floating-social-controller", text: "Social Link Controller" },
     { to: "/footer-controller", text: "Footer Controller" },
   ];
 

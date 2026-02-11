@@ -38,6 +38,13 @@ import {
   selectAuth,
   selectIsAuthenticated,
 } from "../../features/auth/authSelectors";
+import { api } from "../../api/axios";
+import { useQuery } from "@tanstack/react-query";
+
+const fetchBranding = async () => {
+  const { data } = await api.get("/api/site-branding");
+  return data;
+};
 
 // Tiny Flag components (unchanged)
 const BdFlag = ({ className = "" }) => (
@@ -104,6 +111,12 @@ const Navber = () => {
 
   const { isBangla, language, changeLanguage } = useLanguage();
 
+  const { data } = useQuery({
+    queryKey: ["site-branding"],
+    queryFn: fetchBranding,
+    staleTime: 1000 * 60 * 10,
+  });
+
   // ✅ redux auth
   const auth = useSelector(selectAuth);
   const isAuthenticated = useSelector(selectIsAuthenticated);
@@ -112,6 +125,19 @@ const Navber = () => {
   const username = user?.username || user?.name || "User";
   const notifCount = user?.notificationsCount ?? 0;
   const balance = Number(user?.balance ?? 0);
+
+  const view = useMemo(() => {
+    const title = isBangla ? data?.titleBn : data?.titleEn;
+    const faviconUrl = data?.faviconUrl
+      ? `${api.defaults.baseURL}${data.faviconUrl}`
+      : "";
+    const logoUrl = data?.logoUrl
+      ? `${api.defaults.baseURL}${data.logoUrl}`
+      : "";
+    const isActive = data?.isActive ?? true;
+
+    return { title: title || "", faviconUrl, logoUrl, isActive };
+  }, [data, isBangla]);
 
   const t = useMemo(
     () => ({
@@ -275,7 +301,19 @@ const Navber = () => {
               </button>
               {/* logo */}
               <Link to="/" className="flex items-center gap-2 select-none">
-                <img className="w-38 h-12 md:w-40 md:h-14 lg:w-64 lg:h-16" src="https://babu88.gold/static/svg/bb88_logo_animation2.gif" alt="" />
+                {view.logoUrl ? (
+                  <img
+                    src={view.logoUrl}
+                    alt="Site Logo"
+                    className="w-38 h-12 md:w-40 md:h-14 lg:w-64 lg:h-16"
+                    loading="lazy"
+                    draggable={false}
+                  />
+                ) : (
+                  <div className="h-10 px-3 rounded-lg bg-black/5 flex items-center text-black/60 font-bold">
+                    No Logo
+                  </div>
+                )}
               </Link>
             </div>
 
@@ -393,7 +431,10 @@ const Navber = () => {
                     <span className="hidden sm:block w-px h-8 bg-black/20" />
 
                     {/* language (keep same) */}
-                    <div className="hidden md:block relative z-[70]" ref={langRef}>
+                    <div
+                      className="hidden md:block relative z-[70]"
+                      ref={langRef}
+                    >
                       <button
                         type="button"
                         onClick={() => setLangOpen((v) => !v)}
