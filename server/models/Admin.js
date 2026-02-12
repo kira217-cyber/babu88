@@ -15,10 +15,22 @@ const adminSchema = new mongoose.Schema(
       required: true,
       minlength: 6,
     },
-  },
-  { timestamps: true }
-);
 
+    // ✅ mother or sub
+    role: {
+      type: String,
+      enum: ["mother", "sub"],
+      default: "sub",
+    },
+
+    // ✅ permission keys
+    permissions: {
+      type: [String], // ["dashboard","all-user","add-game","add-promotion"]
+      default: [],
+    },
+  },
+  { timestamps: true },
+);
 
 const Admin = mongoose.model("Admin", adminSchema);
 export default Admin;

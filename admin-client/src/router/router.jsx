@@ -3,11 +3,11 @@ import RootLayout from "../RootLayout/RootLayout";
 import Home from "../pages/Home/Home";
 import NotFoundPage from "../pages/NotFoundPage/NotFoundPage";
 import Login from "../pages/Login/Login";
-import Register from "../pages/Register/Register";
 import Withdraw from "../pages/Withdraw/Withdraw";
 import Deposit from "../pages/Deposit/Deposit";
 import PrivateRoute from "../PrivateRoute/PrivateRoute";
 import Profile from "../pages/Profile/Profile";
+
 import SliderController from "../pages/SliderController/SliderController";
 import FooterController from "../pages/FooterController/FooterController";
 import NoticeController from "../pages/NoticeController/NoticeController";
@@ -17,16 +17,18 @@ import TwoBannerController from "../pages/TwoBannerController/TwoBannerControlle
 import SingleBannerController from "../pages/SingleBannerController/SingleBannerController";
 import FavIconAndLogoController from "../pages/FavIconAndLogoController/FavIconAndLogoController";
 import FloatingSocialController from "../pages/FloatingSocialController/FloatingSocialController";
-import AllUser from "../pages/AllUser/AllUser";
 import DownloadHeaderController from "../pages/DownloadHeaderController/DownloadHeaderController";
+
+import AllUser from "../pages/AllUser/AllUser";
 import AddPromotion from "../pages/AddPromotion/AddPromotion";
+import CreateAdmin from "../pages/CreateAdmin/CreateAdmin";
 
 export const routes = createBrowserRouter([
   {
     path: "/",
     element: (
-      <PrivateRoute>
-        {" "}
+      // ✅ RootLayout access = dashboard permission (mother always allow)
+      <PrivateRoute permKey="dashboard">
         <RootLayout />
       </PrivateRoute>
     ),
@@ -35,17 +37,17 @@ export const routes = createBrowserRouter([
       {
         index: true,
         element: (
-          <PrivateRoute>
-            {" "}
+          <PrivateRoute permKey="dashboard">
             <Home />
           </PrivateRoute>
         ),
       },
+
+      // ✅ Withdraw & Deposit group permissions
       {
         path: "withdraw",
         element: (
-          <PrivateRoute>
-            {" "}
+          <PrivateRoute permKey="withdraw">
             <Withdraw />
           </PrivateRoute>
         ),
@@ -53,23 +55,27 @@ export const routes = createBrowserRouter([
       {
         path: "deposit",
         element: (
-          <PrivateRoute>
+          <PrivateRoute permKey="deposit">
             <Deposit />
           </PrivateRoute>
         ),
       },
+
+      // ✅ Profile (you can decide key, I kept "dashboard" so logged user can access)
       {
         path: "profile",
         element: (
-          <PrivateRoute>
+          <PrivateRoute permKey="dashboard">
             <Profile />
           </PrivateRoute>
         ),
       },
+
+      // ✅ Client Site Controller (all these pages share: client-controller)
       {
         path: "slider-controller",
         element: (
-          <PrivateRoute>
+          <PrivateRoute permKey="slider-controller">
             <SliderController />
           </PrivateRoute>
         ),
@@ -77,7 +83,7 @@ export const routes = createBrowserRouter([
       {
         path: "footer-controller",
         element: (
-          <PrivateRoute>
+          <PrivateRoute permKey="footer-controller">
             <FooterController />
           </PrivateRoute>
         ),
@@ -85,7 +91,7 @@ export const routes = createBrowserRouter([
       {
         path: "notice-controller",
         element: (
-          <PrivateRoute>
+          <PrivateRoute permKey="notice-controller">
             <NoticeController />
           </PrivateRoute>
         ),
@@ -93,7 +99,7 @@ export const routes = createBrowserRouter([
       {
         path: "download-banner-controller",
         element: (
-          <PrivateRoute>
+          <PrivateRoute permKey="download-banner-controller">
             <DownloadBannerController />
           </PrivateRoute>
         ),
@@ -101,7 +107,7 @@ export const routes = createBrowserRouter([
       {
         path: "banner-video-controller",
         element: (
-          <PrivateRoute>
+          <PrivateRoute permKey="banner-video-controller">
             <BannerController />
           </PrivateRoute>
         ),
@@ -109,7 +115,7 @@ export const routes = createBrowserRouter([
       {
         path: "two-banner-controller",
         element: (
-          <PrivateRoute>
+          <PrivateRoute permKey="two-banner-controller">
             <TwoBannerController />
           </PrivateRoute>
         ),
@@ -117,48 +123,62 @@ export const routes = createBrowserRouter([
       {
         path: "single-banner-controller",
         element: (
-          <PrivateRoute>
+          <PrivateRoute permKey="single-banner-controller">
             <SingleBannerController />
           </PrivateRoute>
         ),
       },
-        {
+      {
         path: "fav-icon-and-logo-controller",
         element: (
-          <PrivateRoute>
+          <PrivateRoute permKey="fav-icon-and-logo-controller">
             <FavIconAndLogoController />
           </PrivateRoute>
         ),
       },
-       {
+      {
         path: "floating-social-controller",
         element: (
-          <PrivateRoute>
+          <PrivateRoute permKey="floating-social-controller">
             <FloatingSocialController />
           </PrivateRoute>
         ),
       },
       {
-        path: "all-user",
-        element: (
-          <PrivateRoute>
-            <AllUser />
-          </PrivateRoute>
-        ),
-      },
-       {
         path: "download-header-controller",
         element: (
-          <PrivateRoute>
+          <PrivateRoute permKey="download-header-controller">
             <DownloadHeaderController />
           </PrivateRoute>
         ),
       },
-       {
+
+      // ✅ Users
+      {
+        path: "all-user",
+        element: (
+          <PrivateRoute permKey="all-user">
+            <AllUser />
+          </PrivateRoute>
+        ),
+      },
+
+      // ✅ Promotions
+      {
         path: "add-promotion",
         element: (
-          <PrivateRoute>
+          <PrivateRoute permKey="add-promotion">
             <AddPromotion />
+          </PrivateRoute>
+        ),
+      },
+
+      // ✅ Create Admin (mother only)
+      {
+        path: "create-admin",
+        element: (
+          <PrivateRoute motherOnly>
+            <CreateAdmin />
           </PrivateRoute>
         ),
       },

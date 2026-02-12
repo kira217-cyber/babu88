@@ -5,7 +5,7 @@ import cors from "cors";
 import connectDB from "./config/db.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import sliderRoutes from "./routes/sliderRoutes.js";
-import footerRoutes from "./routes/footerRoutes.js"; 
+import footerRoutes from "./routes/footerRoutes.js";
 import noticeRoutes from "./routes/noticeRoutes.js";
 import downloadRoutes from "./routes/downloadRoutes.js";
 import bannerVideoRoutes from "./routes/bannerVideoRoutes.js";
@@ -14,18 +14,7 @@ import singleBannerRoutes from "./routes/singleBannerRoutes.js";
 import siteBrandingRoutes from "./routes/siteBrandingRoutes.js";
 import floatingSocialRoutes from "./routes/floatingSocialRoutes.js";
 import downloadHeaderRoutes from "./routes/downloadHeaderRoutes.js";
-import Promotions from "./models/Promotions.js"; // ✅ Import Promotion model
-
-
-
-
-
-
-
-
-
-
-
+import promotionsRoutes from "./routes/promotionsRoutes.js";
 
 dotenv.config();
 
@@ -60,10 +49,7 @@ app.use("/api", singleBannerRoutes);
 app.use("/api", siteBrandingRoutes);
 app.use("/api", floatingSocialRoutes);
 app.use("/api", downloadHeaderRoutes);
-app.use("/api", Promotions); // ✅ Add this line to use promotions routes
-
-
-
+app.use("/api", promotionsRoutes);
 
 // ✅ port
 const PORT = process.env.PORT || 5008;

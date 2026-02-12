@@ -1,29 +1,27 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Link, NavLink, Outlet } from "react-router";
 import {
   FaHome,
   FaBell,
-  FaHeart,
   FaWallet,
-  FaChartLine,
   FaSignOutAlt,
   FaSearch,
   FaUsers,
   FaUserCircle,
-  FaUpload,
   FaTimes,
   FaChevronDown,
   FaChevronUp,
 } from "react-icons/fa";
 import { IoAppsSharp } from "react-icons/io5";
-import { GrAnnounce } from "react-icons/gr";
+import { GrAnnounce, GrUserAdmin } from "react-icons/gr";
 import { FaCodePullRequest } from "react-icons/fa6";
 import { PiHandWithdrawBold, PiHandDepositBold } from "react-icons/pi";
 import { RxHamburgerMenu } from "react-icons/rx";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
 import { logout } from "../../features/auth/authSlice";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { selectAuth } from "../../features/auth/authSelectors";
 
 const Sidebar = () => {
   const [open, setOpen] = useState(false);
@@ -31,7 +29,18 @@ const Sidebar = () => {
   const [depositOpen, setDepositOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
+
   const dispatch = useDispatch();
+  const auth = useSelector(selectAuth);
+
+  const role = auth?.admin?.role; // "mother" | "sub"
+  const permissions = auth?.admin?.permissions || [];
+
+  const isMother = role === "mother";
+  const can = (key) => isMother || permissions.includes(key);
+
+  const canAny = (keys) =>
+    isMother || keys.some((k) => permissions.includes(k));
 
   useEffect(() => {
     const handleResize = () => {
@@ -44,43 +53,176 @@ const Sidebar = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const menuItems = [
-    { to: "/", icon: <FaHome />, text: "Dashboard", end: true },
-    { to: "/all-user", icon: <FaUsers />, text: "All Users" },
-    { to: "/add-game", icon: <IoAppsSharp />, text: "Add Game" },
-    { to: "/add-promotion", icon: <IoAppsSharp />, text: "Add Promotion" },
-  ];
+  // ✅ Base menus with permission keys
+  const menuItems = useMemo(
+    () => [
+      {
+        key: "dashboard",
+        to: "/",
+        icon: <FaHome />,
+        text: "Dashboard",
+        end: true,
+      },
+      {
+        key: "all-user",
+        to: "/all-user",
+        icon: <FaUsers />,
+        text: "All Users",
+      },
+      {
+        key: "add-game",
+        to: "/add-game",
+        icon: <IoAppsSharp />,
+        text: "Add Game",
+      },
+      {
+        key: "add-promotion",
+        to: "/add-promotion",
+        icon: <IoAppsSharp />,
+        text: "Add Promotion",
+      },
 
-  const depositSubItems = [
-    { to: "/add-deposit", icon: <FaWallet />, text: "Add Deposit" },
-    {
-      to: "/deposit-request",
-      icon: <FaCodePullRequest />,
-      text: "Deposit Request",
-    },
-  ];
+      // ✅ only mother
+      {
+        key: "__mother__",
+        to: "/create-admin",
+        icon: <GrUserAdmin />,
+        text: "Create Admin",
+      },
+    ],
+    [],
+  );
 
-  const withdrawSubItems = [
-    { to: "/add-withdraw", icon: <FaWallet />, text: "Add Withdraw" },
-    {
-      to: "/withdraw-request",
-      icon: <FaCodePullRequest />,
-      text: "Withdraw Request",
-    },
-  ];
+  // ✅ Deposit submenu with per-item permission keys
+  const depositSubItems = useMemo(
+    () => [
+      {
+        perm: "add-deposit",
+        to: "/add-deposit",
+        icon: <FaWallet />,
+        text: "Add Deposit",
+      },
+      {
+        perm: "deposit-request",
+        to: "/deposit-request",
+        icon: <FaCodePullRequest />,
+        text: "Deposit Request",
+      },
+    ],
+    [],
+  );
 
-  const promotionSubItems = [
-    { to: "/fav-icon-and-logo-controller", text: "Favicon Logo Controller" },
-    { to: "/download-header-controller", text: "Download Header Controller" },
-    { to: "/slider-controller", text: "Slider Controller" },
-    { to: "/notice-controller", text: "Notice Controller" },
-    { to: "/two-banner-controller", text: "Two Banner Controller" },
-    { to: "/single-banner-controller", text: "Single Banner Controller" },
-    { to: "/download-banner-controller", text: "Download Banner Controller" },
-    { to: "/banner-video-controller", text: "Banner Video Controller" },
-    { to: "/floating-social-controller", text: "Social Link Controller" },
-    { to: "/footer-controller", text: "Footer Controller" },
-  ];
+  // ✅ Withdraw submenu with per-item permission keys
+  const withdrawSubItems = useMemo(
+    () => [
+      {
+        perm: "add-withdraw",
+        to: "/add-withdraw",
+        icon: <FaWallet />,
+        text: "Add Withdraw",
+      },
+      {
+        perm: "withdraw-request",
+        to: "/withdraw-request",
+        icon: <FaCodePullRequest />,
+        text: "Withdraw Request",
+      },
+    ],
+    [],
+  );
+
+  // ✅ Controller submenu with per-item permission keys
+  const promotionSubItems = useMemo(
+    () => [
+      {
+        perm: "fav-icon-and-logo-controller",
+        to: "/fav-icon-and-logo-controller",
+        text: "Favicon Logo Controller",
+      },
+      {
+        perm: "download-header-controller",
+        to: "/download-header-controller",
+        text: "Download Header Controller",
+      },
+      {
+        perm: "slider-controller",
+        to: "/slider-controller",
+        text: "Slider Controller",
+      },
+      {
+        perm: "notice-controller",
+        to: "/notice-controller",
+        text: "Notice Controller",
+      },
+      {
+        perm: "two-banner-controller",
+        to: "/two-banner-controller",
+        text: "Two Banner Controller",
+      },
+      {
+        perm: "single-banner-controller",
+        to: "/single-banner-controller",
+        text: "Single Banner Controller",
+      },
+      {
+        perm: "download-banner-controller",
+        to: "/download-banner-controller",
+        text: "Download Banner Controller",
+      },
+      {
+        perm: "banner-video-controller",
+        to: "/banner-video-controller",
+        text: "Banner Video Controller",
+      },
+      {
+        perm: "floating-social-controller",
+        to: "/floating-social-controller",
+        text: "Social Link Controller",
+      },
+      {
+        perm: "footer-controller",
+        to: "/footer-controller",
+        text: "Footer Controller",
+      },
+    ],
+    [],
+  );
+
+  // ✅ Visible top menu items
+  const visibleMenuItems = useMemo(() => {
+    return menuItems.filter((m) => {
+      if (m.key === "__mother__") return isMother;
+      return can(m.key);
+    });
+  }, [menuItems, isMother, permissions]); // eslint-disable-line
+
+  // ✅ Filter dropdown items by permission
+  const visibleDepositSubItems = useMemo(
+    () => depositSubItems.filter((s) => can(s.perm)),
+    [depositSubItems, permissions, isMother], // eslint-disable-line
+  );
+
+  const visibleWithdrawSubItems = useMemo(
+    () => withdrawSubItems.filter((s) => can(s.perm)),
+    [withdrawSubItems, permissions, isMother], // eslint-disable-line
+  );
+
+  const visibleControllerSubItems = useMemo(
+    () => promotionSubItems.filter((s) => can(s.perm)),
+    [promotionSubItems, permissions, isMother], // eslint-disable-line
+  );
+
+  // ✅ Dropdown show হবে যদি ভিতরে অন্তত ১টা item visible থাকে
+  const showDeposit = visibleDepositSubItems.length > 0;
+  const showWithdraw = visibleWithdrawSubItems.length > 0;
+  const showController = visibleControllerSubItems.length > 0;
+
+  // ✅ auto close dropdowns if not allowed
+  useEffect(() => {
+    if (!showDeposit) setDepositOpen(false);
+    if (!showWithdraw) setWithdrawOpen(false);
+    if (!showController) setPromotionsOpen(false);
+  }, [showDeposit, showWithdraw, showController]);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -128,18 +270,22 @@ const Sidebar = () => {
           className="fixed md:static top-0 left-0 z-50 h-full w-72 bg-gradient-to-b from-black via-yellow-950/30 to-black border-r border-yellow-700/40 shadow-2xl flex flex-col overflow-hidden"
         >
           <SidebarContent
-            menuItems={menuItems}
-            depositSubItems={depositSubItems}
-            withdrawSubItems={withdrawSubItems}
-            promotionSubItems={promotionSubItems}
+            menuItems={visibleMenuItems}
+            depositSubItems={visibleDepositSubItems}
+            withdrawSubItems={visibleWithdrawSubItems}
+            promotionSubItems={visibleControllerSubItems}
             promotionsOpen={promotionsOpen}
             setPromotionsOpen={setPromotionsOpen}
             depositOpen={depositOpen}
             setDepositOpen={setDepositOpen}
             withdrawOpen={withdrawOpen}
             setWithdrawOpen={setWithdrawOpen}
+            showDeposit={showDeposit}
+            showWithdraw={showWithdraw}
+            showController={showController}
             onClose={() => setOpen(false)}
             onLogout={handleLogout}
+            role={role}
           />
         </motion.aside>
 
@@ -195,8 +341,12 @@ const SidebarContent = ({
   setDepositOpen,
   withdrawOpen,
   setWithdrawOpen,
+  showDeposit,
+  showWithdraw,
+  showController,
   onClose,
   onLogout,
+  role,
 }) => {
   return (
     <div className="flex flex-col h-full">
@@ -212,7 +362,9 @@ const SidebarContent = ({
             <h2 className="text-2xl font-bold text-white tracking-tight">
               BABU88
             </h2>
-            <p className="text-sm text-yellow-200/90">Mother Admin Panel</p>
+            <p className="text-sm text-yellow-200/90 font-medium">
+              {role === "mother" ? "Mother" : "Sub"} Admin Panel
+            </p>
           </div>
         </div>
       </div>
@@ -251,130 +403,139 @@ const SidebarContent = ({
         ))}
 
         {/* Deposit Dropdown */}
-        <div className="mt-4">
-          <button
-            onClick={() => setDepositOpen(!depositOpen)}
-            className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl text-white hover:bg-yellow-900/40 hover:text-yellow-100 transition-all duration-200"
-          >
-            <div className="flex items-center gap-4">
-              <span className="text-2xl text-white">
-                <PiHandDepositBold />
-              </span>
-              <span className="font-medium">Deposit</span>
-            </div>
-            {depositOpen ? (
-              <FaChevronUp size={18} className="text-white" />
-            ) : (
-              <FaChevronDown size={18} className="text-white" />
+        {showDeposit && (
+          <div className="mt-4">
+            <button
+              onClick={() => setDepositOpen(!depositOpen)}
+              className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl text-white hover:bg-yellow-900/40 hover:text-yellow-100 transition-all duration-200"
+            >
+              <div className="flex items-center gap-4">
+                <span className="text-2xl text-white">
+                  <PiHandDepositBold />
+                </span>
+                <span className="font-medium">Deposit</span>
+              </div>
+              {depositOpen ? (
+                <FaChevronUp size={18} className="text-white" />
+              ) : (
+                <FaChevronDown size={18} className="text-white" />
+              )}
+            </button>
+
+            {depositOpen && (
+              <div className="mt-2 pl-14 space-y-1">
+                {depositSubItems.map((sub) => (
+                  <NavLink
+                    key={sub.to}
+                    to={sub.to}
+                    onClick={onClose}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-5 py-3 rounded-lg text-sm transition-all duration-200 ${
+                        isActive
+                          ? "bg-yellow-600/80 text-black font-medium shadow-sm shadow-yellow-500/40"
+                          : "text-yellow-100 hover:text-white hover:bg-yellow-800/50"
+                      }`
+                    }
+                  >
+                    <span className="text-xl opacity-90 text-white">
+                      {sub.icon}
+                    </span>
+                    <span>{sub.text}</span>
+                  </NavLink>
+                ))}
+              </div>
             )}
-          </button>
-          {depositOpen && (
-            <div className="mt-2 pl-14 space-y-1">
-              {depositSubItems.map((sub) => (
-                <NavLink
-                  key={sub.to}
-                  to={sub.to}
-                  onClick={onClose}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-5 py-3 rounded-lg text-sm transition-all duration-200 ${
-                      isActive
-                        ? "bg-yellow-600/80 text-black font-medium shadow-sm shadow-yellow-500/40"
-                        : "text-yellow-100 hover:text-white hover:bg-yellow-800/50"
-                    }`
-                  }
-                >
-                  <span className="text-xl opacity-90 text-white">
-                    {sub.icon}
-                  </span>
-                  <span>{sub.text}</span>
-                </NavLink>
-              ))}
-            </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Withdraw Dropdown */}
-        <div className="mt-2">
-          <button
-            onClick={() => setWithdrawOpen(!withdrawOpen)}
-            className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl text-white hover:bg-yellow-900/40 hover:text-yellow-100 transition-all duration-200"
-          >
-            <div className="flex items-center gap-4">
-              <span className="text-2xl text-white">
-                <PiHandWithdrawBold />
-              </span>
-              <span className="font-medium">Withdraw</span>
-            </div>
-            {withdrawOpen ? (
-              <FaChevronUp size={18} className="text-white" />
-            ) : (
-              <FaChevronDown size={18} className="text-white" />
-            )}
-          </button>
-          {withdrawOpen && (
-            <div className="mt-2 pl-14 space-y-1">
-              {withdrawSubItems.map((sub) => (
-                <NavLink
-                  key={sub.to}
-                  to={sub.to}
-                  onClick={onClose}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-5 py-3 rounded-lg text-sm transition-all duration-200 ${
-                      isActive
-                        ? "bg-yellow-600/80 text-black font-medium shadow-sm shadow-yellow-500/40"
-                        : "text-yellow-100 hover:text-white hover:bg-yellow-800/50"
-                    }`
-                  }
-                >
-                  <span className="text-xl opacity-90 text-white">
-                    {sub.icon}
-                  </span>
-                  <span>{sub.text}</span>
-                </NavLink>
-              ))}
-            </div>
-          )}
-        </div>
+        {showWithdraw && (
+          <div className="mt-2">
+            <button
+              onClick={() => setWithdrawOpen(!withdrawOpen)}
+              className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl text-white hover:bg-yellow-900/40 hover:text-yellow-100 transition-all duration-200"
+            >
+              <div className="flex items-center gap-4">
+                <span className="text-2xl text-white">
+                  <PiHandWithdrawBold />
+                </span>
+                <span className="font-medium">Withdraw</span>
+              </div>
+              {withdrawOpen ? (
+                <FaChevronUp size={18} className="text-white" />
+              ) : (
+                <FaChevronDown size={18} className="text-white" />
+              )}
+            </button>
 
-        {/* Client-Site-Controller Dropdown */}
-        <div className="mt-4">
-          <button
-            onClick={() => setPromotionsOpen(!promotionsOpen)}
-            className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl text-white hover:bg-yellow-900/40 hover:text-yellow-100 transition-all duration-200"
-          >
-            <div className="flex items-center gap-4">
-              <span className="text-2xl text-white">
-                <GrAnnounce />
-              </span>
-              <span className="font-medium">Client Site Controller</span>
-            </div>
-            {promotionsOpen ? (
-              <FaChevronUp size={18} className="text-white" />
-            ) : (
-              <FaChevronDown size={18} className="text-white" />
+            {withdrawOpen && (
+              <div className="mt-2 pl-14 space-y-1">
+                {withdrawSubItems.map((sub) => (
+                  <NavLink
+                    key={sub.to}
+                    to={sub.to}
+                    onClick={onClose}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-5 py-3 rounded-lg text-sm transition-all duration-200 ${
+                        isActive
+                          ? "bg-yellow-600/80 text-black font-medium shadow-sm shadow-yellow-500/40"
+                          : "text-yellow-100 hover:text-white hover:bg-yellow-800/50"
+                      }`
+                    }
+                  >
+                    <span className="text-xl opacity-90 text-white">
+                      {sub.icon}
+                    </span>
+                    <span>{sub.text}</span>
+                  </NavLink>
+                ))}
+              </div>
             )}
-          </button>
-          {promotionsOpen && (
-            <div className="mt-2 pl-14 space-y-1">
-              {promotionSubItems.map((sub) => (
-                <NavLink
-                  key={sub.to}
-                  to={sub.to}
-                  onClick={onClose}
-                  className={({ isActive }) =>
-                    `block px-5 py-3 rounded-lg text-sm transition-all duration-200 ${
-                      isActive
-                        ? "bg-yellow-600/80 text-black font-medium shadow-sm shadow-yellow-500/40"
-                        : "text-yellow-100 hover:text-white hover:bg-yellow-800/50"
-                    }`
-                  }
-                >
-                  {sub.text}
-                </NavLink>
-              ))}
-            </div>
-          )}
-        </div>
+          </div>
+        )}
+
+        {/* Client Site Controller Dropdown */}
+        {showController && (
+          <div className="mt-4">
+            <button
+              onClick={() => setPromotionsOpen(!promotionsOpen)}
+              className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl text-white hover:bg-yellow-900/40 hover:text-yellow-100 transition-all duration-200"
+            >
+              <div className="flex items-center gap-4">
+                <span className="text-2xl text-white">
+                  <GrAnnounce />
+                </span>
+                <span className="font-medium">Client Site Controller</span>
+              </div>
+              {promotionsOpen ? (
+                <FaChevronUp size={18} className="text-white" />
+              ) : (
+                <FaChevronDown size={18} className="text-white" />
+              )}
+            </button>
+
+            {promotionsOpen && (
+              <div className="mt-2 pl-14 space-y-1">
+                {promotionSubItems.map((sub) => (
+                  <NavLink
+                    key={sub.to}
+                    to={sub.to}
+                    onClick={onClose}
+                    className={({ isActive }) =>
+                      `block px-5 py-3 rounded-lg text-sm transition-all duration-200 ${
+                        isActive
+                          ? "bg-yellow-600/80 text-black font-medium shadow-sm shadow-yellow-500/40"
+                          : "text-yellow-100 hover:text-white hover:bg-yellow-800/50"
+                      }`
+                    }
+                  >
+                    {sub.text}
+                  </NavLink>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </nav>
 
       {/* Logout */}

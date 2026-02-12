@@ -1,39 +1,21 @@
-// Server Side: models/Promotions.js
+// models/Promotions.js
 import mongoose from "mongoose";
+
+const langTextSchema = new mongoose.Schema(
+  {
+    bn: { type: String, required: true },
+    en: { type: String, required: true },
+  },
+  { _id: false }
+);
 
 const promotionSchema = new mongoose.Schema(
   {
-    category: {
-      type: String,
-      required: true,
-      enum: ["cricket", "fast", "sports", "livecasino", "slots", "table", "vip", "crash", "tournament"],
-    },
-    image: {
-      type: String,
-      required: true,
-    },
-    title: {
-      bn: { type: String, required: true },
-      en: { type: String, required: true },
-    },
-    shortDesc: {
-      bn: { type: String, required: true },
-      en: { type: String, required: true },
-    },
-    details: {
-      bn: {
-        heading: { type: String, required: true },
-        periodLabel: { type: String, required: true },
-        period: { type: String, required: true },
-        body: [{ type: String }],
-      },
-      en: {
-        heading: { type: String, required: true },
-        periodLabel: { type: String, required: true },
-        period: { type: String, required: true },
-        body: [{ type: String }],
-      },
-    },
+    category: { type: String, required: true },
+    image: { type: String, required: true }, // will store "/uploads/xxx.jpg" OR external url
+    title: { type: langTextSchema, required: true },
+    shortDesc: { type: langTextSchema, required: true },
+    details: { type: langTextSchema, required: true },
   },
   { timestamps: true }
 );
