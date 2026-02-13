@@ -22,6 +22,12 @@ import DownloadHeaderController from "../pages/DownloadHeaderController/Download
 import AllUser from "../pages/AllUser/AllUser";
 import AddPromotion from "../pages/AddPromotion/AddPromotion";
 import CreateAdmin from "../pages/CreateAdmin/CreateAdmin";
+import AffFooterController from "../pages/AffFooterController/AffFooterController";
+import AffSliderController from "../pages/AffSliderController/AffSliderController";
+import AffWhyUsController from "../pages/AffWhyUsController/AffWhyUsController";
+import AffAgentController from "../pages/AffAgentController/AffAgentController";
+import AffNoticeController from "../pages/AffNoticeController/AffNoticeController";
+import AffFavAndTitleController from "../pages/AffFavAndTitleController/AffFavAndTitleController";
 
 export const routes = createBrowserRouter([
   {
@@ -179,6 +185,54 @@ export const routes = createBrowserRouter([
         element: (
           <PrivateRoute motherOnly>
             <CreateAdmin />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "aff-footer-controller",
+        element: (
+          <PrivateRoute permKey="aff-footer-controller">
+            <AffFooterController />
+          </PrivateRoute>
+        ),
+      },
+       {
+        path: "aff-slider-controller",
+        element: (
+          <PrivateRoute permKey="aff-slider-controller">
+            <AffSliderController />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "aff-whyus-controller",
+        element: (
+          <PrivateRoute permKey="aff-whyus-controller">
+            <AffWhyUsController />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "aff-agent-controller",
+        element: (
+          <PrivateRoute permKey="aff-agent-controller">
+            <AffAgentController />
+          </PrivateRoute>
+        ),
+      },
+       {
+        path: "aff-notice-controller",
+        element: (
+          <PrivateRoute permKey="aff-notice-controller">
+            <AffNoticeController />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "aff-fav-and-title-controller",
+        element: (
+          <PrivateRoute permKey="aff-fav-and-title-controller">
+            <AffFavAndTitleController />
           </PrivateRoute>
         ),
       },

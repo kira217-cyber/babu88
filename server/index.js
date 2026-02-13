@@ -15,6 +15,20 @@ import siteBrandingRoutes from "./routes/siteBrandingRoutes.js";
 import floatingSocialRoutes from "./routes/floatingSocialRoutes.js";
 import downloadHeaderRoutes from "./routes/downloadHeaderRoutes.js";
 import promotionsRoutes from "./routes/promotionsRoutes.js";
+import affFooterRoutes from "./routes/affFooterRoutes.js";
+import affSliderRoutes from "./routes/affSliderRoutes.js";
+import affWhyUsRoutes from "./routes/affWhyUsRoutes.js";
+import affAgentRoutes from "./routes/affAgentRoutes.js";
+import affNoticeRoutes from "./routes/affNoticeRoutes.js";
+import affSiteMetaRoutes from "./routes/affSiteMetaRoutes.js";
+
+
+
+
+
+
+
+
 
 dotenv.config();
 
@@ -50,6 +64,15 @@ app.use("/api", siteBrandingRoutes);
 app.use("/api", floatingSocialRoutes);
 app.use("/api", downloadHeaderRoutes);
 app.use("/api", promotionsRoutes);
+app.use("/api", affFooterRoutes);
+app.use("/api", affSliderRoutes);
+app.use("/api", affWhyUsRoutes);
+app.use("/api", affAgentRoutes);
+app.use("/api", affNoticeRoutes);
+app.use("/api", affSiteMetaRoutes);
+
+
+
 
 // ✅ port
 const PORT = process.env.PORT || 5008;

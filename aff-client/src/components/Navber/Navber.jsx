@@ -5,6 +5,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { useLanguage } from "../../Context/LanguageProvider";
 
+import { useQuery } from "@tanstack/react-query";
+import Skeleton from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
+import { api } from "../../api/axios";
+
 const Navbar = () => {
   const { language, changeLanguage, isBangla } = useLanguage();
 
@@ -14,6 +19,22 @@ const Navbar = () => {
 
   const langRef = useRef(null);
   const mobileLangRef = useRef(null);
+
+  // ✅ Site Meta (logo) from DB
+  const { data: siteMeta, isLoading: metaLoading } = useQuery({
+    queryKey: ["aff-site-meta"],
+    queryFn: async () => {
+      const res = await api.get("/api/aff-site-meta");
+      return res.data;
+    },
+    staleTime: 60_000,
+    retry: 1,
+  });
+
+  const fallbackLogo =
+    "https://babu88agents.com/bd/wp-content/uploads/sites/2/2025/07/Babu88-Logo.jpg";
+
+  const logoUrl = siteMeta?.logoUrl || fallbackLogo;
 
   /* ================= TEXT ================= */
   const t = useMemo(() => {
@@ -94,6 +115,12 @@ const Navbar = () => {
 
   const activeLang = languages.find((l) => l.key === language) || languages[0];
 
+  // ✅ Skeleton theme (neutral)
+  const sk = {
+    baseColor: "rgba(0,0,0,0.08)",
+    highlightColor: "rgba(0,0,0,0.14)",
+  };
+
   return (
     <>
       {/* ================= NAVBAR ================= */}
@@ -102,12 +129,13 @@ const Navbar = () => {
           <div className="h-16 flex items-center justify-between">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-1">
-              <span className="text-3xl font-extrabold italic text-black">
-                BABU
-              </span>
-              <span className="text-3xl font-extrabold italic text-yellow-500">
-                88
-              </span>
+              {metaLoading ? (
+                <div className="h-12 w-48">
+                  <Skeleton {...sk} height="100%" />
+                </div>
+              ) : (
+                <img className="h-full w-48" src={logoUrl} alt="" />
+              )}
             </Link>
 
             {/* Right Side (Desktop) */}
@@ -223,12 +251,13 @@ const Navbar = () => {
               {/* Header */}
               <div className="p-4 flex justify-between items-center border-b">
                 <Link to="/" onClick={() => setMobileOpen(false)}>
-                  <span className="text-2xl font-extrabold italic text-black">
-                    BABU
-                  </span>
-                  <span className="text-2xl font-extrabold italic text-yellow-500">
-                    88
-                  </span>
+                  {metaLoading ? (
+                    <div className="w-48">
+                      <Skeleton {...sk} height={36} />
+                    </div>
+                  ) : (
+                    <img className="w-48" src={logoUrl} alt="" />
+                  )}
                 </Link>
 
                 <FaTimes

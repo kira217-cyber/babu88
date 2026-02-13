@@ -28,6 +28,7 @@ const Sidebar = () => {
   const [promotionsOpen, setPromotionsOpen] = useState(false);
   const [depositOpen, setDepositOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [affiliateOpen, setAffiliateOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
 
   const dispatch = useDispatch();
@@ -38,9 +39,6 @@ const Sidebar = () => {
 
   const isMother = role === "mother";
   const can = (key) => isMother || permissions.includes(key);
-
-  const canAny = (keys) =>
-    isMother || keys.some((k) => permissions.includes(k));
 
   useEffect(() => {
     const handleResize = () => {
@@ -53,7 +51,6 @@ const Sidebar = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // ✅ Base menus with permission keys
   const menuItems = useMemo(
     () => [
       {
@@ -81,8 +78,6 @@ const Sidebar = () => {
         icon: <IoAppsSharp />,
         text: "Add Promotion",
       },
-
-      // ✅ only mother
       {
         key: "__mother__",
         to: "/create-admin",
@@ -93,7 +88,6 @@ const Sidebar = () => {
     [],
   );
 
-  // ✅ Deposit submenu with per-item permission keys
   const depositSubItems = useMemo(
     () => [
       {
@@ -112,7 +106,6 @@ const Sidebar = () => {
     [],
   );
 
-  // ✅ Withdraw submenu with per-item permission keys
   const withdrawSubItems = useMemo(
     () => [
       {
@@ -131,7 +124,6 @@ const Sidebar = () => {
     [],
   );
 
-  // ✅ Controller submenu with per-item permission keys
   const promotionSubItems = useMemo(
     () => [
       {
@@ -188,41 +180,86 @@ const Sidebar = () => {
     [],
   );
 
-  // ✅ Visible top menu items
+  const affiliateSubItems = useMemo(
+    () => [
+      {
+        perm: "aff-footer-controller",
+        to: "/aff-footer-controller",
+        icon: <IoAppsSharp />,
+        text: "Aff Footer Controller",
+      },
+      {
+        perm: "aff-slider-controller",
+        to: "/aff-slider-controller",
+        icon: <IoAppsSharp />,
+        text: "Aff Slider Controller",
+      },
+      {
+        perm: "aff-whyus-controller",
+        to: "/aff-whyus-controller",
+        icon: <IoAppsSharp />,
+        text: "Aff WhyUs Controller",
+      },
+       {
+        perm: "aff-agent-controller",
+        to: "/aff-agent-controller",
+        icon: <IoAppsSharp />,
+        text: "Aff Agent Controller",
+      },
+       {
+        perm: "aff-notice-controller",
+        to: "/aff-notice-controller",
+        icon: <IoAppsSharp />,
+        text: "Aff Notice Controller",
+      },
+      {
+        perm: "aff-fav-and-title-controller",
+        to: "/aff-fav-and-title-controller",
+        icon: <IoAppsSharp />,
+        text: "Aff Fav & Title Controller",
+      },
+    ],
+    [],
+  );
+
   const visibleMenuItems = useMemo(() => {
     return menuItems.filter((m) => {
       if (m.key === "__mother__") return isMother;
       return can(m.key);
     });
-  }, [menuItems, isMother, permissions]); // eslint-disable-line
+  }, [menuItems, isMother, permissions]);
 
-  // ✅ Filter dropdown items by permission
   const visibleDepositSubItems = useMemo(
     () => depositSubItems.filter((s) => can(s.perm)),
-    [depositSubItems, permissions, isMother], // eslint-disable-line
+    [depositSubItems, permissions, isMother],
   );
 
   const visibleWithdrawSubItems = useMemo(
     () => withdrawSubItems.filter((s) => can(s.perm)),
-    [withdrawSubItems, permissions, isMother], // eslint-disable-line
+    [withdrawSubItems, permissions, isMother],
   );
 
   const visibleControllerSubItems = useMemo(
     () => promotionSubItems.filter((s) => can(s.perm)),
-    [promotionSubItems, permissions, isMother], // eslint-disable-line
+    [promotionSubItems, permissions, isMother],
   );
 
-  // ✅ Dropdown show হবে যদি ভিতরে অন্তত ১টা item visible থাকে
+  const visibleAffiliateSubItems = useMemo(
+    () => affiliateSubItems.filter((s) => can(s.perm)),
+    [affiliateSubItems, permissions, isMother],
+  );
+
   const showDeposit = visibleDepositSubItems.length > 0;
   const showWithdraw = visibleWithdrawSubItems.length > 0;
   const showController = visibleControllerSubItems.length > 0;
+  const showAffiliate = visibleAffiliateSubItems.length > 0;
 
-  // ✅ auto close dropdowns if not allowed
   useEffect(() => {
     if (!showDeposit) setDepositOpen(false);
     if (!showWithdraw) setWithdrawOpen(false);
     if (!showController) setPromotionsOpen(false);
-  }, [showDeposit, showWithdraw, showController]);
+    if (!showAffiliate) setAffiliateOpen(false);
+  }, [showDeposit, showWithdraw, showController, showAffiliate]);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -274,15 +311,19 @@ const Sidebar = () => {
             depositSubItems={visibleDepositSubItems}
             withdrawSubItems={visibleWithdrawSubItems}
             promotionSubItems={visibleControllerSubItems}
+            affiliateSubItems={visibleAffiliateSubItems}
             promotionsOpen={promotionsOpen}
             setPromotionsOpen={setPromotionsOpen}
             depositOpen={depositOpen}
             setDepositOpen={setDepositOpen}
             withdrawOpen={withdrawOpen}
             setWithdrawOpen={setWithdrawOpen}
+            affiliateOpen={affiliateOpen}
+            setAffiliateOpen={setAffiliateOpen}
             showDeposit={showDeposit}
             showWithdraw={showWithdraw}
             showController={showController}
+            showAffiliate={showAffiliate}
             onClose={() => setOpen(false)}
             onLogout={handleLogout}
             role={role}
@@ -335,15 +376,19 @@ const SidebarContent = ({
   depositSubItems,
   withdrawSubItems,
   promotionSubItems,
+  affiliateSubItems,
   promotionsOpen,
   setPromotionsOpen,
   depositOpen,
   setDepositOpen,
   withdrawOpen,
   setWithdrawOpen,
+  affiliateOpen,
+  setAffiliateOpen,
   showDeposit,
   showWithdraw,
   showController,
+  showAffiliate,
   onClose,
   onLogout,
   role,
@@ -530,6 +575,54 @@ const SidebarContent = ({
                     }
                   >
                     {sub.text}
+                  </NavLink>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Affiliate Client Site Controller Dropdown */}
+        {showAffiliate && (
+          <div className="mt-4">
+            <button
+              onClick={() => setAffiliateOpen(!affiliateOpen)}
+              className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl text-white hover:bg-yellow-900/40 hover:text-yellow-100 transition-all duration-200"
+            >
+              <div className="flex items-center gap-4">
+                <span className="text-2xl text-white">
+                  <IoAppsSharp />
+                </span>
+                <span className="font-medium">
+                  Aff Site Controller
+                </span>
+              </div>
+              {affiliateOpen ? (
+                <FaChevronUp size={18} className="text-white" />
+              ) : (
+                <FaChevronDown size={18} className="text-white" />
+              )}
+            </button>
+
+            {affiliateOpen && (
+              <div className="mt-2 pl-14 space-y-1">
+                {affiliateSubItems.map((sub) => (
+                  <NavLink
+                    key={sub.to}
+                    to={sub.to}
+                    onClick={onClose}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-5 py-3 rounded-lg text-sm transition-all duration-200 ${
+                        isActive
+                          ? "bg-yellow-600/80 text-black font-medium shadow-sm shadow-yellow-500/40"
+                          : "text-yellow-100 hover:text-white hover:bg-yellow-800/50"
+                      }`
+                    }
+                  >
+                    <span className="text-xl opacity-90 text-white">
+                      {sub.icon}
+                    </span>
+                    <span>{sub.text}</span>
                   </NavLink>
                 ))}
               </div>

@@ -1,5 +1,9 @@
 import React, { useMemo } from "react";
 import { useLanguage } from "../../Context/LanguageProvider";
+import { useQuery } from "@tanstack/react-query";
+import Skeleton from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
+
 import {
   FaFacebookF,
   FaTwitter,
@@ -7,76 +11,173 @@ import {
   FaInstagram,
   FaTelegramPlane,
 } from "react-icons/fa";
+import { api } from "../../api/axios";
 
 const Footer = () => {
   const { isBangla } = useLanguage();
 
-  // ✅ TEXT
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["aff-footer"],
+    queryFn: async () => {
+      const res = await api.get("/api/aff-footer");
+      return res.data;
+    },
+    staleTime: 60_000,
+  });
+
+  // Fallback text when no data or loading/error
   const t = useMemo(() => {
-    return {
+    // Default fallback (used during loading or when no data)
+    const fallback = {
       leftTitle: isBangla
         ? "BABU88 এশিয়ার বিশ্বস্ত অনলাইন ক্যাসিনো। বাংলাদেশ, ভারত, নেপাল পাওয়া যাচ্ছে।"
         : "BABU88 is Asia’s trusted online casino. Available in Bangladesh, India, and Nepal.",
       leftBody: isBangla
         ? "BABU88 হল একটি অনলাইন জুয়া কোম্পানি, যা বিশ্বস্তভাবে বাজি এবং ক্যাসিনো অফার করে। ২০২১ সাল থেকে BABU88 দক্ষিণ এশিয়ার সবচেয়ে জনপ্রিয় একটি প্ল্যাটফর্ম হিসেবে পরিচিত। আমাদের লক্ষ্য হল নিরাপদ এবং দ্রুত সার্ভিস প্রদান করা।"
         : "BABU88 is an online betting and casino platform known for reliable service. Since 2021, BABU88 has become one of the most popular platforms in South Asia. Our goal is to provide safe and fast service.",
-      siteName: isBangla ? "সাইটনেম" : "Site Name",
-      official: "BABU88 OFFICIAL",
-
       rightTitle: isBangla
         ? "অফিসিয়াল পার্টনার এবং স্পনসর"
         : "Official Partners & Sponsors",
       responsibleTitle: isBangla ? "দায়িত্বশীল গেমিং" : "Responsible Gaming",
-
       paymentTitle: isBangla ? "পেমেন্ট পদ্ধতি" : "Payment Methods",
       followTitle: isBangla ? "আমাদের অনুসরণ করুন" : "Follow Us",
-
       copyright: isBangla
         ? "Copyright © 2025 BABU88. All rights reserved"
         : "Copyright © 2025 BABU88. All rights reserved",
+      officialLogoUrl: "",
+      partners: [],
+      paymentMethods: [],
+      responsible: [],
+      socialLinks: {},
     };
-  }, [isBangla]);
 
-  // ✅ IMAGES (Replace these with your real assets / urls)
-  const paymentMethods = [
-    { name: "bKash", src: "https://i.ibb.co.com/m53MnsJ1/bkash.png" },
-    {
-      name: "Nagad",
-      src: "https://i.ibb.co.com/qYG7H89W/nagan-logo-horizontal-bangla-mobile-banking-app-icon-transparent-background-free-png.webp",
-    },
-    {
-      name: "Rocket",
-      src: "https://i.ibb.co.com/dwf24nF8/Pixahunt-4218df4e68e104c26a82ebca34e79fe0-removebg-preview.png",
-    },
-    {
-      name: "Upay",
-      src: "https://i.ibb.co.com/WC62rnf/upay-logo-color-mobile-banking-app-icon-free-png.webp",
-    },
-  ];
+    if (isLoading || isError || !data?._id) {
+      return fallback;
+    }
 
-  const partners = [
-    {
-      name: "Montreal Tigers",
-      src: "https://i.ibb.co.com/bg3F0Y2N/vintage-badge-hand-holding-joystick-vector-illustration-round-label-with-gamepad-74855-11224.avif",
-    },
-    {
-      name: "Dambulla Aura",
-      src: "https://i.ibb.co.com/hxL0ntLZ/pngtree-awesome-gamer-illustration-for-t-shirt-design-png-image-4219646.png",
-    },
-    {
-      name: "Northern Warriors",
-      src: "https://i.ibb.co.com/Z62Q4Qtv/pngtree-a-lively-and-entertaining-cartoon-character-holding-cold-drink-video-game-png-image-14875526.png",
-    },
-  ];
+    return {
+      leftTitle: isBangla
+        ? data.leftTitleBn || fallback.leftTitle
+        : data.leftTitleEn || fallback.leftTitle,
+      leftBody: isBangla
+        ? data.leftBodyBn || fallback.leftBody
+        : data.leftBodyEn || fallback.leftBody,
+      rightTitle: isBangla
+        ? data.rightTitleBn || fallback.rightTitle
+        : data.rightTitleEn || fallback.rightTitle,
+      responsibleTitle: isBangla
+        ? data.responsibleTitleBn || fallback.responsibleTitle
+        : data.responsibleTitleEn || fallback.responsibleTitle,
+      paymentTitle: isBangla
+        ? data.paymentTitleBn || fallback.paymentTitle
+        : data.paymentTitleEn || fallback.paymentTitle,
+      followTitle: isBangla
+        ? data.followTitleBn || fallback.followTitle
+        : data.followTitleEn || fallback.followTitle,
+      copyright: isBangla
+        ? data.copyrightBn || fallback.copyright
+        : data.copyrightEn || fallback.copyright,
+      officialLogoUrl: data.officialLogoUrl || "",
+      partners: data.partners || [],
+      paymentMethods: data.paymentMethods || [],
+      responsible: data.responsible || [],
+      socialLinks: data.socialLinks || {},
+    };
+  }, [isBangla, data, isLoading, isError]);
 
-  const responsible = [
-    {
-      name: "18+",
-      src: "https://i.ibb.co.com/R4Nm1GTT/aa630c8cf6d3a6f304d85b39c46af784.png",
-    },
-    { name: "G", src: "https://i.ibb.co.com/tMGkZrV1/Add-a-heading-1.png" },
-  ];
+  const SocialIcon = ({ href, label, children }) => {
+    const link = href?.trim() || "#";
+    return (
+      <a
+        href={link}
+        target={link !== "#" ? "_blank" : undefined}
+        rel={link !== "#" ? "noreferrer" : undefined}
+        className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white hover:text-black transition"
+        aria-label={label}
+      >
+        {children}
+      </a>
+    );
+  };
 
+  // ────────────────────────────────────────────────────────────────
+  // Loading / Skeleton UI
+  // ────────────────────────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <footer className="w-full bg-black text-white mb-12 md:mb-0">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+          <div className="border-t border-dashed border-white/30 mb-10" />
+
+          <div className="grid grid-cols-1 lg:flex lg:justify-between gap-10">
+            {/* Left Column Skeleton */}
+            <div className="space-y-6">
+              <Skeleton width={280} height={28} />
+              <Skeleton count={4} className="text-sm leading-relaxed" />
+              <div className="mt-10">
+                <Skeleton width={240} height={64} />
+              </div>
+            </div>
+
+            {/* Right Column Skeleton */}
+            <div className="space-y-8">
+              <Skeleton width={220} height={28} />
+              <div className="flex flex-wrap gap-6">
+                {Array(5)
+                  .fill(0)
+                  .map((_, i) => (
+                    <div key={i} className="text-center">
+                      <Skeleton circle width={80} height={80} />
+                      <Skeleton width={70} height={14} className="mt-2" />
+                    </div>
+                  ))}
+              </div>
+
+              <Skeleton width={200} height={28} className="mt-10" />
+              <div className="flex gap-6">
+                {Array(4)
+                  .fill(0)
+                  .map((_, i) => (
+                    <Skeleton key={i} width={100} height={40} />
+                  ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-dashed border-white/30 my-10" />
+
+          <div className="grid grid-cols-1 lg:flex lg:justify-between gap-10">
+            <div className="space-y-6">
+              <Skeleton width={180} height={28} />
+              <div className="flex flex-wrap gap-6">
+                {Array(6)
+                  .fill(0)
+                  .map((_, i) => (
+                    <Skeleton key={i} width={90} height={32} />
+                  ))}
+              </div>
+              <Skeleton width={220} height={16} className="mt-10" />
+            </div>
+
+            <div className="lg:text-center space-y-6">
+              <Skeleton width={140} height={28} />
+              <div className="flex lg:justify-center gap-4">
+                {Array(5)
+                  .fill(0)
+                  .map((_, i) => (
+                    <Skeleton key={i} circle width={40} height={40} />
+                  ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </footer>
+    );
+  }
+
+  // ────────────────────────────────────────────────────────────────
+  // Normal Render (when data is loaded)
+  // ────────────────────────────────────────────────────────────────
   return (
     <footer className="w-full bg-black text-white mb-12 md:mb-0">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
@@ -84,7 +185,7 @@ const Footer = () => {
         <div className="border-t border-dashed border-white/30 mb-10" />
 
         {/* TOP GRID */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+        <div className="grid grid-cols-1 lg:flex lg:justify-between gap-10">
           {/* LEFT SIDE */}
           <div>
             <h3 className="text-base sm:text-lg font-bold leading-snug">
@@ -96,22 +197,18 @@ const Footer = () => {
             </p>
 
             <div className="mt-10">
-              <p className="text-sm font-semibold text-white/90">
-                {t.siteName}
-              </p>
-
-              {/* BABU88 OFFICIAL logo text (replace with image if you have) */}
-              <div className="mt-4 flex items-center gap-2">
-                <span className="text-2xl sm:text-3xl font-extrabold italic">
-                  BABU
-                </span>
-                <span className="text-2xl sm:text-3xl font-extrabold italic text-yellow-500">
-                  88
-                </span>
-                <span className="text-xs sm:text-sm font-bold tracking-wide text-white/80">
-                  OFFICIAL
-                </span>
-              </div>
+              {t.officialLogoUrl ? (
+                <img
+                  className="w-60 h-16 object-contain"
+                  src={t.officialLogoUrl}
+                  alt="BABU88 OFFICIAL"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="w-60 h-16 rounded bg-white/5 border border-white/10 flex items-center justify-center text-xs text-white/60">
+                  No Logo
+                </div>
+              )}
             </div>
           </div>
 
@@ -119,17 +216,13 @@ const Footer = () => {
           <div>
             <h3 className="text-base sm:text-lg font-bold">{t.rightTitle}</h3>
 
-            {/* partner logos */}
             <div className="mt-5 flex flex-wrap items-center gap-6">
-              {partners.map((p) => (
-                <div key={p.name} className="text-center">
+              {(t.partners || []).map((p, idx) => (
+                <div key={p.name + idx} className="text-center">
                   <img
-                    src={p.src}
+                    src={p.imageUrl}
                     alt={p.name}
-                    className="h-10 sm:h-12 w-auto mx-auto
-                               opacity-80 grayscale
-                               hover:grayscale-0 hover:opacity-100
-                               transition duration-300"
+                    className="h-10 sm:h-12 w-auto mx-auto opacity-80 grayscale hover:grayscale-0 hover:opacity-100 transition duration-300"
                     loading="lazy"
                   />
                   <p className="mt-2 text-[10px] sm:text-xs text-white/70">
@@ -139,16 +232,15 @@ const Footer = () => {
               ))}
             </div>
 
-            {/* responsible gaming */}
             <h3 className="mt-10 text-base sm:text-lg font-bold">
               {t.responsibleTitle}
             </h3>
 
-            <div className="mt-4 flex items-center gap-6">
-              {responsible.map((r) => (
+            <div className="mt-4 flex items-center gap-6 flex-wrap">
+              {(t.responsible || []).map((r, idx) => (
                 <img
-                  key={r.name}
-                  src={r.src}
+                  key={r.name + idx}
+                  src={r.imageUrl}
                   alt={r.name}
                   className="h-8 sm:h-10 w-auto opacity-70 hover:opacity-100 transition"
                   loading="lazy"
@@ -158,24 +250,21 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* bottom dotted line */}
         <div className="border-t border-dashed border-white/30 my-10" />
 
         {/* BOTTOM GRID */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+        <div className="grid grid-cols-1 lg:flex lg:justify-between gap-10 items-start">
           {/* payment */}
           <div>
             <h4 className="text-base sm:text-lg font-bold">{t.paymentTitle}</h4>
 
             <div className="mt-5 flex flex-wrap items-center gap-6">
-              {paymentMethods.map((m) => (
+              {(t.paymentMethods || []).map((m, idx) => (
                 <img
-                  key={m.name}
-                  src={m.src}
+                  key={m.name + idx}
+                  src={m.imageUrl}
                   alt={m.name}
-                  className="h-6 sm:h-7 w-auto opacity-60 grayscale
-                             hover:grayscale-0 hover:opacity-100
-                             transition duration-300"
+                  className="h-6 sm:h-7 w-auto opacity-60 grayscale hover:grayscale-0 hover:opacity-100 transition duration-300"
                   loading="lazy"
                 />
               ))}
@@ -188,47 +277,22 @@ const Footer = () => {
           <div className="lg:text-center">
             <h4 className="text-base sm:text-lg font-bold">{t.followTitle}</h4>
 
-            <div className="mt-5 flex lg:justify-center items-center gap-4">
-              <a
-                href="#"
-                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center
-                           hover:bg-white hover:text-black transition"
-                aria-label="Facebook"
-              >
+            <div className="mt-5 flex lg:justify-center items-center gap-4 flex-wrap">
+              <SocialIcon href={t.socialLinks?.facebook} label="Facebook">
                 <FaFacebookF />
-              </a>
-              <a
-                href="#"
-                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center
-                           hover:bg-white hover:text-black transition"
-                aria-label="Twitter"
-              >
+              </SocialIcon>
+              <SocialIcon href={t.socialLinks?.twitter} label="Twitter">
                 <FaTwitter />
-              </a>
-              <a
-                href="#"
-                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center
-                           hover:bg-white hover:text-black transition"
-                aria-label="YouTube"
-              >
+              </SocialIcon>
+              <SocialIcon href={t.socialLinks?.youtube} label="YouTube">
                 <FaYoutube />
-              </a>
-              <a
-                href="#"
-                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center
-                           hover:bg-white hover:text-black transition"
-                aria-label="Instagram"
-              >
+              </SocialIcon>
+              <SocialIcon href={t.socialLinks?.instagram} label="Instagram">
                 <FaInstagram />
-              </a>
-              <a
-                href="#"
-                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center
-                           hover:bg-white hover:text-black transition"
-                aria-label="Telegram"
-              >
+              </SocialIcon>
+              <SocialIcon href={t.socialLinks?.telegram} label="Telegram">
                 <FaTelegramPlane />
-              </a>
+              </SocialIcon>
             </div>
           </div>
         </div>
