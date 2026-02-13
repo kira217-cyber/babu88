@@ -28,6 +28,8 @@ import AffWhyUsController from "../pages/AffWhyUsController/AffWhyUsController";
 import AffAgentController from "../pages/AffAgentController/AffAgentController";
 import AffNoticeController from "../pages/AffNoticeController/AffNoticeController";
 import AffFavAndTitleController from "../pages/AffFavAndTitleController/AffFavAndTitleController";
+import AffFloatingSocialController from "../pages/AffFloatingSocialController/AffFloatingSocialController";
+import AffCommissionController from "../pages/AffCommissionController/AffCommissionController";
 
 export const routes = createBrowserRouter([
   {
@@ -233,6 +235,22 @@ export const routes = createBrowserRouter([
         element: (
           <PrivateRoute permKey="aff-fav-and-title-controller">
             <AffFavAndTitleController />
+          </PrivateRoute>
+        ),
+      },
+       {
+        path: "aff-floating-social-controller",
+        element: (
+          <PrivateRoute permKey="aff-floating-social-controller">
+            <AffFloatingSocialController />
+          </PrivateRoute>
+        ),
+      },
+       {
+        path: "aff-commission-controller",
+        element: (
+          <PrivateRoute permKey="aff-commission-controller">
+            <AffCommissionController />
           </PrivateRoute>
         ),
       },

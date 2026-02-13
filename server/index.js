@@ -21,14 +21,8 @@ import affWhyUsRoutes from "./routes/affWhyUsRoutes.js";
 import affAgentRoutes from "./routes/affAgentRoutes.js";
 import affNoticeRoutes from "./routes/affNoticeRoutes.js";
 import affSiteMetaRoutes from "./routes/affSiteMetaRoutes.js";
-
-
-
-
-
-
-
-
+import affFloatingSocialRoutes from "./routes/affFloatingSocialRoutes.js";
+import affCommissionRoutes from "./routes/affCommissionRoutes.js";
 
 dotenv.config();
 
@@ -70,9 +64,8 @@ app.use("/api", affWhyUsRoutes);
 app.use("/api", affAgentRoutes);
 app.use("/api", affNoticeRoutes);
 app.use("/api", affSiteMetaRoutes);
-
-
-
+app.use("/api", affFloatingSocialRoutes);
+app.use("/api", affCommissionRoutes);
 
 // ✅ port
 const PORT = process.env.PORT || 5008;

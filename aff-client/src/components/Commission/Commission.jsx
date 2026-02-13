@@ -10,10 +10,15 @@ import {
   Wallet,
 } from "lucide-react";
 import { useLanguage } from "../../Context/LanguageProvider";
+import { api } from "../../api/axios";
+
 
 const Commission = () => {
   const { isBangla } = useLanguage();
   const [open, setOpen] = useState(false);
+
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   // close on ESC
   useEffect(() => {
@@ -24,228 +29,97 @@ const Commission = () => {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // ================== TEXT (BN/EN) ==================
-  const t = useMemo(() => {
-    return {
-      // section
-      sectionTitle: isBangla ? "কমিশন স্ট্রাকচার" : "Commission Structure",
-      btnMore: isBangla ? "আরও দেখুন" : "View More",
-
-      // table header (main)
-      th: isBangla
-        ? [
-            "স্তর",
-            "সক্রিয় খেলোয়াড়",
-            "বেস কমিশন স্তর",
-            "অতিরিক্ত কমিশন",
-            "অতিরিক্ত কমিশনের প্রয়োজনীয়তা",
-            "মোট কমিশন",
-          ]
-        : [
-            "Level",
-            "Active Players",
-            "Base Commission",
-            "Extra Commission",
-            "Extra Commission Requirement",
-            "Total Commission",
-          ],
-
-      // rows (main)
-      rows: isBangla
-        ? [
-            {
-              level: "1",
-              newReg: "1 - 9",
-              base: "20%",
-              extra: "5%",
-              need: "ন্যূনতম ৩টি নতুন রেজিস্টার",
-              total: "25%",
-            },
-            {
-              level: "2",
-              newReg: "10 - 19",
-              base: "40%",
-              extra: "5%",
-              need: "ন্যূনতম ৬টি নতুন রেজিস্টার",
-              total: "45%",
-            },
-            {
-              level: "3",
-              newReg: "20 and more",
-              base: "50%",
-              extra: "10%",
-              need: "ন্যূনতম ১৫টি নতুন রেজিস্টার",
-              total: "60%",
-            },
-          ]
-        : [
-            {
-              level: "1",
-              newReg: "1 - 9",
-              base: "20%",
-              extra: "5%",
-              need: "Minimum 3 new registrations",
-              total: "25%",
-            },
-            {
-              level: "2",
-              newReg: "10 - 19",
-              base: "40%",
-              extra: "5%",
-              need: "Minimum 6 new registrations",
-              total: "45%",
-            },
-            {
-              level: "3",
-              newReg: "20 and more",
-              base: "50%",
-              extra: "10%",
-              need: "Minimum 15 new registrations",
-              total: "60%",
-            },
-          ],
-
-      // modal title + bullets
-      modalTitle: isBangla ? "কমিশনের তথ্য" : "Commission Info",
-      bullets: isBangla
-        ? [
-            "অনন্য সক্রিয় খেলোয়াড়: একজন খেলোয়াড় যিনি একই ক্যালেন্ডার মাসে কমপক্ষে ৮০০ টাকার জমা করেছেন এবং কমপক্ষে ৫টি বাজি ধরেন।",
-            "নতুন নিবন্ধিত খেলোয়াড়ের মানদণ্ড: মোট ১,০০০ ডিপোজিট এবং কমপক্ষে ৫,০০০ বৈধ বাজি থাকতে হবে।",
-          ]
-        : [
-            "Unique active player: A player who deposits at least BDT 800 in the same calendar month and places at least 5 bets.",
-            "New registered player criteria: Total deposit 1,000 and at least 5,000 valid bets.",
-          ],
-
-      // modal sub title
-      formulaTitle: isBangla ? "কমিশন গণনা" : "Commission Calculation",
-      formulaLabels: isBangla
-        ? [
-            "Players\nWin/Loss",
-            "Operation\nCost 20%",
-            "Bonus/\nAdjustment",
-            "Net Profit",
-            "Commission\nTier",
-            "Total Agent\nCommission",
-          ]
-        : [
-            "Players\nWin/Loss",
-            "Operation\nCost 20%",
-            "Bonus/\nAdjustment",
-            "Net Profit",
-            "Commission\nTier",
-            "Total Agent\nCommission",
-          ],
-
-      exampleTitle: isBangla
-        ? "উদাহরণ: ২০ জন সক্রিয় খেলোয়াড় সহ এজেন্ট"
-        : "Example: Agent with 20 active players",
-
-      // example table headers
-      exTh: isBangla
-        ? [
-            "প্লেয়ার সংখ্যা",
-            "জয়-পরাজয়",
-            "পরিচালনা খরচ 20%",
-            "বোনাস",
-            "কমিশন সূত্র",
-            "এজেন্ট কমিশন",
-          ]
-        : [
-            "Player No.",
-            "Win/Loss",
-            "Operation Cost 20%",
-            "Bonus",
-            "Commission Formula",
-            "Agent Commission",
-          ],
-
-      // example rows (match screenshot style)
-      // commission formula column in screenshot is kind of blank; we keep a text like "Net Profit × Tier"
-      exRows: isBangla
-        ? [
-            {
-              no: "1",
-              wl: "1,000,000",
-              op: "200,000",
-              bonus: "23,000",
-              formula: "নেট প্রফিট × স্তর",
-              agent: "466,200",
-            },
-            {
-              no: "2",
-              wl: "880,000",
-              op: "176,000",
-              bonus: "8,000",
-              formula: "নেট প্রফিট × স্তর",
-              agent: "417,600",
-            },
-            {
-              no: "3",
-              wl: "1,250,000",
-              op: "250,000",
-              bonus: "12,000",
-              formula: "নেট প্রফিট × স্তর",
-              agent: "592,800",
-            },
-            {
-              no: "4",
-              wl: "443,000",
-              op: "88,600",
-              bonus: "600",
-              formula: "নেট প্রফিট × স্তর",
-              agent: "212,280",
-            },
-          ]
-        : [
-            {
-              no: "1",
-              wl: "1,000,000",
-              op: "200,000",
-              bonus: "23,000",
-              formula: "Net Profit × Tier",
-              agent: "466,200",
-            },
-            {
-              no: "2",
-              wl: "880,000",
-              op: "176,000",
-              bonus: "8,000",
-              formula: "Net Profit × Tier",
-              agent: "417,600",
-            },
-            {
-              no: "3",
-              wl: "1,250,000",
-              op: "250,000",
-              bonus: "12,000",
-              formula: "Net Profit × Tier",
-              agent: "592,800",
-            },
-            {
-              no: "4",
-              wl: "443,000",
-              op: "88,600",
-              bonus: "600",
-              formula: "Net Profit × Tier",
-              agent: "212,280",
-            },
-          ],
-
-      exTotalLabel: isBangla ? "মোট" : "Total",
-      exTotal: {
-        wl: "3,573,000",
-        op: "714,600",
-        bonus: "43,600",
-        agent: "1,688,880",
-      },
-
-      close: isBangla ? "বন্ধ করুন" : "Close",
+  // ✅ fetch active config
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        setLoading(true);
+        const res = await api.get("/api/aff-commission/active");
+        if (mounted) setData(res.data);
+      } catch (e) {
+        // fallback null থাকলে UI লোডিং দেখাবে
+        if (mounted) setData(null);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
     };
-  }, [isBangla]);
+  }, []);
 
-  // ================== main table rows ==================
-  const rows = t.rows;
+  // ✅ language picker helper
+  const pick = (bi) => (isBangla ? bi?.bn : bi?.en);
+
+  const t = useMemo(() => {
+    if (!data) return null;
+
+    return {
+      sectionTitle: pick(data.sectionTitle),
+      btnMore: pick(data.btnMore),
+
+      th: isBangla ? data.th?.bn || [] : data.th?.en || [],
+      rows: (data.rows || []).map((r) => ({
+        level: r.level,
+        newReg: pick(r.newReg),
+        base: r.base,
+        extra: r.extra,
+        need: pick(r.need),
+        total: r.total,
+      })),
+
+      modalTitle: pick(data.modalTitle),
+      bullets: isBangla ? data.bullets?.bn || [] : data.bullets?.en || [],
+
+      formulaTitle: pick(data.formulaTitle),
+      formulaLabels: isBangla
+        ? data.formulaLabels?.bn || []
+        : data.formulaLabels?.en || [],
+
+      exampleTitle: pick(data.exampleTitle),
+
+      exTh: isBangla ? data.exTh?.bn || [] : data.exTh?.en || [],
+      exRows: (data.exRows || []).map((r) => ({
+        no: r.no,
+        wl: r.wl,
+        op: r.op,
+        bonus: r.bonus,
+        formula: pick(r.formula),
+        agent: r.agent,
+      })),
+
+      exTotalLabel: pick(data.exTotalLabel),
+      exTotal: data.exTotal || { wl: "", op: "", bonus: "", agent: "" },
+
+      close: pick(data.close),
+    };
+  }, [data, isBangla]);
+
+  // loading / no data
+  if (loading) {
+    return (
+      <section className="w-full bg-[#2b2b2b] py-10 sm:py-14 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center text-xl font-extrabold">
+            {isBangla ? "লোড হচ্ছে..." : "Loading..."}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (!t) {
+    return (
+      <section className="w-full bg-[#2b2b2b] py-10 sm:py-14 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center text-xl font-extrabold">
+            {isBangla ? "কমিশন ডাটা পাওয়া যায়নি" : "Commission data not found"}
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="w-full bg-[#2b2b2b] py-10 sm:py-14 text-white">
@@ -273,7 +147,7 @@ const Commission = () => {
             </div>
 
             {/* Body */}
-            {rows.map((r, idx) => (
+            {t.rows.map((r, idx) => (
               <div
                 key={idx}
                 className="grid grid-cols-6 bg-[#2b2b2b] text-white font-semibold"
@@ -293,7 +167,7 @@ const Commission = () => {
                 <div className="py-4 px-2 border-t border-r border-white/90 text-center font-semibold">
                   {r.need}
                 </div>
-                <div className="py-4  border-t border-white/90 text-center font-semibold">
+                <div className="py-4 border-t border-white/90 text-center font-semibold">
                   {r.total}
                 </div>
               </div>
@@ -312,7 +186,7 @@ const Commission = () => {
         </div>
       </div>
 
-      {/* ================= MODAL (same as screenshot) ================= */}
+      {/* ================= MODAL ================= */}
       <AnimatePresence>
         {open && (
           <>
@@ -353,7 +227,7 @@ const Commission = () => {
                   </h3>
                 </div>
 
-                {/* content scroll area (responsive) */}
+                {/* content scroll area */}
                 <div className="px-4 sm:px-8 pb-8 max-h-[78vh] overflow-y-auto [scrollbar-width:none]">
                   {/* bullets */}
                   <ul className="list-disc pl-6 space-y-2 text-sm sm:text-base text-black/85">
@@ -436,7 +310,7 @@ const Commission = () => {
                         </div>
                       ))}
 
-                      {/* total row (yellow like screenshot) */}
+                      {/* total row */}
                       <div className="grid grid-cols-6 bg-[#f5b400] text-black font-extrabold">
                         <div className="py-4 px-3 text-center border-t border-r border-black/10">
                           {t.exTotalLabel}
@@ -450,9 +324,7 @@ const Commission = () => {
                         <div className="py-4 px-3 text-center border-t border-r border-black/10">
                           {t.exTotal.bonus}
                         </div>
-                        <div className="py-4 px-3 text-center border-t border-r border-black/10">
-                          {/* empty like screenshot */}
-                        </div>
+                        <div className="py-4 px-3 text-center border-t border-r border-black/10"></div>
                         <div className="py-4 px-3 text-center border-t border-black/10">
                           {t.exTotal.agent}
                         </div>
@@ -481,11 +353,10 @@ const Commission = () => {
 
 export default Commission;
 
-/* ===================== helpers ===================== */
+/* helpers */
 
 const FormulaItem = ({ Icon, label }) => {
-  // label supports \n
-  const parts = String(label).split("\n");
+  const parts = String(label || "").split("\n");
   return (
     <div className="flex flex-col items-center gap-2">
       <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#f5b400] flex items-center justify-center">

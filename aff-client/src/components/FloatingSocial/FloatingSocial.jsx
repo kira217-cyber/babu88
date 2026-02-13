@@ -1,42 +1,61 @@
 import React from "react";
-import { FaWhatsapp, FaTelegramPlane } from "react-icons/fa";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "../../api/axios";
+import Skeleton from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
 
 const FloatingSocial = () => {
-  // ✅ Replace with your real links
-  const whatsappNumber = "8801XXXXXXXXX"; // without + (example: 8801712345678)
-  const whatsappText = "Hello BABU88 Support"; // optional
-  const telegramUsername = "your_telegram_username"; // example: babu88support
-
-  const whatsappLink = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
-    whatsappText,
-  )}`;
-  const telegramLink = `https://t.me/${telegramUsername}`;
+  const { data: icons = [], isLoading } = useQuery({
+    queryKey: ["aff-floating-social"],
+    queryFn: async () => {
+      const res = await api.get("/api/aff-floating-social");
+      return res.data; // array of { _id, imageUrl, linkUrl }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes cache
+    refetchOnWindowFocus: false,
+  });
 
   return (
-    <div className="fixed right-4 md:right-18 bottom-8 md:bottom-22 z-[999] flex flex-col gap-3">
-      {/* WhatsApp */}
-      <a
-        href={whatsappLink}
-        target="_blank"
-        rel="noreferrer"
-        aria-label="WhatsApp"
-        className="group flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#25D366] shadow-lg hover:scale-105 active:scale-95 transition"
-      >
-        <FaWhatsapp className="text-white text-2xl sm:text-3xl" />
-        <span className="sr-only">WhatsApp</span>
-      </a>
-
-      {/* Telegram */}
-      <a
-        href={telegramLink}
-        target="_blank"
-        rel="noreferrer"
-        aria-label="Telegram"
-        className="group flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#229ED9] shadow-lg hover:scale-105 active:scale-95 transition"
-      >
-        <FaTelegramPlane className="text-white text-2xl sm:text-3xl" />
-        <span className="sr-only">Telegram</span>
-      </a>
+    <div className="fixed right-4 md:right-18 bottom-22 md:bottom-22 z-[999] flex flex-col gap-3">
+      {isLoading ? (
+        // Skeleton during loading (same size & position as real icons)
+        <>
+          {[...Array(4)].map((_, index) => (
+            <div
+              key={index}
+              className="w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden shadow-lg"
+            >
+              <Skeleton
+                circle
+                width="100%"
+                height="100%"
+                baseColor="#2a2a2a"
+                highlightColor="#3a3a3a"
+              />
+            </div>
+          ))}
+        </>
+      ) : icons.length === 0 ? // No icons → nothing shown
+      null : (
+        // Real icons
+        icons.map((item) => (
+          <a
+            key={item._id}
+            href={item.linkUrl}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Floating Social Link"
+            className="group flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-lg hover:scale-105 active:scale-95 transition"
+          >
+            <img
+              src={item.imageUrl}
+              alt="floating social"
+              className="w-10 h-10 sm:w-12 sm:h-12 object-cover rounded-full"
+            />
+            <span className="sr-only">Social Link</span>
+          </a>
+        ))
+      )}
     </div>
   );
 };

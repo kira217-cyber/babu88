@@ -218,6 +218,18 @@ const Sidebar = () => {
         icon: <IoAppsSharp />,
         text: "Aff Fav & Title Controller",
       },
+      {
+        perm: "aff-floating-social-controller",
+        to: "/aff-floating-social-controller",
+        icon: <IoAppsSharp />,
+        text: "Aff Floating Social Controller",
+      },
+       {
+        perm: "aff-commission-controller",
+        to: "/aff-commission-controller",
+        icon: <IoAppsSharp />,
+        text: "Aff Commission Controller",
+      },
     ],
     [],
   );
