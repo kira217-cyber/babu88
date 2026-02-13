@@ -14,7 +14,7 @@ const RootLayout = () => {
     <div>
       <DownloadHeader />
       <Navber />
-      {/* <PromotionModal navigateTo="/promotions" /> */}
+      <PromotionModal navigateTo="/promotions" />
       <MenuItems />
       <FavIconAndLogo />
       <FloatingSocial />
