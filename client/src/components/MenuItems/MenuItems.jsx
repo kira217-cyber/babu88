@@ -3,6 +3,10 @@ import { NavLink, useNavigate } from "react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { useLanguage } from "../../Context/LanguageProvider";
 
+// ✅ axios + react-query
+import { api } from "../../api/axios";
+import { useQuery } from "@tanstack/react-query";
+
 // ✅ Demo provider images (তুমি পরে real image বসাবে)
 const PROVIDERS = {
   slot: [
@@ -173,14 +177,42 @@ const PROVIDERS = {
   ],
 };
 
-// Badge
-const Badge = ({ type }) => {
+// ✅ fetch menu items color config
+const fetchMenuItemsColor = async () => {
+  const { data } = await api.get("/api/menuitems-color");
+  return data;
+};
+
+// ✅ helper: hex -> rgba
+const hexToRgba = (hex, alpha = 1) => {
+  if (!hex || typeof hex !== "string") return `rgba(0,0,0,${alpha})`;
+  const h = hex.replace("#", "").trim();
+  if (h.length === 3) {
+    const r = parseInt(h[0] + h[0], 16);
+    const g = parseInt(h[1] + h[1], 16);
+    const b = parseInt(h[2] + h[2], 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  }
+  if (h.length === 6) {
+    const r = parseInt(h.slice(0, 2), 16);
+    const g = parseInt(h.slice(2, 4), 16);
+    const b = parseInt(h.slice(4, 6), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  }
+  return `rgba(0,0,0,${alpha})`;
+};
+
+// Badge (design same; only color from DB)
+const Badge = ({ type, colors }) => {
   if (!type) return null;
-  const cls =
-    type === "new" ? "bg-[#20c55b] text-white" : "bg-[#ff3b30] text-white";
+
+  const bg = type === "new" ? colors.badgeNewBg : colors.badgeHotBg;
+  const text = type === "new" ? colors.badgeNewText : colors.badgeHotText;
+
   return (
     <span
-      className={`absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-[2px] rounded-full text-[10px] font-extrabold ${cls}`}
+      style={{ backgroundColor: bg, color: text }}
+      className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-[2px] rounded-full text-[10px] font-extrabold"
     >
       {type.toUpperCase()}
     </span>
@@ -190,6 +222,54 @@ const Badge = ({ type }) => {
 const MenuItems = () => {
   const { isBangla } = useLanguage();
   const navigate = useNavigate();
+
+  // ✅ load config from DB
+  const { data: cfg } = useQuery({
+    queryKey: ["menuitems-color"],
+    queryFn: fetchMenuItemsColor,
+    staleTime: 1000 * 60 * 10,
+  });
+
+  // ✅ fallback keeps current design exactly
+  const colors = useMemo(() => {
+    return {
+      barBg: cfg?.barBg || "#3e3e3e",
+
+      itemText: cfg?.itemText || "#ffffff",
+      itemTextOpacity: cfg?.itemTextOpacity ?? 0.9,
+      itemTextSize: cfg?.itemTextSize ?? 14,
+      itemHoverText: cfg?.itemHoverText || "#ffffff",
+
+      activeBg: cfg?.activeBg || "#f5b400",
+      activeText: cfg?.activeText || "#000000",
+
+      dropdownOpenBg: cfg?.dropdownOpenBg || "#000000",
+      dropdownOpenBgOpacity: cfg?.dropdownOpenBgOpacity ?? 0.35,
+
+      megaPanelBg: cfg?.megaPanelBg || "#000000",
+      megaPanelBgOpacity: cfg?.megaPanelBgOpacity ?? 0.35,
+      megaPanelBorder: cfg?.megaPanelBorder || "#ffffff",
+      megaPanelBorderOpacity: cfg?.megaPanelBorderOpacity ?? 0.1,
+
+      cardBg: cfg?.cardBg || "#ffffff",
+      cardBgOpacity: cfg?.cardBgOpacity ?? 0.05,
+      cardBorder: cfg?.cardBorder || "#ffffff",
+      cardBorderOpacity: cfg?.cardBorderOpacity ?? 0.1,
+
+      cardHoverBg: cfg?.cardHoverBg || "#ffffff",
+      cardHoverBgOpacity: cfg?.cardHoverBgOpacity ?? 0.1,
+      cardHoverBorder: cfg?.cardHoverBorder || "#f5b400",
+      cardHoverBorderOpacity: cfg?.cardHoverBorderOpacity ?? 0.6,
+
+      divider: cfg?.divider || "#ffffff",
+      dividerOpacity: cfg?.dividerOpacity ?? 0.1,
+
+      badgeNewBg: cfg?.badgeNewBg || "#20c55b",
+      badgeNewText: cfg?.badgeNewText || "#ffffff",
+      badgeHotBg: cfg?.badgeHotBg || "#ff3b30",
+      badgeHotText: cfg?.badgeHotText || "#ffffff",
+    };
+  }, [cfg]);
 
   const t = useMemo(
     () => ({
@@ -230,20 +310,6 @@ const MenuItems = () => {
         to: "/promotions",
         badge: null,
       },
-      //   {
-      //     key: "bettingPass",
-      //     label: t.bettingPass,
-      //     type: "nav",
-      //     to: "/betting-pass",
-      //     badge: "hot",
-      //   },
-      //   {
-      //     key: "superAffiliate",
-      //     label: t.superAffiliate,
-      //     type: "nav",
-      //     to: "/super-affiliate",
-      //     badge: "hot",
-      //   },
       { key: "vip", label: t.vip, type: "nav", to: "/vip", badge: "new" },
       {
         key: "affiliate",
@@ -287,16 +353,31 @@ const MenuItems = () => {
     return () => document.removeEventListener("mousedown", onOutside);
   }, []);
 
+  // ✅ hover handling without changing functionality/design
+  const onHoverIn = (e) => {
+    e.currentTarget.dataset.prevColor = e.currentTarget.style.color || "";
+    e.currentTarget.style.color = colors.itemHoverText;
+  };
+  const onHoverOut = (e) => {
+    const prev = e.currentTarget.dataset.prevColor;
+    e.currentTarget.style.color = prev || "";
+    delete e.currentTarget.dataset.prevColor;
+  };
+
   return (
     // ✅ parent must be relative to position dropdown absolute
     <div className="hidden lg:block relative" ref={wrapRef}>
       {/* Dark bar */}
-      <div className="w-full bg-[#3e3e3e] relative z-[60]">
+      <div
+        className="w-full relative z-[60]"
+        style={{ backgroundColor: colors.barBg }}
+      >
         <div className="mx-auto px-3">
           <div className="flex items-center gap-2">
             {MENUS.map((m) => {
               if (m.type === "dropdown") {
                 const isOpen = openKey === m.key;
+
                 return (
                   <div
                     key={m.key}
@@ -308,13 +389,26 @@ const MenuItems = () => {
                       type="button"
                       className={[
                         "relative h-[56px] px-4",
-                        "text-[14px] font-bold",
-                        "text-white/90 hover:text-white",
-                        isOpen ? "bg-black/35" : "bg-transparent",
+                        "font-bold",
+                        // keep same behavior: isOpen bg like bg-black/35
+                        isOpen ? "bg-transparent" : "bg-transparent",
                       ].join(" ")}
+                      style={{
+                        fontSize: `${colors.itemTextSize}px`,
+                        color: colors.itemText,
+                        opacity: colors.itemTextOpacity,
+                        backgroundColor: isOpen
+                          ? hexToRgba(
+                              colors.dropdownOpenBg,
+                              colors.dropdownOpenBgOpacity,
+                            )
+                          : "transparent",
+                      }}
+                      onMouseEnter={onHoverIn}
+                      onMouseLeave={onHoverOut}
                     >
                       {m.label}
-                      <Badge type={m.badge} />
+                      <Badge type={m.badge} colors={colors} />
                     </button>
                   </div>
                 );
@@ -324,19 +418,33 @@ const MenuItems = () => {
                 <div key={m.key} className="relative">
                   <NavLink
                     to={m.to}
-                    className={({ isActive }) =>
-                      [
-                        "relative inline-flex items-center",
-                        "h-[56px] px-4",
-                        "text-[14px] font-bold",
-                        isActive
-                          ? "bg-[#f5b400] text-black"
-                          : "text-white/90 hover:text-white",
-                      ].join(" ")
-                    }
+                    className="relative inline-flex items-center h-[56px] px-4 font-bold"
+                    style={({ isActive }) => ({
+                      fontSize: `${colors.itemTextSize}px`,
+                      backgroundColor: isActive
+                        ? colors.activeBg
+                        : "transparent",
+                      color: isActive ? colors.activeText : colors.itemText,
+                      opacity: isActive ? 1 : colors.itemTextOpacity,
+                    })}
+                    onMouseEnter={(e) => {
+                      // if active -> don't override
+                      if (
+                        e.currentTarget.getAttribute("aria-current") === "page"
+                      )
+                        return;
+                      onHoverIn(e);
+                    }}
+                    onMouseLeave={(e) => {
+                      if (
+                        e.currentTarget.getAttribute("aria-current") === "page"
+                      )
+                        return;
+                      onHoverOut(e);
+                    }}
                   >
                     {m.label}
-                    <Badge type={m.badge} />
+                    <Badge type={m.badge} colors={colors} />
                   </NavLink>
                 </div>
               );
@@ -366,7 +474,19 @@ const MenuItems = () => {
             <div className="w-full">
               <div className="mx-auto">
                 {/* Panel (semi transparent + blur) */}
-                <div className=" border border-white/10 bg-black/35 shadow-[0_18px_40px_rgba(0,0,0,0.55)]">
+                <div
+                  className="shadow-[0_18px_40px_rgba(0,0,0,0.55)]"
+                  style={{
+                    backgroundColor: hexToRgba(
+                      colors.megaPanelBg,
+                      colors.megaPanelBgOpacity,
+                    ),
+                    border: `1px solid ${hexToRgba(
+                      colors.megaPanelBorder,
+                      colors.megaPanelBorderOpacity,
+                    )}`,
+                  }}
+                >
                   <div className="p-5 max-w-6xl mx-auto">
                     <div className="grid grid-cols-5 gap-8">
                       {(PROVIDERS[openKey] || []).map((p) => (
@@ -381,10 +501,39 @@ const MenuItems = () => {
                           }}
                           className={[
                             "group relative overflow-hidden rounded-xl",
-                            "bg-white/5 border border-white/10",
-                            "hover:border-[#f5b400]/60 hover:bg-white/10",
                             "transition",
                           ].join(" ")}
+                          style={{
+                            backgroundColor: hexToRgba(
+                              colors.cardBg,
+                              colors.cardBgOpacity,
+                            ),
+                            border: `1px solid ${hexToRgba(
+                              colors.cardBorder,
+                              colors.cardBorderOpacity,
+                            )}`,
+                          }}
+                          onMouseEnter={(e) => {
+                            // keep hover behavior same: hover border + hover bg
+                            e.currentTarget.style.backgroundColor = hexToRgba(
+                              colors.cardHoverBg,
+                              colors.cardHoverBgOpacity,
+                            );
+                            e.currentTarget.style.border = `1px solid ${hexToRgba(
+                              colors.cardHoverBorder,
+                              colors.cardHoverBorderOpacity,
+                            )}`;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = hexToRgba(
+                              colors.cardBg,
+                              colors.cardBgOpacity,
+                            );
+                            e.currentTarget.style.border = `1px solid ${hexToRgba(
+                              colors.cardBorder,
+                              colors.cardBorderOpacity,
+                            )}`;
+                          }}
                           title={p.name}
                         >
                           <div>
@@ -406,7 +555,15 @@ const MenuItems = () => {
                       ))}
                     </div>
 
-                    <div className="mt-5 h-px bg-white/10" />
+                    <div
+                      className="mt-5 h-px"
+                      style={{
+                        backgroundColor: hexToRgba(
+                          colors.divider,
+                          colors.dividerOpacity,
+                        ),
+                      }}
+                    />
                   </div>
                 </div>
               </div>

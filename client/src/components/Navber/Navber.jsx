@@ -46,6 +46,11 @@ const fetchBranding = async () => {
   return data;
 };
 
+const fetchNavbarColor = async () => {
+  const { data } = await api.get("/api/navbar-color");
+  return data;
+};
+
 // Tiny Flag components (unchanged)
 const BdFlag = ({ className = "" }) => (
   <span
@@ -81,23 +86,27 @@ const Badge = ({ variant = "hot", children }) => {
   );
 };
 
-const NavItem = ({ to, icon: Icon, label, badge, onClick }) => {
+// ✅ NavItem updated: design same, only color/text-size dynamic
+const NavItem = ({ to, icon: Icon, label, badge, onClick, colors }) => {
   return (
     <NavLink
       to={to}
       onClick={onClick}
-      className={({ isActive }) =>
-        [
-          "w-full flex items-center gap-3 px-3 py-3 rounded-xl transition",
-          "text-[14px] font-semibold",
-          isActive
-            ? "bg-[#f5b400] text-black"
-            : "text-black/70 hover:bg-black/5",
-        ].join(" ")
-      }
+      className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition font-semibold"
+      style={({ isActive }) => ({
+        backgroundColor: isActive
+          ? colors.sidebarActiveBg
+          : colors.sidebarLinkBg,
+        color: isActive ? colors.sidebarActiveText : colors.sidebarLinkText,
+        fontSize: `${colors.sidebarLinkTextSize}px`,
+      })}
     >
-      <span className="w-10 h-10 rounded-lg  flex items-center justify-center">
-        <Icon className="text-black/80 text-2xl" />
+      <span className="w-10 h-10 rounded-lg flex items-center justify-center">
+        {/* icon follows text color via currentColor */}
+        <Icon
+          className="text-2xl"
+          style={{ color: "currentColor", opacity: 0.9 }}
+        />
       </span>
       <span className="truncate">{label}</span>
       {badge?.type ? <Badge variant={badge.type}>{badge.text}</Badge> : null}
@@ -116,6 +125,36 @@ const Navber = () => {
     queryFn: fetchBranding,
     staleTime: 1000 * 60 * 10,
   });
+
+  // ✅ navbar color config from DB
+  const { data: navColor } = useQuery({
+    queryKey: ["navbar-color"],
+    queryFn: fetchNavbarColor,
+    staleTime: 1000 * 60 * 10,
+  });
+
+  // ✅ fallback (hardcoded values) -> design unchanged
+  const colors = useMemo(() => {
+    return {
+      loginBg: navColor?.loginBg || "#f5b400",
+      loginText: navColor?.loginText || "#000000",
+      loginTextSize: navColor?.loginTextSize ?? 14,
+
+      registerBg: navColor?.registerBg || "#0b78f0",
+      registerText: navColor?.registerText || "#ffffff",
+      registerTextSize: navColor?.registerTextSize ?? 14,
+
+      iconBg: navColor?.iconBg || "#f5b400",
+      iconText: navColor?.iconText || "#000000",
+
+      sidebarLinkBg: navColor?.sidebarLinkBg || "#ffffff",
+      sidebarLinkText: navColor?.sidebarLinkText || "#000000",
+      sidebarLinkTextSize: navColor?.sidebarLinkTextSize ?? 14,
+
+      sidebarActiveBg: navColor?.sidebarActiveBg || "#f5b400",
+      sidebarActiveText: navColor?.sidebarActiveText || "#000000",
+    };
+  }, [navColor]);
 
   // ✅ redux auth
   const auth = useSelector(selectAuth);
@@ -299,6 +338,7 @@ const Navber = () => {
               >
                 <FaBars className="text-black/80" />
               </button>
+
               {/* logo */}
               <Link to="/" className="flex items-center gap-2 select-none">
                 {view.logoUrl ? (
@@ -321,16 +361,28 @@ const Navber = () => {
             <div className="flex items-center gap-2 md:gap-8">
               {!isAuthenticated ? (
                 <>
+                  {/* ✅ login btn: only colors/text-size from DB */}
                   <Link
                     to="/login"
-                    className="hidden sm:inline-flex items-center justify-center h-10 px-4 rounded-lg bg-[#f5b400] text-black font-extrabold text-sm shadow-sm hover:brightness-95 active:scale-[0.99] transition"
+                    style={{
+                      backgroundColor: colors.loginBg,
+                      color: colors.loginText,
+                      fontSize: `${colors.loginTextSize}px`,
+                    }}
+                    className="hidden sm:inline-flex items-center justify-center h-10 px-4 rounded-lg font-extrabold text-sm shadow-sm hover:brightness-95 active:scale-[0.99] transition"
                   >
                     {t.login}
                   </Link>
 
+                  {/* ✅ register btn */}
                   <Link
                     to="/register"
-                    className="hidden sm:inline-flex items-center justify-center h-10 px-4 rounded-lg bg-[#0b78f0] text-white font-extrabold text-sm shadow-sm hover:brightness-95 active:scale-[0.99] transition"
+                    style={{
+                      backgroundColor: colors.registerBg,
+                      color: colors.registerText,
+                      fontSize: `${colors.registerTextSize}px`,
+                    }}
+                    className="hidden sm:inline-flex items-center justify-center h-10 px-4 rounded-lg font-extrabold text-sm shadow-sm hover:brightness-95 active:scale-[0.99] transition"
                   >
                     {t.join}
                   </Link>
@@ -386,24 +438,32 @@ const Navber = () => {
                       {username}
                     </span>
 
-                    {/* profile (yellow circle) */}
+                    {/* ✅ profile (bg/icon color from DB) */}
                     <Link
                       to="/profile"
-                      className="h-10 w-10 rounded-full bg-[#f5b400] flex items-center justify-center shadow-sm hover:brightness-95 active:scale-[0.99] transition"
+                      style={{ backgroundColor: colors.iconBg }}
+                      className="h-10 w-10 rounded-full flex items-center justify-center shadow-sm hover:brightness-95 active:scale-[0.99] transition"
                       aria-label="Profile"
                       title="Profile"
                     >
-                      <FaUserAlt className="text-black text-[16px]" />
+                      <FaUserAlt
+                        style={{ color: colors.iconText }}
+                        className="text-[16px]"
+                      />
                     </Link>
 
-                    {/* notification (yellow circle + badge) */}
+                    {/* ✅ notification (bg/icon color from DB) */}
                     <Link
                       to="/notifications"
-                      className="relative h-10 w-10 rounded-full bg-[#f5b400] flex items-center justify-center shadow-sm hover:brightness-95 active:scale-[0.99] transition"
+                      style={{ backgroundColor: colors.iconBg }}
+                      className="relative h-10 w-10 rounded-full flex items-center justify-center shadow-sm hover:brightness-95 active:scale-[0.99] transition"
                       aria-label="Notifications"
                       title="Notifications"
                     >
-                      <FaBell className="text-black text-[16px]" />
+                      <FaBell
+                        style={{ color: colors.iconText }}
+                        className="text-[16px]"
+                      />
                       <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#0b78f0] text-white text-[11px] font-extrabold flex items-center justify-center">
                         {notifCount}
                       </span>
@@ -516,9 +576,25 @@ const Navber = () => {
               <div className="px-4 pt-5 pb-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 select-none">
-                    <span className="text-[30px] font-extrabold tracking-tight italic text-black">
-                      BABU<span className="text-[#f5b400]">88</span>
-                    </span>
+                    {/* logo */}
+                    <Link
+                      to="/"
+                      className="flex items-center gap-2 select-none"
+                    >
+                      {view.logoUrl ? (
+                        <img
+                          src={view.logoUrl}
+                          alt="Site Logo"
+                          className="w-48 h-14"
+                          loading="lazy"
+                          draggable={false}
+                        />
+                      ) : (
+                        <div className="h-10 px-3 rounded-lg bg-black/5 flex items-center text-black/60 font-bold">
+                          No Logo
+                        </div>
+                      )}
+                    </Link>
                   </div>
                   <button
                     type="button"
@@ -541,6 +617,7 @@ const Navber = () => {
                       icon={it.icon}
                       label={it.label}
                       badge={it.badge}
+                      colors={colors}
                       onClick={() => setSidebarOpen(false)}
                     />
                   ))}
@@ -559,6 +636,7 @@ const Navber = () => {
                       icon={it.icon}
                       label={it.label}
                       badge={it.badge}
+                      colors={colors}
                       onClick={() => setSidebarOpen(false)}
                     />
                   ))}
@@ -588,6 +666,7 @@ const Navber = () => {
                       to={item.to}
                       icon={item.icon}
                       label={item.label}
+                      colors={colors}
                       onClick={() => setSidebarOpen(false)}
                     />
                   ))}

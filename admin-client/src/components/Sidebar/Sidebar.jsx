@@ -67,10 +67,10 @@ const Sidebar = () => {
         text: "All Users",
       },
       {
-        key: "add-game",
-        to: "/add-game",
+        key: "color-controller-client",
+        to: "/color-controller-client",
         icon: <IoAppsSharp />,
-        text: "Add Game",
+        text: "Color Controller Client",
       },
       {
         key: "add-promotion",
@@ -595,7 +595,7 @@ const SidebarContent = ({
         )}
 
         {/* Affiliate Client Site Controller Dropdown */}
-        {showAffiliate && (
+        {/* {showAffiliate && (
           <div className="mt-4">
             <button
               onClick={() => setAffiliateOpen(!affiliateOpen)}
@@ -640,7 +640,7 @@ const SidebarContent = ({
               </div>
             )}
           </div>
-        )}
+        )} */} 
       </nav>
 
       {/* Logout */}

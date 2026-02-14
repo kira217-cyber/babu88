@@ -13,27 +13,21 @@ import {
   GiTwoCoins,
 } from "react-icons/gi";
 import { useLanguage } from "../../Context/LanguageProvider";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "../../api/axios";
 
 const CATEGORIES = [
   { key: "jackpot", label: { bn: "জ্যাকপট", en: "Jackpot" }, icon: GiCrown },
   { key: "hot", label: { bn: "হট", en: "Hot" }, icon: GiFlame },
   { key: "slot", label: { bn: "স্লট", en: "Slot" }, icon: GiCardAceSpades },
-  {
-    key: "casino",
-    label: { bn: "ক্যাসিনো", en: "Casino" },
-    icon: GiPokerHand,
-  },
+  { key: "casino", label: { bn: "ক্যাসিনো", en: "Casino" }, icon: GiPokerHand },
   { key: "crash", label: { bn: "ক্র্যাশ", en: "Crash" }, icon: GiAirplane },
   {
     key: "cricket",
     label: { bn: "ক্রিকেট", en: "Cricket" },
     icon: GiCricketBat,
   },
-  {
-    key: "table",
-    label: { bn: "টেবিল", en: "Table" },
-    icon: GiCardAceSpades,
-  },
+  { key: "table", label: { bn: "টেবিল", en: "Table" }, icon: GiCardAceSpades },
   { key: "fast", label: { bn: "ফাস্ট", en: "Fast" }, icon: GiRabbit },
   {
     key: "catching_fish",
@@ -57,88 +51,128 @@ const GAMES = [
     id: "aviator-1",
     title: "Aviator",
     category: "crash",
-    image: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/DtP4ZtTTSFMSTUxfRBlChuvPSaZ7F6AUlyCPF9HQ.png",
+    image:
+      "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/DtP4ZtTTSFMSTUxfRBlChuvPSaZ7F6AUlyCPF9HQ.png",
     badge: "HOT",
   },
   {
     id: "fortune-gems-1",
     title: "Fortune Gems",
     category: "hot",
-    image: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/hRJKCIGfsKom04Ok44tFzyyHLxOTDSPXvPTQAvx6.jpg",
+    image:
+      "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/hRJKCIGfsKom04Ok44tFzyyHLxOTDSPXvPTQAvx6.jpg",
     badge: "HOT",
   },
   {
     id: "chicken-road-2",
     title: "Chicken Road 2",
     category: "hot",
-    image: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/1JbjzqcccNub15FEa8NFG8nBQbSqeO4Lzo3t33ad.jpg",
+    image:
+      "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/1JbjzqcccNub15FEa8NFG8nBQbSqeO4Lzo3t33ad.jpg",
     badge: "HOT",
   },
   {
     id: "crazy-time-1",
     title: "Crazy Time",
     category: "hot",
-    image: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/3Y8aCs6xtWTxk6xtaxnkS9Zk7qAsOsvhgc0Jg0me.jpg",
+    image:
+      "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/3Y8aCs6xtWTxk6xtaxnkS9Zk7qAsOsvhgc0Jg0me.jpg",
     badge: "HOT",
   },
   {
     id: "crash-cricket-1",
     title: "Crash Cricket",
     category: "hot",
-    image: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/2DBG4VFxCy7icorMGJ3dvQVNBjKOzpcbDfVlBt2R.png",
+    image:
+      "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/2DBG4VFxCy7icorMGJ3dvQVNBjKOzpcbDfVlBt2R.png",
     badge: "HOT",
   },
   {
     id: "roulette-1",
     title: "Roulette",
     category: "hot",
-    image: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/XKMsslvB0bgiBJ41meWZH3mO02J0ysgOdnE8WMc5.jpg",
+    image:
+      "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/XKMsslvB0bgiBJ41meWZH3mO02J0ysgOdnE8WMc5.jpg",
     badge: "HOT",
   },
   {
     id: "fish-1",
     title: "Fishing King",
     category: "hot",
-    image: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/hRJKCIGfsKom04Ok44tFzyyHLxOTDSPXvPTQAvx6.jpg",
+    image:
+      "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/hRJKCIGfsKom04Ok44tFzyyHLxOTDSPXvPTQAvx6.jpg",
     badge: "HOT",
   },
   {
     id: "jackpot-1",
     title: "Jackpot Mega",
     category: "jackpot",
-    image: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/2DBG4VFxCy7icorMGJ3dvQVNBjKOzpcbDfVlBt2R.png",
+    image:
+      "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/2DBG4VFxCy7icorMGJ3dvQVNBjKOzpcbDfVlBt2R.png",
     badge: "HOT",
   },
   {
     id: "asb-1",
     title: "ASB Game",
     category: "hot",
-    image: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/xCfRmJP2Fm1Fw9VEUHFoCtNaBpfTyXIYdr5Osuzl.png",
+    image:
+      "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/xCfRmJP2Fm1Fw9VEUHFoCtNaBpfTyXIYdr5Osuzl.png",
     badge: "HOT",
   },
   {
     id: "fast-1",
     title: "Fast Spin",
     category: "hot",
-    image: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/ad5CfULwpWYJ0qyEtT3a8Djc5eCghQwroEo1vLrv.jpg",
+    image:
+      "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/ad5CfULwpWYJ0qyEtT3a8Djc5eCghQwroEo1vLrv.jpg",
     badge: "HOT",
   },
   {
     id: "slot-2",
     title: "Slot Pro",
     category: "slot",
-    image: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/xCfRmJP2Fm1Fw9VEUHFoCtNaBpfTyXIYdr5Osuzl.png",
+    image:
+      "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/xCfRmJP2Fm1Fw9VEUHFoCtNaBpfTyXIYdr5Osuzl.png",
     badge: "HOT",
   },
 ];
 
-const GameCard = ({ game, onClick }) => {
+const hexToRgba = (hex, alpha = 1) => {
+  if (!hex || typeof hex !== "string") return `rgba(0,0,0,${alpha})`;
+  const h = hex.replace("#", "").trim();
+  if (h.length === 3) {
+    const r = parseInt(h[0] + h[0], 16);
+    const g = parseInt(h[1] + h[1], 16);
+    const b = parseInt(h[2] + h[2], 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  }
+  if (h.length === 6) {
+    const r = parseInt(h.slice(0, 2), 16);
+    const g = parseInt(h.slice(2, 4), 16);
+    const b = parseInt(h.slice(4, 6), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  }
+  return `rgba(0,0,0,${alpha})`;
+};
+
+const fetchGameCategoryColor = async () => {
+  const { data } = await api.get("/api/gamecategory-color");
+  return data;
+};
+
+const GameCard = ({ game, onClick, ui }) => {
   return (
     <motion.button
       whileTap={{ scale: 0.98 }}
       whileHover={{ y: -2 }}
       onClick={onClick}
-      className="relative overflow-hidden rounded-xl bg-white/5 ring-1 ring-black/10 shadow-md"
+      className="relative overflow-hidden rounded-xl ring-1 shadow-md"
+      style={{
+        backgroundColor: hexToRgba(ui.cardBg, ui.cardBgOpacity),
+        boxShadow: "0 4px 12px rgba(0,0,0,0.10)",
+        // ring-1 ring-black/10 replacement
+        border: `1px solid ${hexToRgba(ui.cardRing, ui.cardRingOpacity)}`,
+      }}
       title={game.title}
       type="button"
     >
@@ -153,7 +187,14 @@ const GameCard = ({ game, onClick }) => {
 
       {game.badge && (
         <div className="absolute top-2 right-2">
-          <span className="text-[10px] font-black px-2 py-1 rounded-full bg-[#ff2d2d] text-white shadow">
+          <span
+            className="font-black px-2 py-1 rounded-full shadow"
+            style={{
+              backgroundColor: ui.badgeBg,
+              color: ui.badgeText,
+              fontSize: `${ui.badgeTextSize}px`,
+            }}
+          >
             {game.badge}
           </span>
         </div>
@@ -165,6 +206,52 @@ const GameCard = ({ game, onClick }) => {
 const GameCategory = () => {
   const navigate = useNavigate();
   const { isBangla } = useLanguage();
+
+  const { data: colorDoc } = useQuery({
+    queryKey: ["gamecategory-color"],
+    queryFn: fetchGameCategoryColor,
+    staleTime: 10 * 60 * 1000,
+    retry: 1,
+  });
+
+  const ui = useMemo(() => {
+    const d = colorDoc || {};
+    return {
+      wrapBg: d.wrapBg || "#ffffff",
+      wrapOpacity: d.wrapOpacity ?? 0.9,
+      scrollerBg: d.scrollerBg || "#F5F5F5",
+
+      btnActiveBg: d.btnActiveBg || "#F5B400",
+      btnActiveText: d.btnActiveText || "#000000",
+
+      btnInactiveBg: d.btnInactiveBg || "#ffffff",
+      btnInactiveTextRgba: hexToRgba(
+        d.btnInactiveText || "#000000",
+        d.btnInactiveTextOpacity ?? 0.8,
+      ),
+
+      btnTextSize: d.btnTextSize ?? 14,
+
+      trackBgRgba: hexToRgba(d.trackBg || "#000000", d.trackOpacity ?? 0.1),
+      thumbBg: d.thumbBg || "#C49A00",
+
+      emptyTextRgba: hexToRgba(
+        d.emptyText || "#000000",
+        d.emptyTextOpacity ?? 0.6,
+      ),
+      emptyTextSize: d.emptyTextSize ?? 14,
+
+      cardBg: d.cardBg || "#ffffff",
+      cardBgOpacity: d.cardBgOpacity ?? 0.05,
+
+      cardRing: d.cardRing || "#000000",
+      cardRingOpacity: d.cardRingOpacity ?? 0.1,
+
+      badgeBg: d.badgeBg || "#ff2d2d",
+      badgeText: d.badgeText || "#ffffff",
+      badgeTextSize: d.badgeTextSize ?? 10,
+    };
+  }, [colorDoc]);
 
   const [active, setActive] = useState("hot");
 
@@ -248,7 +335,10 @@ const GameCategory = () => {
   return (
     <div className="w-full">
       {/* ✅ Category Bar */}
-      <div className="w-full bg-white/90 rounded-md px-2 mt-4">
+      <div
+        className="w-full rounded-md px-2 mt-4"
+        style={{ backgroundColor: hexToRgba(ui.wrapBg, ui.wrapOpacity) }}
+      >
         <div
           ref={scrollerRef}
           onScroll={updateThumb}
@@ -258,10 +348,10 @@ const GameCategory = () => {
             scroll-smooth
             [scrollbar-width:none]
             rounded-md mb-2
-            bg-[#F5F5F5]
           "
           style={{
             WebkitOverflowScrolling: "touch",
+            backgroundColor: ui.scrollerBg,
           }}
         >
           {/* hide scrollbar (webkit) */}
@@ -287,15 +377,15 @@ const GameCategory = () => {
                   hide-scrollbar
                   shrink-0 inline-flex items-center gap-2
                   px-4 py-2 rounded-full
-                  font-extrabold text-sm
+                  font-extrabold
                   transition
-                  ${
-                    isActive
-                      ? "bg-[#F5B400] text-black"
-                      : "bg-white text-black/80"
-                  }
                   ${isActive ? "shadow-sm" : "hover:bg-black/5"}
                 `}
+                style={{
+                  fontSize: `${ui.btnTextSize}px`,
+                  backgroundColor: isActive ? ui.btnActiveBg : ui.btnInactiveBg,
+                  color: isActive ? ui.btnActiveText : ui.btnInactiveTextRgba,
+                }}
               >
                 <Icon className="text-xl" />
                 <span>{isBangla ? c.label.bn : c.label.en}</span>
@@ -308,10 +398,12 @@ const GameCategory = () => {
         <div className="px-3 pb-2">
           <div
             ref={trackRef}
-            className="h-[6px] w-full bg-black/10 rounded-full overflow-hidden relative"
+            className="h-[6px] w-full rounded-full overflow-hidden relative"
+            style={{ backgroundColor: ui.trackBgRgba }}
           >
             <motion.div
-              className="absolute top-0 left-0 h-full bg-[#C49A00] rounded-full"
+              className="absolute top-0 left-0 h-full rounded-full"
+              style={{ backgroundColor: ui.thumbBg }}
               animate={{ width: thumb.width, x: thumb.x }}
               transition={{ type: "spring", stiffness: 260, damping: 30 }}
             />
@@ -322,7 +414,13 @@ const GameCategory = () => {
       {/* ✅ Games Grid */}
       <div className="mt-4">
         {games.length === 0 ? (
-          <div className="text-center py-10 text-black/60 font-semibold">
+          <div
+            className="text-center py-10 font-semibold"
+            style={{
+              color: ui.emptyTextRgba,
+              fontSize: `${ui.emptyTextSize}px`,
+            }}
+          >
             {isBangla
               ? "এই ক্যাটাগরিতে কোনো গেম নেই"
               : "No games in this category"}
@@ -334,6 +432,7 @@ const GameCategory = () => {
                 key={game.id}
                 game={game}
                 onClick={() => handlePlay(game)}
+                ui={ui}
               />
             ))}
           </div>

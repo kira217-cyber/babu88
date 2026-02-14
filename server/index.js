@@ -23,6 +23,18 @@ import affNoticeRoutes from "./routes/affNoticeRoutes.js";
 import affSiteMetaRoutes from "./routes/affSiteMetaRoutes.js";
 import affFloatingSocialRoutes from "./routes/affFloatingSocialRoutes.js";
 import affCommissionRoutes from "./routes/affCommissionRoutes.js";
+import navbarColorRoutes from "./routes/navbarColorRoutes.js";
+import menuItemsColorRoutes from "./routes/menuItemsColorRoutes.js";
+import bottomNavbarColorRoutes from "./routes/bottomNavbarColorRoutes.js";
+import footerColorRoutes from "./routes/footerColorRoutes.js";
+import liveGamesColorRoutes from "./routes/liveGamesColorRoutes.js";
+import gameCategoryColorRoutes from "./routes/gameCategoryColorRoutes.js";
+import promotionsColorRoutes from "./routes/promotionsColorRoutes.js";
+import downloadHeaderColorRoutes from "./routes/downloadHeaderColorRoutes.js";
+import noticeColorRoutes from "./routes/noticeColorRoutes.js";
+import hotGamesColorRoutes from "./routes/hotGamesColorRoutes.js";
+
+
 
 dotenv.config();
 
@@ -66,6 +78,16 @@ app.use("/api", affNoticeRoutes);
 app.use("/api", affSiteMetaRoutes);
 app.use("/api", affFloatingSocialRoutes);
 app.use("/api", affCommissionRoutes);
+app.use("/api", navbarColorRoutes);
+app.use("/api", menuItemsColorRoutes);
+app.use("/api", bottomNavbarColorRoutes);
+app.use("/api", footerColorRoutes);
+app.use("/api", liveGamesColorRoutes);
+app.use("/api", gameCategoryColorRoutes);
+app.use("/api", promotionsColorRoutes);
+app.use("/api", downloadHeaderColorRoutes);
+app.use("/api", noticeColorRoutes);
+app.use("/api", hotGamesColorRoutes);
 
 // ✅ port
 const PORT = process.env.PORT || 5008;

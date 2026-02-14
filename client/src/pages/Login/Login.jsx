@@ -3,11 +3,19 @@ import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { useLanguage } from "../../Context/LanguageProvider";
+import { demoLogin } from "../../features/auth/authSlice";
+import { useDispatch } from "react-redux";
 
 const Login = () => {
   const navigate = useNavigate();
   const { isBangla } = useLanguage();
   const [showPass, setShowPass] = useState(false);
+    const dispatch = useDispatch();
+
+  const handleDemoLogin = () => {
+    dispatch(demoLogin());
+    navigate("/");
+  }
 
   const t = useMemo(() => {
     if (isBangla) {
@@ -140,6 +148,7 @@ const Login = () => {
             {/* Login button */}
             <button
               type="submit"
+              onClick={handleDemoLogin}
               className="w-full mt-8 h-14 rounded-xl bg-[#ffd000] text-black font-extrabold text-[16px] active:scale-[0.99]"
             >
               {t.login}
