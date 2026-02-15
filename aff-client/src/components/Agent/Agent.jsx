@@ -12,13 +12,56 @@ const Agent = () => {
 
   const { data, isLoading } = useQuery({
     queryKey: ["aff-agent"],
-    queryFn: async () => {
-      const res = await api.get("/api/aff-agent");
-      return res.data;
-    },
+    queryFn: async () => (await api.get("/api/aff-agent")).data,
     staleTime: 60_000,
     retry: 1,
   });
+
+  // ✅ UI config
+  const { data: cfg } = useQuery({
+    queryKey: ["aff-agent-color"],
+    queryFn: async () => (await api.get("/api/aff-agent-color")).data,
+    staleTime: 60_000,
+    retry: 1,
+  });
+
+  const c = cfg || {};
+  const cssVars = {
+    "--a-bg": c.sectionBg || "#2b2b2b",
+    "--a-text": c.sectionText || "#ffffff",
+    "--a-pady": `${c.sectionPadY ?? 56}px`,
+
+    "--a-title": c.titleColor || "#ffffff",
+    "--a-title-size": `${c.titleSize ?? 32}px`,
+    "--a-title-mb": `${c.titleMarginBottom ?? 40}px`,
+
+    "--a-para": c.paraColor || "rgba(255,255,255,0.95)",
+    "--a-para-size": `${c.paraSize ?? 16}px`,
+
+    "--a-check-bg": c.checkBg || "#22c55e",
+    "--a-check-icon": c.checkIcon || "#ffffff",
+    "--a-check-radius": `${c.checkRadius ?? 2}px`,
+
+    "--a-list-text": c.listTextColor || "#ffffff",
+    "--a-list-size": `${c.listTextSize ?? 16}px`,
+
+    "--a-card-bg": c.cardBg || "#f5b400",
+    "--a-card-border": c.cardBorder || "rgba(0,0,0,0.10)",
+    "--a-card-radius": `${c.cardRadius ?? 8}px`,
+    "--a-card-shadow": c.cardShadow || "0 8px 20px rgba(0,0,0,0.45)",
+
+    "--a-percent": c.percentColor || "#000000",
+    "--a-percent-size": `${c.percentSize ?? 72}px`,
+
+    "--a-strip": c.stripColor || "#ffffff",
+    "--a-strip-size": `${c.stripSize ?? 24}px`,
+
+    "--a-btn-bg": c.btnBg || "#000000",
+    "--a-btn-hover": c.btnHoverBg || "#1f1f1f",
+    "--a-btn-text": c.btnText || "#ffffff",
+    "--a-btn-size": `${c.btnTextSize ?? 16}px`,
+    "--a-btn-radius": `${c.btnRadius ?? 6}px`,
+  };
 
   const t = useMemo(() => {
     const fallback = {
@@ -72,24 +115,24 @@ const Agent = () => {
     };
   }, [isBangla, data, isLoading]);
 
-  const sk = {
-    baseColor: "#3a3a3a",
-    highlightColor: "#4a4a4a",
-  };
+  const sk = { baseColor: "#3a3a3a", highlightColor: "#4a4a4a" };
 
   return (
-    <section className="w-full bg-[#2b2b2b] text-white py-10 sm:py-14">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+    <section
+      style={cssVars}
+      className="w-full text-[color:var(--a-text)] bg-[color:var(--a-bg)]"
+    >
+      <div
+        style={{ paddingTop: "var(--a-pady)", paddingBottom: "var(--a-pady)" }}
+        className="max-w-7xl mx-auto px-4 sm:px-6"
+      >
         {isLoading ? (
-          // ── Loading Skeleton ───────────────────────────────────────
           <div className="space-y-10">
-            {/* Title skeleton */}
             <div className="flex justify-center">
               <Skeleton {...sk} width={320} height={40} borderRadius={8} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10">
-              {/* Left column skeleton */}
               <div className="space-y-6">
                 <Skeleton {...sk} height={20} count={2} />
                 <div className="space-y-4 pt-2">
@@ -103,8 +146,14 @@ const Agent = () => {
                 <Skeleton {...sk} height={20} />
               </div>
 
-              {/* Right yellow card skeleton */}
-              <div className="bg-[#f5b400] rounded-lg shadow-[0_8px_20px_rgba(0,0,0,0.45)] border border-black/10 p-6 sm:p-8">
+              <div
+                className="rounded-lg border p-6 sm:p-8"
+                style={{
+                  background: "var(--a-card-bg)",
+                  borderColor: "var(--a-card-border)",
+                  boxShadow: "var(--a-card-shadow)",
+                }}
+              >
                 <div className="text-center space-y-6">
                   <Skeleton
                     {...sk}
@@ -130,50 +179,108 @@ const Agent = () => {
             </div>
           </div>
         ) : (
-          // ── Real content ───────────────────────────────────────────
           <>
-            <h2 className="text-center text-2xl sm:text-3xl font-extrabold mb-8 sm:mb-10">
+            <h2
+              className="text-center font-extrabold"
+              style={{
+                color: "var(--a-title)",
+                fontSize: "var(--a-title-size)",
+                marginBottom: "var(--a-title-mb)",
+              }}
+            >
               {t.title}
             </h2>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10 items-stretch">
-              {/* LEFT SIDE */}
+              {/* LEFT */}
               <div className="space-y-5">
-                <p className="text-sm sm:text-base leading-relaxed text-white/95">
+                <p
+                  style={{
+                    color: "var(--a-para)",
+                    fontSize: "var(--a-para-size)",
+                  }}
+                  className="leading-relaxed"
+                >
                   {t.p1}
                 </p>
-
-                <p className="text-sm sm:text-base leading-relaxed text-white/95">
+                <p
+                  style={{
+                    color: "var(--a-para)",
+                    fontSize: "var(--a-para-size)",
+                  }}
+                  className="leading-relaxed"
+                >
                   {t.p2}
                 </p>
 
                 <ul className="space-y-3 pt-2">
                   {t.list.map((item, idx) => (
                     <li key={idx} className="flex items-start gap-3">
-                      <span className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-sm bg-green-500">
-                        <Check size={16} className="text-white" />
+                      <span
+                        className="mt-0.5 flex h-5 w-5 items-center justify-center"
+                        style={{
+                          background: "var(--a-check-bg)",
+                          borderRadius: "var(--a-check-radius)",
+                        }}
+                      >
+                        <Check
+                          size={16}
+                          style={{ color: "var(--a-check-icon)" }}
+                        />
                       </span>
-                      <span className="text-sm sm:text-base leading-relaxed">
+                      <span
+                        style={{
+                          color: "var(--a-list-text)",
+                          fontSize: "var(--a-list-size)",
+                        }}
+                        className="leading-relaxed"
+                      >
                         {item}
                       </span>
                     </li>
                   ))}
                 </ul>
 
-                <p className="text-sm sm:text-base leading-relaxed pt-2 text-white/95">
+                <p
+                  style={{
+                    color: "var(--a-para)",
+                    fontSize: "var(--a-para-size)",
+                  }}
+                  className="leading-relaxed pt-2"
+                >
                   {t.p3}
                 </p>
               </div>
 
-              {/* RIGHT SIDE (yellow card) */}
-              <div className="bg-[#f5b400] rounded-lg shadow-[0_8px_20px_rgba(0,0,0,0.45)] border border-black/10 p-6 sm:p-8 flex items-center justify-center">
+              {/* RIGHT CARD */}
+              <div
+                className="border p-6 sm:p-8 flex items-center justify-center"
+                style={{
+                  background: "var(--a-card-bg)",
+                  borderColor: "var(--a-card-border)",
+                  borderRadius: "var(--a-card-radius)",
+                  boxShadow: "var(--a-card-shadow)",
+                }}
+              >
                 <div className="w-full max-w-md text-center">
-                  <div className="text-[56px] sm:text-[72px] font-extrabold text-black leading-none">
+                  <div
+                    className="font-extrabold leading-none"
+                    style={{
+                      color: "var(--a-percent)",
+                      fontSize: "var(--a-percent-size)",
+                    }}
+                  >
                     {t.percentText}
                   </div>
 
                   <div className="mt-3 inline-block px-4 sm:px-6 py-2">
-                    <span className="text-white font-extrabold text-lg sm:text-2xl tracking-wide">
+                    <span
+                      className="font-extrabold tracking-wide"
+                      style={{
+                        color: "var(--a-strip)",
+                        fontSize: "var(--a-strip-size)",
+                      }}
+                    >
                       {t.strip}
                     </span>
                   </div>
@@ -181,7 +288,20 @@ const Agent = () => {
                   <div className="mt-6">
                     <Link
                       to={t.btnLink || "/register"}
-                      className="inline-block bg-black text-white font-bold px-6 sm:px-8 py-3 rounded-md hover:bg-[#1f1f1f] transition"
+                      className="inline-block font-bold px-6 sm:px-8 py-3 transition"
+                      style={{
+                        background: "var(--a-btn-bg)",
+                        color: "var(--a-btn-text)",
+                        fontSize: "var(--a-btn-size)",
+                        borderRadius: "var(--a-btn-radius)",
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.background =
+                          "var(--a-btn-hover)")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.background = "var(--a-btn-bg)")
+                      }
                     >
                       {t.btn}
                     </Link>

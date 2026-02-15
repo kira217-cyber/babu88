@@ -16,6 +16,7 @@ import { api } from "../../api/axios";
 const Footer = () => {
   const { isBangla } = useLanguage();
 
+  // ✅ Footer content data (existing)
   const { data, isLoading, isError } = useQuery({
     queryKey: ["aff-footer"],
     queryFn: async () => {
@@ -25,9 +26,48 @@ const Footer = () => {
     staleTime: 60_000,
   });
 
+  // ✅ Footer color config (new)
+  const { data: footerCfg } = useQuery({
+    queryKey: ["aff-footer-color"],
+    queryFn: async () => {
+      const res = await api.get("/api/aff-footer-color");
+      return res.data;
+    },
+    staleTime: 60_000,
+    retry: 1,
+  });
+
+  const cfg = footerCfg || {};
+  const cssVars = {
+    "--f-bg": cfg.footerBg || "#000000",
+    "--f-text": cfg.footerText || "#ffffff",
+    "--f-line": cfg.dashedLineColor || "rgba(255,255,255,0.30)",
+
+    "--f-title": cfg.titleColor || "#ffffff",
+    "--f-body": cfg.bodyTextColor || "rgba(255,255,255,0.80)",
+
+    "--f-title-size": `${cfg.titleSize ?? 18}px`,
+    "--f-body-size": `${cfg.bodySize ?? 15}px`,
+    "--f-copy-size": `${cfg.copyrightSize ?? 14}px`,
+
+    "--f-empty-bg": cfg.emptyLogoBg || "rgba(255,255,255,0.05)",
+    "--f-empty-border": cfg.emptyLogoBorder || "rgba(255,255,255,0.10)",
+    "--f-empty-text": cfg.emptyLogoText || "rgba(255,255,255,0.60)",
+
+    "--f-social-bg": cfg.socialBg || "rgba(255,255,255,0.10)",
+    "--f-social-hover-bg": cfg.socialHoverBg || "#ffffff",
+    "--f-social-icon": cfg.socialIconColor || "#ffffff",
+    "--f-social-hover-icon": cfg.socialHoverIconColor || "#000000",
+    "--f-social-size": `${cfg.socialSize ?? 40}px`,
+    "--f-social-radius": `${cfg.socialRadius ?? 9999}px`,
+  };
+
+  const imgOpacity =
+    typeof cfg.imageOpacity === "number" ? cfg.imageOpacity : 0.8;
+  const imgGrayscale = cfg.imageGrayScale !== false; // default true
+
   // Fallback text when no data or loading/error
   const t = useMemo(() => {
-    // Default fallback (used during loading or when no data)
     const fallback = {
       leftTitle: isBangla
         ? "BABU88 এশিয়ার বিশ্বস্ত অনলাইন ক্যাসিনো। বাংলাদেশ, ভারত, নেপাল পাওয়া যাচ্ছে।"
@@ -51,9 +91,7 @@ const Footer = () => {
       socialLinks: {},
     };
 
-    if (isLoading || isError || !data?._id) {
-      return fallback;
-    }
+    if (isLoading || isError || !data?._id) return fallback;
 
     return {
       leftTitle: isBangla
@@ -92,7 +130,22 @@ const Footer = () => {
         href={link}
         target={link !== "#" ? "_blank" : undefined}
         rel={link !== "#" ? "noreferrer" : undefined}
-        className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white hover:text-black transition"
+        className="flex items-center justify-center transition"
+        style={{
+          width: "var(--f-social-size)",
+          height: "var(--f-social-size)",
+          borderRadius: "var(--f-social-radius)",
+          background: "var(--f-social-bg)",
+          color: "var(--f-social-icon)",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "var(--f-social-hover-bg)";
+          e.currentTarget.style.color = "var(--f-social-hover-icon)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "var(--f-social-bg)";
+          e.currentTarget.style.color = "var(--f-social-icon)";
+        }}
         aria-label={label}
       >
         {children}
@@ -100,17 +153,16 @@ const Footer = () => {
     );
   };
 
-  // ────────────────────────────────────────────────────────────────
-  // Loading / Skeleton UI
-  // ────────────────────────────────────────────────────────────────
+  // Loading / Skeleton UI (keep same but apply vars)
   if (isLoading) {
     return (
-      <footer className="w-full bg-black text-white mb-12 md:mb-0">
+      <footer
+        style={cssVars}
+        className="w-full mb-12 md:mb-0 bg-[color:var(--f-bg)] text-[color:var(--f-text)]"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
-          <div className="border-t border-dashed border-white/30 mb-10" />
-
+          <div className="border-t border-dashed mb-10 border-[color:var(--f-line)]" />
           <div className="grid grid-cols-1 lg:flex lg:justify-between gap-10">
-            {/* Left Column Skeleton */}
             <div className="space-y-6">
               <Skeleton width={280} height={28} />
               <Skeleton count={4} className="text-sm leading-relaxed" />
@@ -118,8 +170,6 @@ const Footer = () => {
                 <Skeleton width={240} height={64} />
               </div>
             </div>
-
-            {/* Right Column Skeleton */}
             <div className="space-y-8">
               <Skeleton width={220} height={28} />
               <div className="flex flex-wrap gap-6">
@@ -132,7 +182,6 @@ const Footer = () => {
                     </div>
                   ))}
               </div>
-
               <Skeleton width={200} height={28} className="mt-10" />
               <div className="flex gap-6">
                 {Array(4)
@@ -144,7 +193,7 @@ const Footer = () => {
             </div>
           </div>
 
-          <div className="border-t border-dashed border-white/30 my-10" />
+          <div className="border-t border-dashed my-10 border-[color:var(--f-line)]" />
 
           <div className="grid grid-cols-1 lg:flex lg:justify-between gap-10">
             <div className="space-y-6">
@@ -175,24 +224,22 @@ const Footer = () => {
     );
   }
 
-  // ────────────────────────────────────────────────────────────────
-  // Normal Render (when data is loaded)
-  // ────────────────────────────────────────────────────────────────
+  // Normal Render
   return (
-    <footer className="w-full bg-black text-white mb-12 md:mb-0">
+    <footer
+      style={cssVars}
+      className="w-full mb-12 md:mb-0 bg-[color:var(--f-bg)] text-[color:var(--f-text)]"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
-        {/* top dotted line */}
-        <div className="border-t border-dashed border-white/30 mb-10" />
+        <div className="border-t border-dashed mb-10 border-[color:var(--f-line)]" />
 
-        {/* TOP GRID */}
         <div className="grid grid-cols-1 lg:flex lg:justify-between gap-10">
-          {/* LEFT SIDE */}
           <div>
-            <h3 className="text-base sm:text-lg font-bold leading-snug">
+            <h3 className="font-bold leading-snug text-[length:var(--f-title-size)] text-[color:var(--f-title)]">
               {t.leftTitle}
             </h3>
 
-            <p className="mt-4 text-sm sm:text-[15px] text-white/80 leading-relaxed max-w-2xl">
+            <p className="mt-4 leading-relaxed max-w-2xl text-[length:var(--f-body-size)] text-[color:var(--f-body)]">
               {t.leftBody}
             </p>
 
@@ -205,16 +252,24 @@ const Footer = () => {
                   loading="lazy"
                 />
               ) : (
-                <div className="w-60 h-16 rounded bg-white/5 border border-white/10 flex items-center justify-center text-xs text-white/60">
+                <div
+                  className="w-60 h-16 rounded flex items-center justify-center text-xs"
+                  style={{
+                    background: "var(--f-empty-bg)",
+                    border: `1px solid var(--f-empty-border)`,
+                    color: "var(--f-empty-text)",
+                  }}
+                >
                   No Logo
                 </div>
               )}
             </div>
           </div>
 
-          {/* RIGHT SIDE */}
           <div>
-            <h3 className="text-base sm:text-lg font-bold">{t.rightTitle}</h3>
+            <h3 className="font-bold text-[length:var(--f-title-size)] text-[color:var(--f-title)]">
+              {t.rightTitle}
+            </h3>
 
             <div className="mt-5 flex flex-wrap items-center gap-6">
               {(t.partners || []).map((p, idx) => (
@@ -222,17 +277,20 @@ const Footer = () => {
                   <img
                     src={p.imageUrl}
                     alt={p.name}
-                    className="h-10 sm:h-12 w-auto mx-auto opacity-80 grayscale hover:grayscale-0 hover:opacity-100 transition duration-300"
+                    className={`h-10 sm:h-12 w-auto mx-auto transition duration-300 ${
+                      imgGrayscale ? "grayscale hover:grayscale-0" : ""
+                    }`}
+                    style={{ opacity: imgOpacity }}
                     loading="lazy"
                   />
-                  <p className="mt-2 text-[10px] sm:text-xs text-white/70">
+                  <p className="mt-2 text-[10px] sm:text-xs text-[color:var(--f-body)]">
                     {p.name}
                   </p>
                 </div>
               ))}
             </div>
 
-            <h3 className="mt-10 text-base sm:text-lg font-bold">
+            <h3 className="mt-10 font-bold text-[length:var(--f-title-size)] text-[color:var(--f-title)]">
               {t.responsibleTitle}
             </h3>
 
@@ -242,7 +300,8 @@ const Footer = () => {
                   key={r.name + idx}
                   src={r.imageUrl}
                   alt={r.name}
-                  className="h-8 sm:h-10 w-auto opacity-70 hover:opacity-100 transition"
+                  className="h-8 sm:h-10 w-auto transition"
+                  style={{ opacity: imgOpacity }}
                   loading="lazy"
                 />
               ))}
@@ -250,13 +309,13 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="border-t border-dashed border-white/30 my-10" />
+        <div className="border-t border-dashed my-10 border-[color:var(--f-line)]" />
 
-        {/* BOTTOM GRID */}
         <div className="grid grid-cols-1 lg:flex lg:justify-between gap-10 items-start">
-          {/* payment */}
           <div>
-            <h4 className="text-base sm:text-lg font-bold">{t.paymentTitle}</h4>
+            <h4 className="font-bold text-[length:var(--f-title-size)] text-[color:var(--f-title)]">
+              {t.paymentTitle}
+            </h4>
 
             <div className="mt-5 flex flex-wrap items-center gap-6">
               {(t.paymentMethods || []).map((m, idx) => (
@@ -264,18 +323,24 @@ const Footer = () => {
                   key={m.name + idx}
                   src={m.imageUrl}
                   alt={m.name}
-                  className="h-6 sm:h-7 w-auto opacity-60 grayscale hover:grayscale-0 hover:opacity-100 transition duration-300"
+                  className={`h-6 sm:h-7 w-auto transition duration-300 ${
+                    imgGrayscale ? "grayscale hover:grayscale-0" : ""
+                  }`}
+                  style={{ opacity: imgOpacity }}
                   loading="lazy"
                 />
               ))}
             </div>
 
-            <p className="mt-10 text-sm text-white/80">{t.copyright}</p>
+            <p className="mt-10 text-[length:var(--f-copy-size)] text-[color:var(--f-body)]">
+              {t.copyright}
+            </p>
           </div>
 
-          {/* social */}
           <div className="lg:text-center">
-            <h4 className="text-base sm:text-lg font-bold">{t.followTitle}</h4>
+            <h4 className="font-bold text-[length:var(--f-title-size)] text-[color:var(--f-title)]">
+              {t.followTitle}
+            </h4>
 
             <div className="mt-5 flex lg:justify-center items-center gap-4 flex-wrap">
               <SocialIcon href={t.socialLinks?.facebook} label="Facebook">

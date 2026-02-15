@@ -31,6 +31,17 @@ const Navbar = () => {
     retry: 1,
   });
 
+  // ✅ Navbar Color Config from DB
+  const { data: navCfg, isLoading: navCfgLoading } = useQuery({
+    queryKey: ["aff-navbar-color"],
+    queryFn: async () => {
+      const res = await api.get("/api/aff-navbar-color");
+      return res.data;
+    },
+    staleTime: 60_000,
+    retry: 1,
+  });
+
   const fallbackLogo =
     "https://babu88agents.com/bd/wp-content/uploads/sites/2/2025/07/Babu88-Logo.jpg";
 
@@ -82,16 +93,13 @@ const Navbar = () => {
   /* ================= HANDLERS ================= */
   useEffect(() => {
     const handler = (e) => {
-      // desktop dropdown outside click
       if (langRef.current && !langRef.current.contains(e.target)) {
         setLangOpen(false);
       }
-      // mobile dropdown outside click
       if (mobileLangRef.current && !mobileLangRef.current.contains(e.target)) {
         setMobileLangOpen(false);
       }
     };
-
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
@@ -108,11 +116,6 @@ const Navbar = () => {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const navClass = ({ isActive }) =>
-    `text-md font-bold tracking-wide ${
-      isActive ? "text-yellow-500" : "text-black hover:text-yellow-500"
-    }`;
-
   const activeLang = languages.find((l) => l.key === language) || languages[0];
 
   // ✅ Skeleton theme (neutral)
@@ -121,10 +124,55 @@ const Navbar = () => {
     highlightColor: "rgba(0,0,0,0.14)",
   };
 
+  // ✅ Defaults fallback (if loading / missing)
+  const cfg = navCfg || {};
+  const cssVars = {
+    "--nav-bg": cfg.navBg || "#ffffff",
+    "--nav-border": cfg.navBorder || "#e5e7eb",
+
+    "--nav-text": cfg.textColor || "#000000",
+    "--nav-hover": cfg.hoverTextColor || "#f59e0b",
+    "--nav-active": cfg.activeTextColor || "#f59e0b",
+    "--nav-menu-size": `${cfg.menuTextSize ?? 16}px`,
+
+    "--login-bg": cfg.loginBg || "#f59e0b",
+    "--login-hover-bg": cfg.loginHoverBg || "#d97706",
+    "--login-text": cfg.loginTextColor || "#000000",
+    "--login-size": `${cfg.loginTextSize ?? 14}px`,
+
+    "--join-bg": cfg.joinBg || "#4b4b4b",
+    "--join-hover-bg": cfg.joinHoverBg || "#3f3f3f",
+    "--join-text": cfg.joinTextColor || "#ffffff",
+    "--join-size": `${cfg.joinTextSize ?? 14}px`,
+
+    "--lang-bg": cfg.langBtnBg || "#4b4b4b",
+    "--lang-hover-bg": cfg.langBtnHoverBg || "#3f3f3f",
+    "--lang-text": cfg.langBtnTextColor || "#ffffff",
+    "--lang-size": `${cfg.langBtnTextSize ?? 14}px`,
+
+    "--dd-bg": cfg.dropdownBg || "#ffffff",
+    "--dd-hover-bg": cfg.dropdownHoverBg || "#f3f4f6",
+    "--dd-text": cfg.dropdownTextColor || "#111827",
+    "--dd-border": cfg.dropdownBorder || "#e5e7eb",
+  };
+
+  const navClass = ({ isActive }) =>
+    `font-bold tracking-wide text-[length:var(--nav-menu-size)] ${
+      isActive
+        ? "text-[color:var(--nav-active)]"
+        : "text-[color:var(--nav-text)] hover:text-[color:var(--nav-hover)]"
+    }`;
+
+  const logoW = cfg.logoWidth ?? 192;
+  const logoH = cfg.logoHeight ?? 48;
+
   return (
     <>
       {/* ================= NAVBAR ================= */}
-      <nav className="fixed top-0 left-0 w-full bg-white z-50">
+      <nav
+        style={cssVars}
+        className="fixed top-0 left-0 w-full z-50 bg-[color:var(--nav-bg)]"
+      >
         <div className="max-w-7xl mx-auto px-4">
           <div className="h-16 flex items-center justify-between">
             {/* Logo */}
@@ -134,13 +182,18 @@ const Navbar = () => {
                   <Skeleton {...sk} height="100%" />
                 </div>
               ) : (
-                <img className="h-full w-48" src={logoUrl} alt="" />
+                <img
+                  style={{ width: `${logoW}px`, height: `${logoH}px` }}
+                  className="object-contain"
+                  src={logoUrl}
+                  alt=""
+                />
               )}
             </Link>
 
             {/* Right Side (Desktop) */}
             <div className="hidden lg:flex items-center gap-4">
-              {/* Desktop Menu */}
+              {/* Desktop Menu (তুমি চাইলে on করে দিবে) */}
               {/* <div className="hidden lg:flex items-center gap-8 mr-4">
                 {menuItems.map((item) => (
                   <NavLink key={item.path} to={item.path} className={navClass}>
@@ -148,16 +201,23 @@ const Navbar = () => {
                   </NavLink>
                 ))}
               </div> */}
+
               <Link
                 to="/login"
-                className="bg-yellow-500 text-black font-bold text-sm px-5 py-2 rounded-md hover:bg-yellow-600 transition"
+                className="font-bold px-5 py-2 rounded-md transition
+                  bg-[color:var(--login-bg)] text-[color:var(--login-text)]
+                  hover:bg-[color:var(--login-hover-bg)]
+                  text-[length:var(--login-size)]"
               >
                 {t.btn.login}
               </Link>
 
               <Link
                 to="/register"
-                className="bg-[#4b4b4b] text-white font-bold text-sm px-5 py-2 rounded-md hover:bg-[#3f3f3f] transition"
+                className="font-bold px-5 py-2 rounded-md transition
+                  bg-[color:var(--join-bg)] text-[color:var(--join-text)]
+                  hover:bg-[color:var(--join-hover-bg)]
+                  text-[length:var(--join-size)]"
               >
                 {t.btn.join}
               </Link>
@@ -166,7 +226,10 @@ const Navbar = () => {
               <div className="relative" ref={langRef}>
                 <button
                   onClick={() => setLangOpen((p) => !p)}
-                  className="flex items-center gap-2 bg-[#4b4b4b] text-white font-bold text-sm px-4 py-2 rounded-md hover:bg-[#3f3f3f] transition"
+                  className="flex items-center gap-2 font-bold px-4 py-2 rounded-md transition
+                    bg-[color:var(--lang-bg)] text-[color:var(--lang-text)]
+                    hover:bg-[color:var(--lang-hover-bg)]
+                    text-[length:var(--lang-size)]"
                 >
                   <img
                     src={activeLang.flag}
@@ -183,7 +246,8 @@ const Navbar = () => {
                       initial={{ opacity: 0, y: -8 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -8 }}
-                      className="absolute right-0 mt-2 w-44 bg-white border rounded-md shadow-lg overflow-hidden"
+                      className="absolute right-0 mt-2 w-44 border rounded-md shadow-lg overflow-hidden
+                        bg-[color:var(--dd-bg)] border-[color:var(--dd-border)]"
                     >
                       {languages.map((lng) => (
                         <button
@@ -192,9 +256,12 @@ const Navbar = () => {
                             changeLanguage(lng.key);
                             setLangOpen(false);
                           }}
-                          className={`w-full px-3 py-2 text-sm flex items-center gap-3 hover:bg-gray-100 ${
-                            language === lng.key ? "font-bold" : "font-medium"
-                          }`}
+                          className={`w-full px-3 py-2 text-sm flex items-center gap-3
+                            hover:bg-[color:var(--dd-hover-bg)]
+                            text-[color:var(--dd-text)]
+                            ${
+                              language === lng.key ? "font-bold" : "font-medium"
+                            }`}
                         >
                           <img
                             src={lng.flag}
@@ -213,7 +280,7 @@ const Navbar = () => {
             {/* Mobile Toggle */}
             <button
               onClick={() => setMobileOpen(true)}
-              className="lg:hidden text-black"
+              className="lg:hidden text-[color:var(--nav-text)]"
               aria-label="Open menu"
             >
               <FaBars size={22} />
@@ -221,7 +288,7 @@ const Navbar = () => {
           </div>
         </div>
 
-        <div className="h-[1px] bg-gray-200" />
+        <div className="h-[1px] bg-[color:var(--nav-border)]" />
       </nav>
 
       {/* ================= MOBILE SIDEBAR ================= */}
@@ -246,17 +313,24 @@ const Navbar = () => {
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ duration: 0.25 }}
-              className="fixed top-0 left-0 w-72 h-full bg-white z-50 shadow-xl lg:hidden"
+              className="fixed top-0 left-0 w-72 h-full z-50 shadow-xl lg:hidden
+                bg-[color:var(--nav-bg)]"
+              style={cssVars}
             >
               {/* Header */}
-              <div className="p-4 flex justify-between items-center border-b">
+              <div className="p-4 flex justify-between items-center border-b border-[color:var(--nav-border)]">
                 <Link to="/" onClick={() => setMobileOpen(false)}>
                   {metaLoading ? (
                     <div className="w-48">
                       <Skeleton {...sk} height={36} />
                     </div>
                   ) : (
-                    <img className="w-48" src={logoUrl} alt="" />
+                    <img
+                      style={{ width: `${logoW}px`, height: `${logoH}px` }}
+                      className="object-contain"
+                      src={logoUrl}
+                      alt=""
+                    />
                   )}
                 </Link>
 
@@ -266,36 +340,20 @@ const Navbar = () => {
                     setMobileOpen(false);
                     setMobileLangOpen(false);
                   }}
-                  className="cursor-pointer text-black"
+                  className="cursor-pointer text-[color:var(--nav-text)]"
                 />
               </div>
 
               <div className="p-4 space-y-3">
-                {/* Menu items */}
-                {/* {menuItems.map((item) => (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => {
-                      setMobileOpen(false);
-                      setMobileLangOpen(false);
-                    }}
-                    className={({ isActive }) =>
-                      `block py-2 text-base font-semibold ${
-                        isActive ? "text-yellow-500" : "text-black"
-                      }`
-                    }
-                  >
-                    {item.name}
-                  </NavLink>
-                ))} */}
-
                 {/* ✅ Mobile Login/Register Buttons */}
                 <div className="pt-2 space-y-3">
                   <Link
                     to="/login"
                     onClick={() => setMobileOpen(false)}
-                    className="block w-full bg-yellow-500 text-black font-bold text-sm px-5 py-3 rounded-md text-center hover:bg-yellow-600 transition"
+                    className="block w-full font-bold px-5 py-3 rounded-md text-center transition
+                      bg-[color:var(--login-bg)] text-[color:var(--login-text)]
+                      hover:bg-[color:var(--login-hover-bg)]
+                      text-[length:var(--login-size)]"
                   >
                     {t.btn.login}
                   </Link>
@@ -303,17 +361,26 @@ const Navbar = () => {
                   <Link
                     to="/register"
                     onClick={() => setMobileOpen(false)}
-                    className="block w-full bg-[#4b4b4b] text-white font-bold text-sm px-5 py-3 rounded-md text-center hover:bg-[#3f3f3f] transition"
+                    className="block w-full font-bold px-5 py-3 rounded-md text-center transition
+                      bg-[color:var(--join-bg)] text-[color:var(--join-text)]
+                      hover:bg-[color:var(--join-hover-bg)]
+                      text-[length:var(--join-size)]"
                   >
                     {t.btn.join}
                   </Link>
                 </div>
 
-                {/* ✅ Mobile Language Dropdown (same as desktop) */}
-                <div className="pt-4 border-t" ref={mobileLangRef}>
+                {/* ✅ Mobile Language Dropdown */}
+                <div
+                  className="pt-4 border-t border-[color:var(--nav-border)]"
+                  ref={mobileLangRef}
+                >
                   <button
                     onClick={() => setMobileLangOpen((p) => !p)}
-                    className="w-full flex items-center justify-between gap-2 bg-[#4b4b4b] text-white font-bold text-sm px-4 py-3 rounded-md hover:bg-[#3f3f3f] transition"
+                    className="w-full flex items-center justify-between gap-2 font-bold px-4 py-3 rounded-md transition
+                      bg-[color:var(--lang-bg)] text-[color:var(--lang-text)]
+                      hover:bg-[color:var(--lang-hover-bg)]
+                      text-[length:var(--lang-size)]"
                   >
                     <div className="flex items-center gap-2">
                       <img
@@ -332,7 +399,8 @@ const Navbar = () => {
                         initial={{ opacity: 0, y: -8 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -8 }}
-                        className="mt-2 w-full bg-white border rounded-md shadow-lg overflow-hidden"
+                        className="mt-2 w-full border rounded-md shadow-lg overflow-hidden
+                          bg-[color:var(--dd-bg)] border-[color:var(--dd-border)]"
                       >
                         {languages.map((lng) => (
                           <button
@@ -340,12 +408,15 @@ const Navbar = () => {
                             onClick={() => {
                               changeLanguage(lng.key);
                               setMobileLangOpen(false);
-                              // mobile sidebar close না করতে চাইলে এই লাইন কেটে দাও
-                              // setMobileOpen(false);
                             }}
-                            className={`w-full px-3 py-2 text-sm flex items-center gap-3 hover:bg-gray-100 ${
-                              language === lng.key ? "font-bold" : "font-medium"
-                            }`}
+                            className={`w-full px-3 py-2 text-sm flex items-center gap-3
+                              hover:bg-[color:var(--dd-hover-bg)]
+                              text-[color:var(--dd-text)]
+                              ${
+                                language === lng.key
+                                  ? "font-bold"
+                                  : "font-medium"
+                              }`}
                           >
                             <img
                               src={lng.flag}

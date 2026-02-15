@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Link, NavLink, Outlet } from "react-router"; // fixed import (react-router → react-router-dom)
+import { Link, NavLink, Outlet } from "react-router"; 
 import {
   FaHome,
   FaBell,
@@ -11,8 +11,8 @@ import {
   FaTimes,
   FaChevronDown,
   FaChevronUp,
-  FaPaintBrush, // new for color controller
-  FaCog, // settings-like
+  FaPaintBrush,
+  FaCog,
   FaImage,
   FaDownload,
   FaPlayCircle,
@@ -37,6 +37,7 @@ const Sidebar = () => {
   const [open, setOpen] = useState(false);
   const [promotionsOpen, setPromotionsOpen] = useState(false);
   const [colorControllerOpen, setColorControllerOpen] = useState(false);
+  const [affColorControllerOpen, setAffColorControllerOpen] = useState(false);
   const [depositOpen, setDepositOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [affiliateOpen, setAffiliateOpen] = useState(false);
@@ -92,6 +93,18 @@ const Sidebar = () => {
       {
         perm: "color-controller-client",
         to: "/color-controller-client",
+        icon: <FaPaintBrush />,
+        text: "Color Client",
+      },
+    ],
+    [],
+  );
+
+  const affColorControllerItems = useMemo(
+    () => [
+      {
+        perm: "color-controller-client", // you can change permission key if needed
+        to: "/aff-color-controller-client", // same route — change if affiliate has different route
         icon: <FaPaintBrush />,
         text: "Color Client",
       },
@@ -266,6 +279,11 @@ const Sidebar = () => {
     [colorControllerItems, permissions, isMother],
   );
 
+  const visibleAffColorItems = useMemo(
+    () => affColorControllerItems.filter((s) => can(s.perm)),
+    [affColorControllerItems, permissions, isMother],
+  );
+
   const visibleDepositSubItems = useMemo(
     () => depositSubItems.filter((s) => can(s.perm)),
     [depositSubItems, permissions, isMother],
@@ -287,6 +305,7 @@ const Sidebar = () => {
   );
 
   const showColorController = visibleColorItems.length > 0;
+  const showAffColorController = visibleAffColorItems.length > 0;
   const showDeposit = visibleDepositSubItems.length > 0;
   const showWithdraw = visibleWithdrawSubItems.length > 0;
   const showClientController = visibleClientControllerItems.length > 0;
@@ -298,12 +317,14 @@ const Sidebar = () => {
     if (!showClientController) setPromotionsOpen(false);
     if (!showAffiliate) setAffiliateOpen(false);
     if (!showColorController) setColorControllerOpen(false);
+    if (!showAffColorController) setAffColorControllerOpen(false);
   }, [
     showDeposit,
     showWithdraw,
     showClientController,
     showAffiliate,
     showColorController,
+    showAffColorController,
   ]);
 
   const handleLogout = () => {
@@ -354,6 +375,7 @@ const Sidebar = () => {
           <SidebarContent
             menuItems={visibleMenuItems}
             colorItems={visibleColorItems}
+            affColorItems={visibleAffColorItems}
             depositSubItems={visibleDepositSubItems}
             withdrawSubItems={visibleWithdrawSubItems}
             clientControllerItems={visibleClientControllerItems}
@@ -362,6 +384,8 @@ const Sidebar = () => {
             setPromotionsOpen={setPromotionsOpen}
             colorControllerOpen={colorControllerOpen}
             setColorControllerOpen={setColorControllerOpen}
+            affColorControllerOpen={affColorControllerOpen}
+            setAffColorControllerOpen={setAffColorControllerOpen}
             depositOpen={depositOpen}
             setDepositOpen={setDepositOpen}
             withdrawOpen={withdrawOpen}
@@ -369,6 +393,7 @@ const Sidebar = () => {
             affiliateOpen={affiliateOpen}
             setAffiliateOpen={setAffiliateOpen}
             showColorController={showColorController}
+            showAffColorController={showAffColorController}
             showDeposit={showDeposit}
             showWithdraw={showWithdraw}
             showClientController={showClientController}
@@ -423,6 +448,7 @@ const Sidebar = () => {
 const SidebarContent = ({
   menuItems,
   colorItems,
+  affColorItems,
   depositSubItems,
   withdrawSubItems,
   clientControllerItems,
@@ -431,6 +457,8 @@ const SidebarContent = ({
   setPromotionsOpen,
   colorControllerOpen,
   setColorControllerOpen,
+  affColorControllerOpen,
+  setAffColorControllerOpen,
   depositOpen,
   setDepositOpen,
   withdrawOpen,
@@ -438,6 +466,7 @@ const SidebarContent = ({
   affiliateOpen,
   setAffiliateOpen,
   showColorController,
+  showAffColorController,
   showDeposit,
   showWithdraw,
   showClientController,
@@ -523,6 +552,52 @@ const SidebarContent = ({
             {colorControllerOpen && (
               <div className="mt-2 pl-14 space-y-1">
                 {colorItems.map((sub) => (
+                  <NavLink
+                    key={sub.to}
+                    to={sub.to}
+                    onClick={onClose}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-5 py-3 rounded-lg text-sm transition-all duration-200 ${
+                        isActive
+                          ? "bg-yellow-600/80 text-black font-medium shadow-sm shadow-yellow-500/40"
+                          : "text-yellow-100 hover:text-white hover:bg-yellow-800/50"
+                      }`
+                    }
+                  >
+                    <span className="text-xl opacity-90 text-white">
+                      {sub.icon}
+                    </span>
+                    <span>{sub.text}</span>
+                  </NavLink>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Aff Color Controller Dropdown */}
+        {showAffColorController && (
+          <div className="mt-4">
+            <button
+              onClick={() => setAffColorControllerOpen(!affColorControllerOpen)}
+              className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl text-white hover:bg-yellow-900/40 hover:text-yellow-100 transition-all duration-200"
+            >
+              <div className="flex items-center gap-4">
+                <span className="text-2xl text-white">
+                  <FaPaintBrush />
+                </span>
+                <span className="font-medium">Aff Color Controller</span>
+              </div>
+              {affColorControllerOpen ? (
+                <FaChevronUp size={18} className="text-white" />
+              ) : (
+                <FaChevronDown size={18} className="text-white" />
+              )}
+            </button>
+
+            {affColorControllerOpen && (
+              <div className="mt-2 pl-14 space-y-1">
+                {affColorItems.map((sub) => (
                   <NavLink
                     key={sub.to}
                     to={sub.to}

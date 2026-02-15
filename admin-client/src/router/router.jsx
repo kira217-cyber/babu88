@@ -31,6 +31,7 @@ import AffFavAndTitleController from "../pages/AffFavAndTitleController/AffFavAn
 import AffFloatingSocialController from "../pages/AffFloatingSocialController/AffFloatingSocialController";
 import AffCommissionController from "../pages/AffCommissionController/AffCommissionController";
 import ColorControllerClient from "../pages/ColorControllerClient/ColorControllerClient";
+import ColorControllerAffiliate from "../pages/ColorControllerAffiliate/ColorControllerAffiliate";
 
 export const routes = createBrowserRouter([
   {
@@ -260,6 +261,14 @@ export const routes = createBrowserRouter([
         element: (
           <PrivateRoute permKey="color-controller-client">
             <ColorControllerClient />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "aff-color-controller-client",
+        element: (
+          <PrivateRoute permKey="aff-color-controller-client">
+            <ColorControllerAffiliate />
           </PrivateRoute>
         ),
       },

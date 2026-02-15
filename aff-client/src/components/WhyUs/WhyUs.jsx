@@ -13,13 +13,51 @@ const WhyUs = () => {
 
   const { data, isLoading } = useQuery({
     queryKey: ["aff-whyus"],
-    queryFn: async () => {
-      const res = await api.get("/api/aff-whyus");
-      return res.data;
-    },
+    queryFn: async () => (await api.get("/api/aff-whyus")).data,
     staleTime: 60_000,
     retry: 1,
   });
+
+  // ✅ UI config
+  const { data: cfg } = useQuery({
+    queryKey: ["aff-whyus-color"],
+    queryFn: async () => (await api.get("/api/aff-whyus-color")).data,
+    staleTime: 60_000,
+    retry: 1,
+  });
+
+  const c = cfg || {};
+  const cssVars = {
+    "--w-bg": c.sectionBg || "#2b2b2b",
+    "--w-pady": `${c.sectionPadY ?? 56}px`,
+
+    "--w-title": c.titleColor || "#ffffff",
+    "--w-title-size": `${c.titleSize ?? 32}px`,
+    "--w-title-mb": `${c.titleMarginBottom ?? 40}px`,
+
+    "--w-card-bg": c.cardBg || "#ffffff",
+    "--w-card-border": c.cardBorder || "rgba(0,0,0,0.10)",
+    "--w-card-radius": `${c.cardRadius ?? 6}px`,
+    "--w-card-shadow": c.cardShadow || "0 10px 25px rgba(0,0,0,0.25)",
+    "--w-card-padx": `${c.cardPadX ?? 40}px`,
+    "--w-card-pady": `${c.cardPadY ?? 40}px`,
+
+    "--w-gap": `${c.gridGap ?? 40}px`,
+
+    "--w-ic-bg": c.iconCircleBg || "#f5b400",
+    "--w-ic-size": `${c.iconCircleSize ?? 96}px`,
+    "--w-ic-overlay": c.iconOverlay || "rgba(0,0,0,0.10)",
+    "--w-ic-color": c.iconColor || "#ffffff",
+    "--w-ic-icon": `${c.iconSize ?? 42}px`,
+
+    "--w-it-title": c.itemTitleColor || "#000000",
+    "--w-it-title-size": `${c.itemTitleSize ?? 18}px`,
+    "--w-it-title-mb": `${c.itemTitleMarginBottom ?? 12}px`,
+
+    "--w-desc": c.descColor || "rgba(0,0,0,0.80)",
+    "--w-desc-size": `${c.descSize ?? 14}px`,
+    "--w-desc-lh": `${c.descLineHeight ?? 1.6}`,
+  };
 
   const content = useMemo(() => {
     const fallback = {
@@ -54,7 +92,12 @@ const WhyUs = () => {
       ],
     };
 
-    if (!data?._id) return fallback;
+    if (!data?._id) {
+      return {
+        title: fallback.title,
+        items: fallback.items.map((it, idx) => ({ ...it, Icon: ICONS[idx] })),
+      };
+    }
 
     const items = (data.items?.length ? data.items : fallback.items).slice(
       0,
@@ -83,35 +126,52 @@ const WhyUs = () => {
   };
 
   return (
-    <section className="w-full bg-[#2b2b2b] py-10 sm:py-14">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+    <section style={cssVars} className="w-full bg-[color:var(--w-bg)]">
+      <div
+        style={{ paddingTop: "var(--w-pady)", paddingBottom: "var(--w-pady)" }}
+        className="max-w-7xl mx-auto px-4 sm:px-6"
+      >
         {isLoading ? (
-          // Single loading skeleton wrapper for the whole section
           <div className="space-y-10">
-            {/* Title skeleton */}
             <div className="flex justify-center">
               <Skeleton {...sk} width={280} height={36} borderRadius={8} />
             </div>
 
-            {/* Card + content skeleton */}
-            <div className="bg-white rounded-md border border-black/10 shadow-[0_10px_25px_rgba(0,0,0,0.25)] px-6 sm:px-10 py-8 sm:py-10">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10">
+            <div
+              className="border px-6 py-8"
+              style={{
+                background: "var(--w-card-bg)",
+                borderColor: "var(--w-card-border)",
+                borderRadius: "var(--w-card-radius)",
+                boxShadow: "var(--w-card-shadow)",
+                paddingLeft: "var(--w-card-padx)",
+                paddingRight: "var(--w-card-padx)",
+                paddingTop: "var(--w-card-pady)",
+                paddingBottom: "var(--w-card-pady)",
+              }}
+            >
+              <div
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
+                style={{ gap: "var(--w-gap)" }}
+              >
                 {Array.from({ length: 4 }).map((_, idx) => (
                   <div key={idx} className="text-center space-y-5">
-                    {/* Icon circle skeleton */}
-                    <div className="mx-auto w-24 h-24 rounded-full bg-gray-200/30 flex items-center justify-center">
+                    <div
+                      className="mx-auto flex items-center justify-center rounded-full"
+                      style={{
+                        width: 96,
+                        height: 96,
+                        background: "rgba(0,0,0,0.06)",
+                      }}
+                    >
                       <Skeleton {...sk} circle width={48} height={48} />
                     </div>
-
-                    {/* Title skeleton */}
                     <Skeleton
                       {...sk}
                       height={22}
                       width="80%"
                       className="mx-auto"
                     />
-
-                    {/* Description skeleton */}
                     <div className="space-y-2">
                       <Skeleton {...sk} height={14} count={3} />
                     </div>
@@ -121,36 +181,80 @@ const WhyUs = () => {
             </div>
           </div>
         ) : (
-          // Real content
           <>
-            {/* Title */}
-            <h2 className="text-center text-white text-2xl sm:text-3xl font-extrabold mb-8 sm:mb-10">
+            <h2
+              className="text-center font-extrabold"
+              style={{
+                color: "var(--w-title)",
+                fontSize: "var(--w-title-size)",
+                marginBottom: "var(--w-title-mb)",
+              }}
+            >
               {content.title}
             </h2>
 
-            {/* White Card */}
-            <div className="bg-white rounded-md border border-black/10 shadow-[0_10px_25px_rgba(0,0,0,0.25)] px-6 sm:px-10 py-8 sm:py-10">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10">
+            <div
+              className="border"
+              style={{
+                background: "var(--w-card-bg)",
+                borderColor: "var(--w-card-border)",
+                borderRadius: "var(--w-card-radius)",
+                boxShadow: "var(--w-card-shadow)",
+                paddingLeft: "var(--w-card-padx)",
+                paddingRight: "var(--w-card-padx)",
+                paddingTop: "var(--w-card-pady)",
+                paddingBottom: "var(--w-card-pady)",
+              }}
+            >
+              <div
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
+                style={{ gap: "var(--w-gap)" }}
+              >
                 {content.items.map((it, idx) => {
                   const Icon = it.Icon;
-
                   return (
                     <div key={idx} className="text-center">
-                      {/* Icon circle */}
-                      <div className="mx-auto mb-5 w-24 h-24 rounded-full bg-[#f5b400] flex items-center justify-center relative overflow-hidden">
-                        <span className="absolute inset-0 translate-x-8 translate-y-8 bg-black/10" />
+                      <div
+                        className="mx-auto mb-5 rounded-full flex items-center justify-center relative overflow-hidden"
+                        style={{
+                          width: "var(--w-ic-size)",
+                          height: "var(--w-ic-size)",
+                          background: "var(--w-ic-bg)",
+                        }}
+                      >
+                        <span
+                          className="absolute inset-0"
+                          style={{
+                            background: "var(--w-ic-overlay)",
+                            transform: "translate(32px, 32px)",
+                          }}
+                        />
                         <Icon
-                          className="relative text-white"
-                          size={42}
+                          className="relative"
+                          size={Number(String(c.iconSize ?? 42))}
                           strokeWidth={2.5}
+                          style={{ color: "var(--w-ic-color)" }}
                         />
                       </div>
 
-                      <h3 className="text-lg font-extrabold text-black mb-3">
+                      <h3
+                        className="font-extrabold"
+                        style={{
+                          color: "var(--w-it-title)",
+                          fontSize: "var(--w-it-title-size)",
+                          marginBottom: "var(--w-it-title-mb)",
+                        }}
+                      >
                         {it.title}
                       </h3>
 
-                      <p className="text-sm text-black/80 leading-relaxed">
+                      <p
+                        style={{
+                          color: "var(--w-desc)",
+                          fontSize: "var(--w-desc-size)",
+                          lineHeight: "var(--w-desc-lh)",
+                        }}
+                      >
                         {it.desc}
                       </p>
                     </div>

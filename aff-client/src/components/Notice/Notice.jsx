@@ -10,13 +10,36 @@ const Notice = () => {
 
   const { data, isLoading } = useQuery({
     queryKey: ["aff-notice"],
-    queryFn: async () => {
-      const res = await api.get("/api/aff-notice");
-      return res.data;
-    },
+    queryFn: async () => (await api.get("/api/aff-notice")).data,
     staleTime: 60_000,
     retry: 1,
   });
+
+  // ✅ UI config
+  const { data: cfg } = useQuery({
+    queryKey: ["aff-notice-color"],
+    queryFn: async () => (await api.get("/api/aff-notice-color")).data,
+    staleTime: 60_000,
+    retry: 1,
+  });
+
+  const c = cfg || {};
+  const cssVars = {
+    "--n-outer": c.outerBg || "#2b2b2b",
+    "--n-pill": c.pillBg || "#f5b400",
+    "--n-text": c.pillText || "#000000",
+
+    "--n-radius": `${c.radius ?? 6}px`,
+    "--n-padx": `${c.padX ?? 24}px`,
+    "--n-pady": `${c.padY ?? 12}px`,
+
+    "--n-fs-m": `${c.textSizeMobile ?? 14}px`,
+    "--n-fs-sm": `${c.textSizeSm ?? 16}px`,
+    "--n-fs-md": `${c.textSizeMd ?? 18}px`,
+    "--n-fw": `${c.fontWeight ?? 700}`,
+
+    "--n-speed": `${Number(data?.speedSec) || Number(c.speedSecDefault) || 16}s`,
+  };
 
   const noticeText = useMemo(() => {
     const fallbackBn =
@@ -29,14 +52,21 @@ const Notice = () => {
     return isBangla ? data.textBn || fallbackBn : data.textEn || fallbackEn;
   }, [isBangla, data, isLoading]);
 
-  const speedSec = Number(data?.speedSec) || 16;
-
   return (
-    <div className="w-full bg-[#2b2b2b]">
+    <div style={cssVars} className="w-full bg-[color:var(--n-outer)] pt-2 md:pt-6">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
         {isLoading ? (
-          // Loading skeleton - yellow pill style
-          <div className="bg-[#f5b400] rounded-md sm:rounded-md px-3 sm:px-6 py-2 sm:py-3 overflow-hidden">
+          <div
+            className="overflow-hidden"
+            style={{
+              background: "var(--n-pill)",
+              borderRadius: "var(--n-radius)",
+              paddingLeft: "var(--n-padx)",
+              paddingRight: "var(--n-padx)",
+              paddingTop: "var(--n-pady)",
+              paddingBottom: "var(--n-pady)",
+            }}
+          >
             <div className="notice-viewport">
               <Skeleton
                 height={24}
@@ -49,10 +79,26 @@ const Notice = () => {
             </div>
           </div>
         ) : (
-          // Real notice content
-          <div className="bg-[#f5b400] rounded-md sm:rounded-md px-3 sm:px-6 py-2 sm:py-3 overflow-hidden">
+          <div
+            className="overflow-hidden"
+            style={{
+              background: "var(--n-pill)",
+              borderRadius: "var(--n-radius)",
+              paddingLeft: "var(--n-padx)",
+              paddingRight: "var(--n-padx)",
+              paddingTop: "var(--n-pady)",
+              paddingBottom: "var(--n-pady)",
+            }}
+          >
             <div className="notice-viewport">
-              <div className="notice-single text-black font-bold text-sm sm:text-base md:text-lg whitespace-nowrap">
+              <div
+                className="notice-single whitespace-nowrap"
+                style={{
+                  color: "var(--n-text)",
+                  fontWeight: "var(--n-fw)",
+                  fontSize: "var(--n-fs-m)",
+                }}
+              >
                 {noticeText}
               </div>
             </div>
@@ -69,12 +115,20 @@ const Notice = () => {
         .notice-single {
           display: inline-block;
           will-change: transform;
-          animation: noticeOne ${speedSec}s linear infinite;
+          animation: noticeOne var(--n-speed) linear infinite;
         }
         @keyframes noticeOne {
           0%   { transform: translateX(100%); }
           100% { transform: translateX(-100%); }
         }
+
+        @media (min-width: 640px) {
+          .notice-single { font-size: var(--n-fs-sm); }
+        }
+        @media (min-width: 768px) {
+          .notice-single { font-size: var(--n-fs-md); }
+        }
+
         @media (prefers-reduced-motion: reduce) {
           .notice-single {
             animation: none;

@@ -39,6 +39,16 @@ import balanceColorRoutes from "./routes/balanceColorRoutes.js";
 import loginColorRoutes from "./routes/loginColorRoutes.js";
 import promotionModalRoutes from "./routes/promotionModalRoutes.js";
 import registerConfigRoutes from "./routes/registerConfigRoutes.js";
+import affNavbarColorRoutes from "./routes/affNavbarColorRoutes.js";
+import affFooterColorRoutes from "./routes/affFooterColorRoutes.js";
+import affRegisterColorRoutes from "./routes/affRegisterColorRoutes.js";
+import affLoginColorRoutes from "./routes/affLoginColorRoutes.js";
+import affCommissionColorRoutes from "./routes/affCommissionColorRoutes.js";
+import affBottomNavbarColorRoutes from "./routes/affBottomNavbarColorRoutes.js";
+import affAgentColorRoutes from "./routes/affAgentColorRoutes.js";
+import affWhyUsColorRoutes from "./routes/affWhyUsColorRoutes.js";
+import affNoticeColorRoutes from "./routes/affNoticeColorRoutes.js";
+import affSliderColorRoutes from "./routes/affSliderColorRoutes.js";
 
 
 
@@ -101,8 +111,16 @@ app.use("/api", balanceColorRoutes);
 app.use("/api", loginColorRoutes);
 app.use("/api", promotionModalRoutes);
 app.use("/api", registerConfigRoutes);
-
-
+app.use("/api", affNavbarColorRoutes);
+app.use("/api", affFooterColorRoutes);
+app.use("/api", affRegisterColorRoutes);
+app.use("/api", affLoginColorRoutes);
+app.use("/api", affCommissionColorRoutes);
+app.use("/api", affBottomNavbarColorRoutes);
+app.use("/api", affAgentColorRoutes);
+app.use("/api", affWhyUsColorRoutes);
+app.use("/api", affNoticeColorRoutes);
+app.use("/api", affSliderColorRoutes);
 
 
 // ✅ port
