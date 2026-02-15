@@ -1,9 +1,11 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaEye, FaEyeSlash, FaSyncAlt } from "react-icons/fa";
 import { useLanguage } from "../../Context/LanguageProvider";
 import { useNavigate } from "react-router";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "../../api/axios";
 
 // Tiny Flag components (unchanged)
 const BdFlag = ({ className = "" }) => (
@@ -34,7 +36,18 @@ const fade = {
   exit: { opacity: 0, y: -8, transition: { duration: 0.18 } },
 };
 
-const Register = () => {
+const resolveUrl = (baseURL, pathOrUrl) => {
+  if (!pathOrUrl) return "";
+  if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
+  return `${baseURL}${pathOrUrl}`;
+};
+
+const fetchRegisterConfig = async () => {
+  const { data } = await api.get("/api/register-config");
+  return data;
+};
+
+const MobileRegister = () => {
   const { isBangla } = useLanguage();
   const navigate = useNavigate();
 
@@ -45,6 +58,86 @@ const Register = () => {
 
   const genCode = () => String(Math.floor(1000 + Math.random() * 9000));
   const [vCode, setVCode] = useState(genCode());
+
+  // ✅ load admin config
+  const { data: cfg } = useQuery({
+    queryKey: ["register-config"],
+    queryFn: fetchRegisterConfig,
+    staleTime: 1000 * 60 * 10,
+  });
+
+  // ✅ config view (mobile)
+  const view = useMemo(() => {
+    const d = cfg || {};
+
+    // image
+    const bannerUrl =
+      resolveUrl(api.defaults.baseURL, d?.mobileBannerUrl) ||
+      "https://babu88.gold/static/image/banner/registerBanner/register_banner_en.jpg";
+
+    return {
+      isActive: d?.isActive ?? true,
+
+      // banner image
+      bannerUrl,
+
+      // page
+      pageBg: d?.mobPageBg || "#ffffff",
+
+      // top bar
+      topBarBg: d?.mobTopBarBg || "#000000",
+      topBarText: d?.mobTopBarTextColor || "#f5b400",
+      topBarTextSize: d?.mobTopBarTextSizePx ?? 16,
+
+      // stepper
+      stepCircleActiveBg: d?.mobStepCircleActiveBg || "#000000",
+      stepCircleActiveText: d?.mobStepCircleActiveText || "#ffffff",
+      stepCircleInactiveBg: d?.mobStepCircleInactiveBg || "#d9d9d9",
+      stepCircleInactiveText: d?.mobStepCircleInactiveText || "#ffffff",
+      stepDoneOuterBg: d?.mobStepDoneOuterBg || "#000000",
+      stepDoneBorder: d?.mobStepDoneBorder || "#f5b400",
+      stepDoneTick: d?.mobStepDoneTick || "#f5b400",
+      stepLineActive: d?.mobStepLineActive || "#000000",
+      stepLineInactive: d?.mobStepLineInactive || "#d9d9d9",
+
+      // labels / inputs
+      labelColor: d?.mobLabelColor || "#000000",
+      inputBg: d?.mobInputBg || "#ffffff",
+      inputBorder: d?.mobInputBorder || "rgba(0,0,0,0.25)",
+      inputText: d?.mobInputTextColor || "#000000",
+      inputTextSize: d?.mobInputTextSizePx ?? 14,
+      inputIconColor: d?.mobInputIconColor || "rgba(0,0,0,0.6)",
+      errorText: d?.mobErrorTextColor || "#ef4444",
+
+      // select
+      selectBg: d?.mobSelectBg || "#ffffff",
+      selectBorder: d?.mobSelectBorder || "rgba(0,0,0,0.25)",
+
+      // verify code box
+      vcodeBoxBg: d?.mobVcodeBoxBg || "#4b4b4b",
+      vcodeBoxText: d?.mobVcodeBoxText || "#ffffff",
+
+      // country prefix box
+      prefixBg: d?.mobPrefixBg || "#efefef",
+      prefixBorder: d?.mobPrefixBorder || "rgba(0,0,0,0.25)",
+      prefixText: d?.mobPrefixText || "rgba(0,0,0,0.7)",
+
+      // checkbox accent
+      checkboxAccent: d?.mobCheckboxAccent || "#000000",
+
+      // buttons
+      primaryBtnBg: d?.mobPrimaryBtnBg || "#0a63c8",
+      primaryBtnText: d?.mobPrimaryBtnText || "#ffffff",
+      primaryBtnTextSize: d?.mobPrimaryBtnTextSizePx ?? 15,
+
+      yellowBtnBg: d?.mobYellowBtnBg || "#d7a900",
+      yellowBtnText: d?.mobYellowBtnText || "#000000",
+      yellowBtnTextSize: d?.mobYellowBtnTextSizePx ?? 15,
+
+      // back link
+      backLinkColor: d?.mobBackLinkColor || "rgba(0,0,0,0.7)",
+    };
+  }, [cfg]);
 
   const t = useMemo(() => {
     if (isBangla) {
@@ -89,7 +182,6 @@ const Register = () => {
           deposit: "ডিপোজিট করুন",
           home: "হোম পেজে যান",
         },
-        desktopNote: "এই পেজটি শুধুমাত্র মোবাইল ভিউ-এর জন্য ডিজাইন করা।",
       };
     }
 
@@ -134,7 +226,6 @@ const Register = () => {
         deposit: "Deposit Now",
         home: "Go to Home page",
       },
-      desktopNote: "This page is designed for mobile view only.",
     };
   }, [isBangla]);
 
@@ -161,11 +252,8 @@ const Register = () => {
 
   const selectedCurrency = useWatch({ control, name: "currency" });
 
-  const bannerUrl =
-    "https://babu88.gold/static/image/banner/registerBanner/register_banner_en.jpg";
-
   const onStep1 = (data, e) => {
-    e.preventDefault(); // ← prevents page reload
+    e.preventDefault();
     if (data.password !== data.confirmPassword) {
       setError("confirmPassword", {
         type: "validate",
@@ -178,7 +266,7 @@ const Register = () => {
   };
 
   const onStep2 = (data, e) => {
-    e.preventDefault(); // ← prevents page reload
+    e.preventDefault();
     if ((data.verifyInput || "").trim() !== vCode) {
       setError("verifyInput", {
         type: "validate",
@@ -194,8 +282,16 @@ const Register = () => {
   };
 
   const TopBar = ({ title }) => (
-    <div className="w-full bg-black py-3 text-center">
-      <p className="text-[#f5b400] font-extrabold text-base">{title}</p>
+    <div
+      className="w-full py-3 text-center"
+      style={{ background: view.topBarBg }}
+    >
+      <p
+        className="font-extrabold"
+        style={{ color: view.topBarText, fontSize: view.topBarTextSize }}
+      >
+        {title}
+      </p>
     </div>
   );
 
@@ -203,7 +299,7 @@ const Register = () => {
     <div className="w-full h-[86px] relative overflow-hidden">
       <div
         className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url(${bannerUrl})` }}
+        style={{ backgroundImage: `url(${view.bannerUrl})` }}
       />
     </div>
   );
@@ -212,18 +308,36 @@ const Register = () => {
     const Circle = ({ active, done, children }) => {
       if (done) {
         return (
-          <div className="w-9 h-9 rounded-full bg-black flex items-center justify-center">
-            <div className="w-7 h-7 rounded-full border-[3px] border-[#f5b400] flex items-center justify-center">
-              <span className="text-[#f5b400] text-base font-black">✓</span>
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center"
+            style={{ background: view.stepDoneOuterBg }}
+          >
+            <div
+              className="w-7 h-7 rounded-full border-[3px] flex items-center justify-center"
+              style={{ borderColor: view.stepDoneBorder }}
+            >
+              <span
+                className="text-base font-black"
+                style={{ color: view.stepDoneTick }}
+              >
+                ✓
+              </span>
             </div>
           </div>
         );
       }
+
       return (
         <div
-          className={`w-9 h-9 rounded-full flex items-center justify-center ${
-            active ? "bg-black text-white" : "bg-[#d9d9d9] text-white"
-          }`}
+          className="w-9 h-9 rounded-full flex items-center justify-center"
+          style={{
+            background: active
+              ? view.stepCircleActiveBg
+              : view.stepCircleInactiveBg,
+            color: active
+              ? view.stepCircleActiveText
+              : view.stepCircleInactiveText,
+          }}
         >
           <span className="font-black">{children}</span>
         </div>
@@ -232,9 +346,10 @@ const Register = () => {
 
     const Line = ({ active }) => (
       <div
-        className={`h-[3px] w-14 rounded-full ${
-          active ? "bg-black" : "bg-[#d9d9d9]"
-        }`}
+        className="h-[3px] w-14 rounded-full"
+        style={{
+          background: active ? view.stepLineActive : view.stepLineInactive,
+        }}
       />
     );
 
@@ -257,23 +372,34 @@ const Register = () => {
 
   const LabelRow = ({ label, required, rightIcon }) => (
     <div className="flex items-center justify-between mb-2">
-      <p className="text-[14px] font-semibold text-black">
+      <p
+        className="font-semibold"
+        style={{ color: view.labelColor, fontSize: 14 }}
+      >
         {label} {required && <span className="text-red-600">*</span>}
       </p>
       {rightIcon ? (
-        <div className="text-black/60 text-lg">{rightIcon}</div>
+        <div style={{ color: view.inputIconColor }} className="text-lg">
+          {rightIcon}
+        </div>
       ) : null}
     </div>
   );
 
   const ErrorText = ({ msg }) =>
-    msg ? <p className="text-[11px] text-red-500 mt-1">{msg}</p> : null;
+    msg ? (
+      <p className="text-[11px] mt-1" style={{ color: view.errorText }}>
+        {msg}
+      </p>
+    ) : null;
 
   const InputShell = ({ children, hasError }) => (
     <div
-      className={`w-full rounded-lg border bg-white ${
-        hasError ? "border-red-500" : "border-black/25"
-      }`}
+      className="w-full rounded-lg border"
+      style={{
+        background: view.inputBg,
+        borderColor: hasError ? view.errorText : view.inputBorder,
+      }}
     >
       {children}
     </div>
@@ -283,7 +409,12 @@ const Register = () => {
     <button
       type={type}
       onClick={onClick}
-      className="w-full mt-5 h-12 rounded-xl bg-[#0a63c8] text-white font-extrabold text-[15px] active:scale-[0.99]"
+      className="w-full mt-5 h-12 rounded-xl font-extrabold active:scale-[0.99]"
+      style={{
+        background: view.primaryBtnBg,
+        color: view.primaryBtnText,
+        fontSize: view.primaryBtnTextSize,
+      }}
     >
       {children}
     </button>
@@ -293,7 +424,12 @@ const Register = () => {
     <button
       type="button"
       onClick={onClick}
-      className="w-full h-12 rounded-xl bg-[#d7a900] text-black font-extrabold text-[15px] active:scale-[0.99]"
+      className="w-full h-12 rounded-xl font-extrabold active:scale-[0.99]"
+      style={{
+        background: view.yellowBtnBg,
+        color: view.yellowBtnText,
+        fontSize: view.yellowBtnTextSize,
+      }}
     >
       {children}
     </button>
@@ -326,7 +462,12 @@ const Register = () => {
         />
         <InputShell hasError={!!errors.username}>
           <input
-            className="w-full h-11 px-3 rounded-lg outline-none text-[14px]"
+            className="w-full h-11 px-3 rounded-lg outline-none"
+            style={{
+              fontSize: view.inputTextSize,
+              color: view.inputText,
+              background: "transparent",
+            }}
             placeholder={t.step1.fillHere}
             {...register("username", { required: t.step1.required })}
           />
@@ -343,7 +484,12 @@ const Register = () => {
             <div className="flex items-center">
               <input
                 type={showPass ? "text" : "password"}
-                className="w-full h-11 px-3 rounded-lg outline-none text-[14px]"
+                className="w-full h-11 px-3 rounded-lg outline-none"
+                style={{
+                  fontSize: view.inputTextSize,
+                  color: view.inputText,
+                  background: "transparent",
+                }}
                 placeholder={t.step1.fillPass}
                 {...register("password", {
                   required: t.step1.required,
@@ -353,7 +499,8 @@ const Register = () => {
               <button
                 type="button"
                 onClick={() => setShowPass((s) => !s)}
-                className="px-3 text-black/60"
+                className="px-3"
+                style={{ color: view.inputIconColor }}
                 aria-label="toggle password"
               >
                 {showPass ? <FaEyeSlash /> : <FaEye />}
@@ -369,16 +516,20 @@ const Register = () => {
             <div className="flex items-center">
               <input
                 type={showCpass ? "text" : "password"}
-                className="w-full h-11 px-3 rounded-lg outline-none text-[14px]"
+                className="w-full h-11 px-3 rounded-lg outline-none"
+                style={{
+                  fontSize: view.inputTextSize,
+                  color: view.inputText,
+                  background: "transparent",
+                }}
                 placeholder={t.step1.confirmPass}
-                {...register("confirmPassword", {
-                  required: t.step1.required,
-                })}
+                {...register("confirmPassword", { required: t.step1.required })}
               />
               <button
                 type="button"
                 onClick={() => setShowCpass((s) => !s)}
-                className="px-3 text-black/60"
+                className="px-3"
+                style={{ color: view.inputIconColor }}
                 aria-label="toggle confirm password"
               >
                 {showCpass ? <FaEyeSlash /> : <FaEye />}
@@ -393,15 +544,19 @@ const Register = () => {
           <div className="flex items-center gap-3">
             <CurrencyIcon />
             <div className="flex-1">
-              <div className="relative">
-                <select
-                  className="w-full h-11 rounded-lg border border-black/25 bg-white px-3 pr-10 text-[14px] outline-none"
-                  {...register("currency", { required: true })}
-                >
-                  <option value="BDT">BDT</option>
-                  <option value="USDT">USDT</option>
-                </select>
-              </div>
+              <select
+                className="w-full h-11 rounded-lg border px-3 pr-10 outline-none"
+                style={{
+                  background: view.selectBg,
+                  borderColor: view.selectBorder,
+                  fontSize: view.inputTextSize,
+                  color: view.inputText,
+                }}
+                {...register("currency", { required: true })}
+              >
+                <option value="BDT">BDT</option>
+                <option value="USDT">USDT</option>
+              </select>
             </div>
           </div>
         </div>
@@ -425,15 +580,21 @@ const Register = () => {
         <div className="flex items-stretch gap-3">
           <InputShell hasError={!!errors.verifyInput}>
             <input
-              className="w-full h-11 px-3 rounded-lg outline-none text-[14px]"
+              className="w-full h-11 px-3 rounded-lg outline-none"
+              style={{
+                fontSize: view.inputTextSize,
+                color: view.inputText,
+                background: "transparent",
+              }}
               placeholder=""
-              {...register("verifyInput", {
-                required: t.step1.required,
-              })}
+              {...register("verifyInput", { required: t.step1.required })}
             />
           </InputShell>
 
-          <div className="w-[130px] h-11 rounded-lg bg-[#4b4b4b] text-white flex items-center justify-between px-3">
+          <div
+            className="w-[130px] h-11 rounded-lg flex items-center justify-between px-3"
+            style={{ background: view.vcodeBoxBg, color: view.vcodeBoxText }}
+          >
             <span className="font-extrabold tracking-wider">{vCode}</span>
             <button
               type="button"
@@ -441,7 +602,8 @@ const Register = () => {
                 setVCode(genCode());
                 clearErrors("verifyInput");
               }}
-              className="text-white/90 active:scale-95"
+              className="active:scale-95"
+              style={{ color: view.vcodeBoxText }}
               aria-label="refresh code"
             >
               <FaSyncAlt />
@@ -453,12 +615,25 @@ const Register = () => {
         <div className="mt-4">
           <LabelRow label={t.step2.phone} required />
           <div className="flex gap-3">
-            <div className="w-[120px] h-11 rounded-lg border border-black/25 bg-[#efefef] flex items-center px-3 text-[14px] text-black/70">
+            <div
+              className="w-[120px] h-11 rounded-lg border flex items-center px-3"
+              style={{
+                background: view.prefixBg,
+                borderColor: view.prefixBorder,
+                color: view.prefixText,
+                fontSize: view.inputTextSize,
+              }}
+            >
               +880
             </div>
             <InputShell hasError={!!errors.phone}>
               <input
-                className="w-full h-11 px-3 rounded-lg outline-none text-[14px]"
+                className="w-full h-11 px-3 rounded-lg outline-none"
+                style={{
+                  fontSize: view.inputTextSize,
+                  color: view.inputText,
+                  background: "transparent",
+                }}
                 placeholder={t.step2.fillPhone}
                 {...register("phone", {
                   required: t.step1.required,
@@ -477,7 +652,12 @@ const Register = () => {
           <LabelRow label={t.step2.referral} required={false} />
           <InputShell hasError={false}>
             <input
-              className="w-full h-11 px-3 rounded-lg outline-none text-[14px]"
+              className="w-full h-11 px-3 rounded-lg outline-none"
+              style={{
+                fontSize: view.inputTextSize,
+                color: view.inputText,
+                background: "transparent",
+              }}
               placeholder={t.step2.optional}
               {...register("referral")}
             />
@@ -487,7 +667,8 @@ const Register = () => {
         <div className="mt-4 flex items-start gap-3">
           <input
             type="checkbox"
-            className="mt-1 h-4 w-4 accent-black"
+            className="mt-1 h-4 w-4"
+            style={{ accentColor: view.checkboxAccent }}
             {...register("agree")}
           />
           <p className="text-[13px] text-black/80 leading-snug">
@@ -507,7 +688,8 @@ const Register = () => {
         <button
           type="button"
           onClick={() => setStep(0)}
-          className="w-full mt-3 text-center text-[13px] font-semibold text-black/70 underline"
+          className="w-full mt-3 text-center text-[13px] font-semibold underline"
+          style={{ color: view.backLinkColor }}
         >
           {t.step2.back}
         </button>
@@ -552,21 +734,21 @@ const Register = () => {
     return t.topRegister;
   }, [step, t]);
 
-  return (
-    <>
-      <div className="md:hidden min-h-screen bg-white">
-        <TopBar title={topTitle} />
-        <Banner />
-        <Stepper />
+  if (view.isActive === false) return null;
 
-        <AnimatePresence mode="wait">
-          {step === 0 && <Step1 key="s1" />}
-          {step === 1 && <Step2 key="s2" />}
-          {step === 2 && <Done key="done" />}
-        </AnimatePresence>
-      </div>
-    </>
+  return (
+    <div className="md:hidden min-h-screen" style={{ background: view.pageBg }}>
+      <TopBar title={topTitle} />
+      <Banner />
+      <Stepper />
+
+      <AnimatePresence mode="wait">
+        {step === 0 && <Step1 key="s1" />}
+        {step === 1 && <Step2 key="s2" />}
+        {step === 2 && <Done key="done" />}
+      </AnimatePresence>
+    </div>
   );
 };
 
-export default Register;
+export default MobileRegister;

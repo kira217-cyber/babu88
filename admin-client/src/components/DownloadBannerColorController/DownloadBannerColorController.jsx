@@ -3,45 +3,48 @@ import { toast } from "react-toastify";
 import { api } from "../../api/axios";
 
 const defaults = {
-  name: "Default Menu Theme",
+  name: "Default Download Banner Theme",
   isActive: true,
 
-  barBg: "#0f0f0f",
+  // Section / banner wrapper
+  sectionBg: "#0f0f0f",
 
-  itemText: "#e0e0e0",
-  itemTextOpacity: 0.95,
-  itemTextSize: 15,
+  // Main title
+  titleColor: "#f5b400",
+  titleSizeMobile: 20,
+  titleSizeSm: 24,
+  titleSizeLg: 30,
+  titleWeight: 800,
 
-  itemHoverText: "#ffffff",
+  // Subtitle / description
+  subColor: "#e0e0e0",
+  subOpacity: 0.88,
+  subSizeMobile: 14,
+  subSizeSm: 15,
+  subWeight: 500,
 
-  activeBg: "#f5b400",
-  activeText: "#000000",
+  // Primary Download button
+  downloadBtnBg: "#f5b400",
+  downloadBtnText: "#000000",
+  downloadBtnHeight: 48,
+  downloadBtnRadius: 12,
+  downloadBtnTextSize: 15,
+  downloadBtnWeight: 800,
+  downloadBtnShadow: "0 8px 20px rgba(245,180,0,0.40)",
 
-  dropdownOpenBg: "#000000",
-  dropdownOpenBgOpacity: 0.4,
+  // Android-specific button
+  androidBtnBg: "#1a1a1a",
+  androidBtnText: "#a3e635",
+  androidBtnBorderColor: "#f5b400",
+  androidBtnBorderOpacity: 0.3,
+  androidBtnHeight: 48,
+  androidBtnRadius: 12,
+  androidBtnTextSize: 15,
+  androidBtnWeight: 700,
+  androidBtnShadow: "0 6px 16px rgba(0,0,0,0.35)",
 
-  megaPanelBg: "#0a0a0a",
-  megaPanelBgOpacity: 0.92,
-  megaPanelBorder: "#f5b400",
-  megaPanelBorderOpacity: 0.18,
-
-  cardBg: "#111111",
-  cardBgOpacity: 1,
-  cardBorder: "#ffffff",
-  cardBorderOpacity: 0.08,
-
-  cardHoverBg: "#1a1a1a",
-  cardHoverBgOpacity: 1,
-  cardHoverBorder: "#f5b400",
-  cardHoverBorderOpacity: 0.5,
-
-  divider: "#ffffff",
-  dividerOpacity: 0.07,
-
-  badgeNewBg: "#22c55e",
-  badgeNewText: "#ffffff",
-  badgeHotBg: "#ef4444",
-  badgeHotText: "#ffffff",
+  // Right side radial gradient effect
+  rightRadialOpacity: 0.18,
 };
 
 const inputWrap =
@@ -102,7 +105,7 @@ const NumField = ({
   </div>
 );
 
-const IntField = ({ label, value, onChange, min = 10, max = 24 }) => (
+const IntField = ({ label, value, onChange, min = 0, max = 999 }) => (
   <div className="flex flex-col sm:flex-row sm:items-center gap-3">
     <label className={`${labelCls} sm:min-w-[160px]`}>{label}</label>
     <input
@@ -116,7 +119,19 @@ const IntField = ({ label, value, onChange, min = 10, max = 24 }) => (
   </div>
 );
 
-const MenuItemsColorController = () => {
+const TextField = ({ label, value, onChange }) => (
+  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+    <label className={`${labelCls} sm:min-w-[160px]`}>{label}</label>
+    <input
+      className={fieldCls}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder="e.g. 0 8px 20px rgba(245,180,0,0.40)"
+    />
+  </div>
+);
+
+const DownloadBannerColorController = () => {
   const [docId, setDocId] = useState(null);
   const [form, setForm] = useState(defaults);
   const [loading, setLoading] = useState(false);
@@ -127,7 +142,7 @@ const MenuItemsColorController = () => {
   const loadConfig = async () => {
     try {
       setLoading(true);
-      const res = await api.get("/api/menuitems-color");
+      const res = await api.get("/api/download-banner-color");
       if (!res.data) {
         setDocId(null);
         setForm(defaults);
@@ -159,7 +174,7 @@ const MenuItemsColorController = () => {
       delete payload.updatedAt;
       delete payload.__v;
 
-      const res = await api.put("/api/menuitems-color", payload);
+      const res = await api.put("/api/download-banner-color", payload);
       setDocId(res.data._id || docId);
       toast.success(docId ? "Configuration updated" : "Configuration created");
       await loadConfig();
@@ -173,8 +188,8 @@ const MenuItemsColorController = () => {
   const headerText = useMemo(() => {
     if (loading) return "Loading configuration...";
     return docId
-      ? "Menu Items & Topbar Color Controller (Edit)"
-      : "Menu Items & Topbar Color Controller (Create New)";
+      ? "Download Banner Color Controller (Edit)"
+      : "Download Banner Color Controller (Create New)";
   }, [docId, loading]);
 
   return (
@@ -206,10 +221,10 @@ const MenuItemsColorController = () => {
 
         {/* Main Card */}
         <div className={inputWrap}>
-          {/* Basic Info */}
+          {/* General Settings */}
           <div className="mb-8">
             <h3 className={sectionTitleCls}>General Settings</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
               <div>
                 <label className={labelCls}>Config Name</label>
                 <input
@@ -234,196 +249,195 @@ const MenuItemsColorController = () => {
                   Active (used on client site)
                 </label>
               </div>
+
+          
             </div>
           </div>
 
           {/* Sections */}
           <div className="space-y-10 sm:space-y-12">
             <div>
-              <h3 className={sectionTitleCls}>Top Navigation Bar</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <h3 className={sectionTitleCls}>Banner Section Background</h3>
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
-                  label="Bar Background"
-                  value={form.barBg}
-                  onChange={(v) => setVal("barBg", v)}
+                  label="Section Background"
+                  value={form.sectionBg}
+                  onChange={(v) => setVal("sectionBg", v)}
                 />
               </div>
             </div>
 
             <div>
-              <h3 className={sectionTitleCls}>Menu Item Text</h3>
+              <h3 className={sectionTitleCls}>Main Title</h3>
               <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
-                  label="Default Text"
-                  value={form.itemText}
-                  onChange={(v) => setVal("itemText", v)}
+                  label="Title Color"
+                  value={form.titleColor}
+                  onChange={(v) => setVal("titleColor", v)}
+                />
+                <IntField
+                  label="Title Size Mobile (px)"
+                  value={form.titleSizeMobile}
+                  onChange={(v) => setVal("titleSizeMobile", v)}
+                />
+                <IntField
+                  label="Title Size SM (px)"
+                  value={form.titleSizeSm}
+                  onChange={(v) => setVal("titleSizeSm", v)}
+                />
+                <IntField
+                  label="Title Size LG (px)"
+                  value={form.titleSizeLg}
+                  onChange={(v) => setVal("titleSizeLg", v)}
+                />
+                <IntField
+                  label="Title Font Weight"
+                  value={form.titleWeight}
+                  onChange={(v) => setVal("titleWeight", v)}
+                />
+              </div>
+            </div>
+
+            <div>
+              <h3 className={sectionTitleCls}>Subtitle / Description</h3>
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
+                <ColorField
+                  label="Subtitle Color"
+                  value={form.subColor}
+                  onChange={(v) => setVal("subColor", v)}
+                />
+                <NumField
+                  label="Subtitle Opacity"
+                  value={form.subOpacity}
+                  onChange={(v) => setVal("subOpacity", v)}
+                />
+                <IntField
+                  label="Sub Size Mobile (px)"
+                  value={form.subSizeMobile}
+                  onChange={(v) => setVal("subSizeMobile", v)}
+                />
+                <IntField
+                  label="Sub Size SM (px)"
+                  value={form.subSizeSm}
+                  onChange={(v) => setVal("subSizeSm", v)}
+                />
+                <IntField
+                  label="Subtitle Font Weight"
+                  value={form.subWeight}
+                  onChange={(v) => setVal("subWeight", v)}
+                />
+              </div>
+            </div>
+
+            <div>
+              <h3 className={sectionTitleCls}>Download Button (Primary)</h3>
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
+                <ColorField
+                  label="Button Background"
+                  value={form.downloadBtnBg}
+                  onChange={(v) => setVal("downloadBtnBg", v)}
                 />
                 <ColorField
-                  label="Hover Text"
-                  value={form.itemHoverText}
-                  onChange={(v) => setVal("itemHoverText", v)}
+                  label="Button Text Color"
+                  value={form.downloadBtnText}
+                  onChange={(v) => setVal("downloadBtnText", v)}
+                />
+                <IntField
+                  label="Button Height (px)"
+                  value={form.downloadBtnHeight}
+                  onChange={(v) => setVal("downloadBtnHeight", v)}
+                />
+                <IntField
+                  label="Button Radius (px)"
+                  value={form.downloadBtnRadius}
+                  onChange={(v) => setVal("downloadBtnRadius", v)}
+                />
+                <IntField
+                  label="Button Text Size (px)"
+                  value={form.downloadBtnTextSize}
+                  onChange={(v) => setVal("downloadBtnTextSize", v)}
+                />
+                <IntField
+                  label="Button Font Weight"
+                  value={form.downloadBtnWeight}
+                  onChange={(v) => setVal("downloadBtnWeight", v)}
+                />
+                <TextField
+                  label="Button Shadow (css)"
+                  value={form.downloadBtnShadow}
+                  onChange={(v) => setVal("downloadBtnShadow", v)}
+                />
+              </div>
+            </div>
+
+            <div>
+              <h3 className={sectionTitleCls}>Android Button</h3>
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
+                <ColorField
+                  label="Android Button BG"
+                  value={form.androidBtnBg}
+                  onChange={(v) => setVal("androidBtnBg", v)}
+                />
+                <ColorField
+                  label="Android Button Text"
+                  value={form.androidBtnText}
+                  onChange={(v) => setVal("androidBtnText", v)}
+                />
+                <ColorField
+                  label="Border Color"
+                  value={form.androidBtnBorderColor}
+                  onChange={(v) => setVal("androidBtnBorderColor", v)}
+                />
+                <NumField
+                  label="Border Opacity"
+                  value={form.androidBtnBorderOpacity}
+                  onChange={(v) => setVal("androidBtnBorderOpacity", v)}
+                />
+                <IntField
+                  label="Height (px)"
+                  value={form.androidBtnHeight}
+                  onChange={(v) => setVal("androidBtnHeight", v)}
+                />
+                <IntField
+                  label="Radius (px)"
+                  value={form.androidBtnRadius}
+                  onChange={(v) => setVal("androidBtnRadius", v)}
                 />
                 <IntField
                   label="Text Size (px)"
-                  value={form.itemTextSize}
-                  onChange={(v) => setVal("itemTextSize", v)}
+                  value={form.androidBtnTextSize}
+                  onChange={(v) => setVal("androidBtnTextSize", v)}
                 />
-                <NumField
-                  label="Text Opacity (0–1)"
-                  value={form.itemTextOpacity}
-                  onChange={(v) => setVal("itemTextOpacity", v)}
+                <IntField
+                  label="Font Weight"
+                  value={form.androidBtnWeight}
+                  onChange={(v) => setVal("androidBtnWeight", v)}
                 />
-              </div>
-            </div>
-
-            <div>
-              <h3 className={sectionTitleCls}>Active / Selected Item</h3>
-              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
-                <ColorField
-                  label="Active Background"
-                  value={form.activeBg}
-                  onChange={(v) => setVal("activeBg", v)}
-                />
-                <ColorField
-                  label="Active Text"
-                  value={form.activeText}
-                  onChange={(v) => setVal("activeText", v)}
+                <TextField
+                  label="Shadow (css)"
+                  value={form.androidBtnShadow}
+                  onChange={(v) => setVal("androidBtnShadow", v)}
                 />
               </div>
             </div>
 
             <div>
-              <h3 className={sectionTitleCls}>
-                Dropdown / Mega Menu (when open)
-              </h3>
+              <h3 className={sectionTitleCls}>Right Radial Gradient Effect</h3>
               <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
-                <ColorField
-                  label="Background Color"
-                  value={form.dropdownOpenBg}
-                  onChange={(v) => setVal("dropdownOpenBg", v)}
-                />
                 <NumField
-                  label="Background Opacity"
-                  value={form.dropdownOpenBgOpacity}
-                  onChange={(v) => setVal("dropdownOpenBgOpacity", v)}
-                />
-              </div>
-            </div>
-
-            <div>
-              <h3 className={sectionTitleCls}>Mega Menu Panel</h3>
-              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
-                <ColorField
-                  label="Panel Background"
-                  value={form.megaPanelBg}
-                  onChange={(v) => setVal("megaPanelBg", v)}
-                />
-                <NumField
-                  label="Panel BG Opacity"
-                  value={form.megaPanelBgOpacity}
-                  onChange={(v) => setVal("megaPanelBgOpacity", v)}
-                />
-                <ColorField
-                  label="Panel Border"
-                  value={form.megaPanelBorder}
-                  onChange={(v) => setVal("megaPanelBorder", v)}
-                />
-                <NumField
-                  label="Border Opacity"
-                  value={form.megaPanelBorderOpacity}
-                  onChange={(v) => setVal("megaPanelBorderOpacity", v)}
-                />
-                <ColorField
-                  label="Divider Color"
-                  value={form.divider}
-                  onChange={(v) => setVal("divider", v)}
-                />
-                <NumField
-                  label="Divider Opacity"
-                  value={form.dividerOpacity}
-                  onChange={(v) => setVal("dividerOpacity", v)}
-                />
-              </div>
-            </div>
-
-            <div>
-              <h3 className={sectionTitleCls}>Provider / Game Cards</h3>
-              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
-                <ColorField
-                  label="Card Background"
-                  value={form.cardBg}
-                  onChange={(v) => setVal("cardBg", v)}
-                />
-                <NumField
-                  label="Card BG Opacity"
-                  value={form.cardBgOpacity}
-                  onChange={(v) => setVal("cardBgOpacity", v)}
-                />
-                <ColorField
-                  label="Card Border"
-                  value={form.cardBorder}
-                  onChange={(v) => setVal("cardBorder", v)}
-                />
-                <NumField
-                  label="Border Opacity"
-                  value={form.cardBorderOpacity}
-                  onChange={(v) => setVal("cardBorderOpacity", v)}
-                />
-                <ColorField
-                  label="Hover Background"
-                  value={form.cardHoverBg}
-                  onChange={(v) => setVal("cardHoverBg", v)}
-                />
-                <NumField
-                  label="Hover BG Opacity"
-                  value={form.cardHoverBgOpacity}
-                  onChange={(v) => setVal("cardHoverBgOpacity", v)}
-                />
-                <ColorField
-                  label="Hover Border"
-                  value={form.cardHoverBorder}
-                  onChange={(v) => setVal("cardHoverBorder", v)}
-                />
-                <NumField
-                  label="Hover Border Opacity"
-                  value={form.cardHoverBorderOpacity}
-                  onChange={(v) => setVal("cardHoverBorderOpacity", v)}
-                />
-              </div>
-            </div>
-
-            <div>
-              <h3 className={sectionTitleCls}>Badges (NEW / HOT)</h3>
-              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
-                <ColorField
-                  label="NEW Badge Background"
-                  value={form.badgeNewBg}
-                  onChange={(v) => setVal("badgeNewBg", v)}
-                />
-                <ColorField
-                  label="NEW Badge Text"
-                  value={form.badgeNewText}
-                  onChange={(v) => setVal("badgeNewText", v)}
-                />
-                <ColorField
-                  label="HOT Badge Background"
-                  value={form.badgeHotBg}
-                  onChange={(v) => setVal("badgeHotBg", v)}
-                />
-                <ColorField
-                  label="HOT Badge Text"
-                  value={form.badgeHotText}
-                  onChange={(v) => setVal("badgeHotText", v)}
+                  label="Radial Gradient Opacity"
+                  value={form.rightRadialOpacity}
+                  onChange={(v) => setVal("rightRadialOpacity", v)}
                 />
               </div>
             </div>
           </div>
 
-         
+        
         </div>
       </div>
     </div>
   );
 };
 
-export default MenuItemsColorController;
+export default DownloadBannerColorController;

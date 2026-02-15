@@ -215,7 +215,7 @@ const LiveGamesColorController = () => {
           {/* General Settings */}
           <div className="mb-8">
             <h3 className={sectionTitleCls}>General Settings</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
               <div>
                 <label className={labelCls}>Config Name</label>
                 <input
@@ -247,7 +247,7 @@ const LiveGamesColorController = () => {
           <div className="space-y-10 sm:space-y-12">
             <div>
               <h3 className={sectionTitleCls}>Live Game Card</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
                   label="Card Background"
                   value={form.cardBg}
@@ -268,7 +268,7 @@ const LiveGamesColorController = () => {
 
             <div>
               <h3 className={sectionTitleCls}>Top Bar (League / Title)</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
                   label="Top Bar Background"
                   value={form.topBarBg}
@@ -289,7 +289,7 @@ const LiveGamesColorController = () => {
 
             <div>
               <h3 className={sectionTitleCls}>Date / Time / League Info</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
                   label="Datetime Text Color"
                   value={form.datetimeText}
@@ -310,7 +310,7 @@ const LiveGamesColorController = () => {
 
             <div>
               <h3 className={sectionTitleCls}>Team & Score Row</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
                   label="Team Name Color"
                   value={form.teamNameText}
@@ -353,7 +353,7 @@ const LiveGamesColorController = () => {
 
             <div>
               <h3 className={sectionTitleCls}>Status Badges</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
                   label="Upcoming Badge BG"
                   value={form.badgeUpcomingBg}
@@ -386,7 +386,7 @@ const LiveGamesColorController = () => {
 
             <div>
               <h3 className={sectionTitleCls}>Custom Scrollbar</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
                   label="Track Color"
                   value={form.scrollbarTrack}

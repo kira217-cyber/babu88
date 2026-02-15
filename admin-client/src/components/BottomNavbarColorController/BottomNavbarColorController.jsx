@@ -236,7 +236,7 @@ const BottomNavbarColorController = () => {
               <h3 className={sectionTitleCls}>
                 Logged Out State — Login / Register Buttons
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
                   label="Login Button BG"
                   value={form.logoutLoginBg}
@@ -273,7 +273,7 @@ const BottomNavbarColorController = () => {
 
             <div>
               <h3 className={sectionTitleCls}>Logged In State — Bottom Bar</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
                   label="Bar Background"
                   value={form.barBg}
@@ -294,7 +294,7 @@ const BottomNavbarColorController = () => {
 
             <div>
               <h3 className={sectionTitleCls}>Icons (Logged In)</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
                   label="Active Icon Background"
                   value={form.iconActiveBg}
@@ -327,7 +327,7 @@ const BottomNavbarColorController = () => {
 
             <div>
               <h3 className={sectionTitleCls}>Labels / Text (Logged In)</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
                   label="Label Text Color"
                   value={form.labelText}

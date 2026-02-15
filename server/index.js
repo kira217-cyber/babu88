@@ -33,6 +33,13 @@ import promotionsColorRoutes from "./routes/promotionsColorRoutes.js";
 import downloadHeaderColorRoutes from "./routes/downloadHeaderColorRoutes.js";
 import noticeColorRoutes from "./routes/noticeColorRoutes.js";
 import hotGamesColorRoutes from "./routes/hotGamesColorRoutes.js";
+import twoBannerColorRoutes from "./routes/twoBannerColorRoutes.js";
+import downloadBannerColorRoutes from "./routes/downloadBannerColorRoutes.js";
+import balanceColorRoutes from "./routes/balanceColorRoutes.js";
+import loginColorRoutes from "./routes/loginColorRoutes.js";
+import promotionModalRoutes from "./routes/promotionModalRoutes.js";
+import registerConfigRoutes from "./routes/registerConfigRoutes.js";
+
 
 
 
@@ -88,6 +95,15 @@ app.use("/api", promotionsColorRoutes);
 app.use("/api", downloadHeaderColorRoutes);
 app.use("/api", noticeColorRoutes);
 app.use("/api", hotGamesColorRoutes);
+app.use("/api", twoBannerColorRoutes);
+app.use("/api", downloadBannerColorRoutes);
+app.use("/api", balanceColorRoutes);
+app.use("/api", loginColorRoutes);
+app.use("/api", promotionModalRoutes);
+app.use("/api", registerConfigRoutes);
+
+
+
 
 // ✅ port
 const PORT = process.env.PORT || 5008;

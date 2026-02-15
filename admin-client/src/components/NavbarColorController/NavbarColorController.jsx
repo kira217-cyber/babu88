@@ -31,7 +31,7 @@ const labelCls = "text-sm font-semibold text-yellow-100/90 tracking-wide";
 const sectionTitleCls =
   "text-lg sm:text-xl font-bold text-yellow-400/90 mb-4 pb-2 border-b border-yellow-900/40";
 
-const rowCls = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6";
+const rowCls = "grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6";
 const fieldCls =
   "w-full bg-black/60 border border-yellow-900/50 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-yellow-600/60 focus:outline-none focus:border-yellow-500/70 focus:ring-2 focus:ring-yellow-500/30 transition-all";
 
@@ -168,7 +168,7 @@ const NavbarColorController = () => {
           {/* Basic Info */}
           <div className="mb-8">
             <h3 className={sectionTitleCls}>General Settings</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
               <div>
                 <label className={labelCls}>Config Name</label>
                 <input

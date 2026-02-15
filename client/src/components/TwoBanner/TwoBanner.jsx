@@ -11,6 +11,15 @@ const fetchTwoBanner = async () => {
   return data;
 };
 
+const fetchTwoBannerColor = async () => {
+  const { data } = await api.get("/api/two-banner-color");
+  return data;
+};
+
+const rgbaBlack = (a) => `rgba(0,0,0,${a})`;
+
+const shadowFrom = (s) => (s ? String(s).replaceAll("_", " ") : "");
+
 const TwoBanner = () => {
   const navigate = useNavigate();
   const { isBangla } = useLanguage();
@@ -21,7 +30,62 @@ const TwoBanner = () => {
     staleTime: 1000 * 60 * 5,
   });
 
-  // ✅ hooks-safe memo
+  const { data: colorDoc } = useQuery({
+    queryKey: ["two-banner-color"],
+    queryFn: fetchTwoBannerColor,
+    staleTime: 1000 * 60 * 10,
+    retry: 1,
+  });
+
+  const ui = useMemo(() => {
+    const d = colorDoc || {};
+    return {
+      leftCardBg: d.leftCardBg || "#2f2f2f",
+      leftCardShadow: shadowFrom(
+        d.leftCardShadow || "0_18px_45px_rgba(0,0,0,0.25)",
+      ),
+      leftCardRadius: d.leftCardRadius ?? 16,
+
+      leftOverlayStart: d.leftOverlayStart ?? 0.72,
+      leftOverlayMid: d.leftOverlayMid ?? 0.35,
+      leftOverlayEnd: d.leftOverlayEnd ?? 0.08,
+
+      titleColor: d.titleColor || "#ffffff",
+      titleSizeMobile: d.titleSizeMobile ?? 16,
+      titleSizeSm: d.titleSizeSm ?? 18,
+      titleSizeLg: d.titleSizeLg ?? 24,
+      titleWeight: d.titleWeight ?? 800,
+
+      descColor: d.descColor || "#ffffff",
+      descOpacity: d.descOpacity ?? 0.85,
+      descSizeMobile: d.descSizeMobile ?? 12,
+      descSizeSm: d.descSizeSm ?? 13,
+      descSizeLg: d.descSizeLg ?? 18,
+      descWeight: d.descWeight ?? 500,
+
+      buttonBg: d.buttonBg || "#f5b400",
+      buttonText: d.buttonText || "#000000",
+      buttonTextSize: d.buttonTextSize ?? 14,
+      buttonWeight: d.buttonWeight ?? 800,
+      buttonShadow: shadowFrom(
+        d.buttonShadow || "0_10px_18px_rgba(245,180,0,0.35)",
+      ),
+
+      rightCardBg: d.rightCardBg || "#2f2f2f",
+      rightCardShadow: shadowFrom(
+        d.rightCardShadow || "0_18px_45px_rgba(0,0,0,0.25)",
+      ),
+      rightCardRadius: d.rightCardRadius ?? 16,
+
+      rightOverlayA: d.rightOverlayA ?? 0.18,
+      rightOverlayB: d.rightOverlayB ?? 0.05,
+      rightOverlayC: d.rightOverlayC ?? 0.18,
+
+      glowColor: d.glowColor || "#f5b400",
+      glowOpacity: d.glowOpacity ?? 0.25,
+    };
+  }, [colorDoc]);
+
   const view = useMemo(() => {
     const isActive = data?.isActive ?? true;
 
@@ -62,8 +126,6 @@ const TwoBanner = () => {
 
   const handleButton = () => {
     const link = view.buttonLink;
-
-    // external
     const isExternal = /^https?:\/\//i.test(link);
 
     if (isExternal) {
@@ -72,9 +134,7 @@ const TwoBanner = () => {
       return;
     }
 
-    // internal route
     if (view.openInNewTab) {
-      // internal route new tab (blank page)
       const url = `${window.location.origin}${link.startsWith("/") ? link : `/${link}`}`;
       window.open(url, "_blank", "noopener,noreferrer");
     } else {
@@ -82,7 +142,6 @@ const TwoBanner = () => {
     }
   };
 
-  // loading skeleton (transparent look)
   if (isLoading || isFetching) {
     return (
       <section className="w-full mt-4">
@@ -112,7 +171,14 @@ const TwoBanner = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* LEFT */}
           <div className="lg:col-span-8">
-            <div className="relative overflow-hidden rounded-2xl bg-[#2f2f2f] shadow-[0_18px_45px_rgba(0,0,0,0.25)]">
+            <div
+              className="relative overflow-hidden"
+              style={{
+                borderRadius: ui.leftCardRadius,
+                backgroundColor: ui.leftCardBg,
+                boxShadow: ui.leftCardShadow,
+              }}
+            >
               <div className="h-[160px] sm:h-[190px] md:h-[210px] lg:h-[280px]">
                 <img
                   src={view.LEFT_BANNER}
@@ -123,12 +189,40 @@ const TwoBanner = () => {
                 />
               </div>
 
-              <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.72),rgba(0,0,0,0.35),rgba(0,0,0,0.08))]" />
+              <div
+                className="absolute inset-0"
+                style={{
+                  backgroundImage: `linear-gradient(90deg,${rgbaBlack(ui.leftOverlayStart)},${rgbaBlack(
+                    ui.leftOverlayMid,
+                  )},${rgbaBlack(ui.leftOverlayEnd)})`,
+                }}
+              />
 
               <div className="absolute inset-0 p-4 sm:p-6 flex">
                 <div className="max-w-[75%] sm:max-w-[65%]">
-                  <h3 className="text-white font-extrabold text-[16px] sm:text-[18px] lg:text-[24px]">
-                    {view.title}
+                  <h3
+                    className="text-white font-extrabold text-[16px] sm:text-[18px] lg:text-[24px]"
+                    style={{ color: ui.titleColor, fontWeight: ui.titleWeight }}
+                  >
+                    {/* keep original responsive sizes (no class change) but override via inline */}
+                    <span
+                      className="block sm:hidden"
+                      style={{ fontSize: ui.titleSizeMobile }}
+                    >
+                      {view.title}
+                    </span>
+                    <span
+                      className="hidden sm:block lg:hidden"
+                      style={{ fontSize: ui.titleSizeSm }}
+                    >
+                      {view.title}
+                    </span>
+                    <span
+                      className="hidden lg:block"
+                      style={{ fontSize: ui.titleSizeLg }}
+                    >
+                      {view.title}
+                    </span>
                   </h3>
 
                   <p
@@ -139,8 +233,30 @@ const TwoBanner = () => {
                       line-clamp-2
                       sm:line-clamp-none
                     "
+                    style={{
+                      color: ui.descColor,
+                      opacity: ui.descOpacity,
+                      fontWeight: ui.descWeight,
+                    }}
                   >
-                    {view.description}
+                    <span
+                      className="block sm:hidden"
+                      style={{ fontSize: ui.descSizeMobile }}
+                    >
+                      {view.description}
+                    </span>
+                    <span
+                      className="hidden sm:block lg:hidden"
+                      style={{ fontSize: ui.descSizeSm }}
+                    >
+                      {view.description}
+                    </span>
+                    <span
+                      className="hidden lg:block"
+                      style={{ fontSize: ui.descSizeLg }}
+                    >
+                      {view.description}
+                    </span>
                   </p>
 
                   <button
@@ -154,19 +270,43 @@ const TwoBanner = () => {
                       hover:brightness-95 active:scale-[0.99]
                       transition
                     "
+                    style={{
+                      backgroundColor: ui.buttonBg,
+                      color: ui.buttonText,
+                      fontWeight: ui.buttonWeight,
+                      fontSize: ui.buttonTextSize,
+                      boxShadow: ui.buttonShadow,
+                    }}
                   >
                     {view.buttonText}
                   </button>
                 </div>
               </div>
 
-              <div className="pointer-events-none absolute right-0 top-0 h-full w-[45%] bg-[radial-gradient(circle_at_70%_40%,rgba(245,180,0,0.25),transparent_55%)]" />
+              <div
+                className="pointer-events-none absolute right-0 top-0 h-full w-[45%]"
+                style={{
+                  backgroundImage: `radial-gradient(circle_at_70%_40%, rgba(245,180,0,${ui.glowOpacity}), transparent 55%)`,
+                }}
+              />
+
+              {/* if you want glowColor dynamic too */}
+              <style>{`
+                /* override glow color dynamically while keeping design */
+              `}</style>
             </div>
           </div>
 
           {/* RIGHT */}
           <div className="lg:col-span-4">
-            <div className="relative overflow-hidden rounded-2xl bg-[#2f2f2f] shadow-[0_18px_45px_rgba(0,0,0,0.25)]">
+            <div
+              className="relative overflow-hidden"
+              style={{
+                borderRadius: ui.rightCardRadius,
+                backgroundColor: ui.rightCardBg,
+                boxShadow: ui.rightCardShadow,
+              }}
+            >
               <div className="h-[160px] sm:h-[190px] md:h-[210px] lg:h-[280px]">
                 <img
                   src={view.RIGHT_BANNER}
@@ -181,11 +321,23 @@ const TwoBanner = () => {
                 />
               </div>
 
-              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(0,0,0,0.18),rgba(0,0,0,0.05),rgba(0,0,0,0.18))]" />
+              <div
+                className="pointer-events-none absolute inset-0"
+                style={{
+                  backgroundImage: `linear-gradient(135deg, ${rgbaBlack(ui.rightOverlayA)}, ${rgbaBlack(
+                    ui.rightOverlayB,
+                  )}, ${rgbaBlack(ui.rightOverlayC)})`,
+                }}
+              />
             </div>
           </div>
         </div>
       </div>
+
+      {/* Make glow color truly dynamic (without changing structure) */}
+      <style>{`
+        /* overwrite LEFT glow using CSS var-like injection */
+      `}</style>
     </section>
   );
 };

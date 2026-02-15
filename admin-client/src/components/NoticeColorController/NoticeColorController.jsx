@@ -196,7 +196,7 @@ const NoticeColorController = () => {
           {/* General Settings */}
           <div className="mb-8">
             <h3 className={sectionTitleCls}>General Settings</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
               <div>
                 <label className={labelCls}>Config Name</label>
                 <input
@@ -228,7 +228,7 @@ const NoticeColorController = () => {
           <div className="space-y-10 sm:space-y-12">
             <div>
               <h3 className={sectionTitleCls}>Notice Container</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
                   label="Background Color"
                   value={form.containerBg}
@@ -254,7 +254,7 @@ const NoticeColorController = () => {
 
             <div>
               <h3 className={sectionTitleCls}>Marquee Text</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
                   label="Text Color"
                   value={form.textColor}
@@ -292,7 +292,7 @@ const NoticeColorController = () => {
 
             <div>
               <h3 className={sectionTitleCls}>Separator (• or |)</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
                   label="Separator Color"
                   value={form.sepColor}
@@ -315,7 +315,7 @@ const NoticeColorController = () => {
 
             <div>
               <h3 className={sectionTitleCls}>Spacing & Animation Speed</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <IntField
                   label="Gap Mobile (px)"
                   value={form.gapMobile}

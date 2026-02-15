@@ -2,6 +2,8 @@ import React, { useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { FaEye, FaEyeSlash, FaSyncAlt, FaChevronDown } from "react-icons/fa";
 import { useLanguage } from "../../Context/LanguageProvider";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "../../api/axios";
 
 // Tiny Flag components (unchanged)
 const BdFlag = ({ className = "" }) => (
@@ -26,6 +28,17 @@ const EnFlag = ({ className = "" }) => (
   </span>
 );
 
+const resolveUrl = (baseURL, pathOrUrl) => {
+  if (!pathOrUrl) return "";
+  if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
+  return `${baseURL}${pathOrUrl}`;
+};
+
+const fetchRegisterConfig = async () => {
+  const { data } = await api.get("/api/register-config");
+  return data;
+};
+
 const DesktopRegister = () => {
   const { isBangla } = useLanguage();
 
@@ -35,6 +48,43 @@ const DesktopRegister = () => {
   const genCode = () => String(Math.floor(1000 + Math.random() * 9000));
   const [vCode, setVCode] = useState(genCode());
 
+  // ✅ config load
+  const { data: cfg } = useQuery({
+    queryKey: ["register-config"],
+    queryFn: fetchRegisterConfig,
+    staleTime: 1000 * 60 * 10,
+  });
+
+  // ✅ config view (desktop)
+  const view = useMemo(() => {
+    const d = cfg || {};
+    return {
+      // if you ever want to hide register by config
+      isActive: d?.isActive ?? true,
+
+      // images
+      bannerUrl:
+        resolveUrl(api.defaults.baseURL, d?.desktopBannerUrl) ||
+        "https://babu88.gold/static/image/banner/registerBanner/register_banner_en.jpg",
+
+      // desktop colors
+      pageBg: d?.deskPageBg || "#f0f0f0",
+      cardBg: d?.deskCardBg || "#ffffff",
+      titleColor: d?.deskTitleColor || "#000000",
+      subtitleColor: d?.deskSubTitleColor || "#000000",
+
+      // register button
+      registerBtnBg: d?.deskRegisterBtnBg || "#f2c200",
+      registerBtnText: d?.deskRegisterBtnTextColor || "#000000",
+      registerBtnTextSize: d?.deskRegisterBtnTextSizePx ?? 16,
+
+      // vcode box
+      vcodeBg: d?.deskVcodeBoxBg || "#8b8b8b",
+      vcodeText: d?.deskVcodeBoxTextColor || "#ffffff",
+    };
+  }, [cfg]);
+
+  // ✅ text (unchanged)
   const t = useMemo(() => {
     if (isBangla) {
       return {
@@ -112,9 +162,6 @@ const DesktopRegister = () => {
 
   const currency = useWatch({ control, name: "currency" });
 
-  const bannerUrl =
-    "https://babu88.gold/static/image/banner/registerBanner/register_banner_en.jpg";
-
   const onSubmit = (data) => {
     if (data.password !== data.confirmPassword) {
       setError("confirmPassword", { type: "validate", message: t.mismatch });
@@ -178,8 +225,6 @@ const DesktopRegister = () => {
   const ErrorText = ({ msg }) =>
     msg ? <p className="mt-1 text-[16px] text-red-500">{msg}</p> : null;
 
-
-
   const CurrencyFlag = () => (
     <span className="inline-flex items-center justify-center">
       {currency === "BDT" ? (
@@ -190,24 +235,43 @@ const DesktopRegister = () => {
     </span>
   );
 
+  // ✅ if you ever want to hide register by config
+  if (view.isActive === false) return null;
+
   return (
     <>
       {/* ✅ Desktop/Tablet only */}
-      <div className="hidden md:block min-h-screen bg-[#f0f0f0] py-10">
+      <div
+        className="hidden md:block min-h-screen py-10"
+        style={{ background: view.pageBg }}
+      >
         {/* Center card like screenshot */}
-        <div className="mx-auto w-full max-w-5xl bg-white border border-black/10 shadow-[0_0_0_1px_rgba(0,0,0,0.03)]">
+        <div
+          className="mx-auto w-full max-w-5xl border border-black/10 shadow-[0_0_0_1px_rgba(0,0,0,0.03)]"
+          style={{ background: view.cardBg }}
+        >
           {/* Title */}
           <div className="pt-6 text-center px-6">
-            <h1 className="text-[18px] font-extrabold text-black">{t.title}</h1>
-            <p className="mt-1 text-[11px] text-black/60">{t.subtitle}</p>
+            <h1
+              className="text-[18px] font-extrabold"
+              style={{ color: view.titleColor }}
+            >
+              {t.title}
+            </h1>
+            <p
+              className="mt-1 text-[11px]"
+              style={{ color: view.subtitleColor }}
+            >
+              {t.subtitle}
+            </p>
           </div>
 
           {/* Banner (full width) */}
           <div className="mt-4">
-            <div className="w-full h-[220px] md overflow-hidden bg-white border border-black/10">
+            <div className="w-full h-[220px] md overflow-hidden border border-black/10">
               <div
                 className="w-full h-full bg-cover bg-center"
-                style={{ backgroundImage: `url(${bannerUrl})` }}
+                style={{ backgroundImage: `url(${view.bannerUrl})` }}
               />
             </div>
           </div>
@@ -281,8 +345,7 @@ const DesktopRegister = () => {
               <div className="mt-4">
                 <Label required>{t.currency}</Label>
                 <div className="flex items-center gap-2">
-                 
-                 {/* right tiny flag (your requirement) */}
+                  {/* right tiny flag (your requirement) */}
                   <div>
                     <CurrencyFlag />
                   </div>
@@ -295,7 +358,6 @@ const DesktopRegister = () => {
                       <option value="USDT">USDT</option>
                     </Select>
                   </div>
-                  
                 </div>
               </div>
 
@@ -339,7 +401,10 @@ const DesktopRegister = () => {
                   </div>
 
                   {/* code box (right) */}
-                  <div className="h-[48px] w-[120px] rounded-md bg-[#8b8b8b] text-white flex items-center justify-between px-3">
+                  <div
+                    className="h-[48px] w-[120px] rounded-md flex items-center justify-between px-3"
+                    style={{ background: view.vcodeBg, color: view.vcodeText }}
+                  >
                     <span className="font-extrabold tracking-wider text-[18px]">
                       {vCode}
                     </span>
@@ -349,7 +414,8 @@ const DesktopRegister = () => {
                         setVCode(genCode());
                         clearErrors("verifyInput");
                       }}
-                      className="text-white/95 active:scale-95"
+                      className="active:scale-95"
+                      style={{ color: view.vcodeText }}
                       aria-label="refresh code"
                     >
                       <FaSyncAlt />
@@ -358,7 +424,7 @@ const DesktopRegister = () => {
                 </div>
               </div>
 
-              {/* Referral Code (NOT accordion open/close; always show like screenshot) */}
+              {/* Referral Code */}
               <div className="mt-4">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-[18px] font-semibold text-black/70">
@@ -373,10 +439,15 @@ const DesktopRegister = () => {
                 />
               </div>
 
-              {/* Register button (pill yellow) */}
+              {/* Register button (pill) - config driven */}
               <button
                 type="submit"
-                className="mt-7 w-full h-[42px] rounded-full bg-[#f2c200] text-black font-extrabold text-[16px] shadow-[inset_0_-1px_0_rgba(0,0,0,0.15)] active:scale-[0.99]"
+                className="mt-7 w-full h-[42px] rounded-full font-extrabold shadow-[inset_0_-1px_0_rgba(0,0,0,0.15)] active:scale-[0.99]"
+                style={{
+                  background: view.registerBtnBg,
+                  color: view.registerBtnText,
+                  fontSize: view.registerBtnTextSize,
+                }}
               >
                 {t.registerBtn}
               </button>

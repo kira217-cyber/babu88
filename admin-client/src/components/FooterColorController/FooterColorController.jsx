@@ -228,7 +228,7 @@ const FooterColorController = () => {
           <div className="space-y-10 sm:space-y-12">
             <div>
               <h3 className={sectionTitleCls}>Base Appearance</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
                   label="Footer Background"
                   value={form.footerBg}
@@ -244,7 +244,7 @@ const FooterColorController = () => {
 
             <div>
               <h3 className={sectionTitleCls}>Borders & Dividers</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
                   label="Border / Divider Color"
                   value={form.borderColor}
@@ -260,7 +260,7 @@ const FooterColorController = () => {
 
             <div>
               <h3 className={sectionTitleCls}>Text Colors</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
                   label="Main Text Color"
                   value={form.textMain}
@@ -291,7 +291,7 @@ const FooterColorController = () => {
 
             <div>
               <h3 className={sectionTitleCls}>Social Icons / Buttons</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
                   label="Social Button Background"
                   value={form.socialBg}
@@ -322,7 +322,7 @@ const FooterColorController = () => {
 
             <div>
               <h3 className={sectionTitleCls}>Font Sizes</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <IntField
                   label="Section Title Size (px)"
                   value={form.sectionTitleSize}

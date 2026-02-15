@@ -242,7 +242,7 @@ const GameCategoryColorController = () => {
           <div className="space-y-10 sm:space-y-12">
             <div>
               <h3 className={sectionTitleCls}>Category Wrapper / Scroller</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
                   label="Wrapper Background"
                   value={form.wrapBg}
@@ -263,7 +263,7 @@ const GameCategoryColorController = () => {
 
             <div>
               <h3 className={sectionTitleCls}>Category Buttons (Tabs/Chips)</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
                   label="Active Button BG"
                   value={form.btnActiveBg}
@@ -303,7 +303,7 @@ const GameCategoryColorController = () => {
               <h3 className={sectionTitleCls}>
                 Underline / Indicator (Track & Thumb)
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
                   label="Track Background"
                   value={form.trackBg}
@@ -324,7 +324,7 @@ const GameCategoryColorController = () => {
 
             <div>
               <h3 className={sectionTitleCls}>Empty State Message</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
                   label="Empty Text Color"
                   value={form.emptyText}
@@ -345,7 +345,7 @@ const GameCategoryColorController = () => {
 
             <div>
               <h3 className={sectionTitleCls}>Game Cards</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
                   label="Card Background"
                   value={form.cardBg}
@@ -371,7 +371,7 @@ const GameCategoryColorController = () => {
 
             <div>
               <h3 className={sectionTitleCls}>Badges on Cards</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
                   label="Badge Background"
                   value={form.badgeBg}

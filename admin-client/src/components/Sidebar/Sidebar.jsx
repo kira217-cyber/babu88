@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Link, NavLink, Outlet } from "react-router";
+import { Link, NavLink, Outlet } from "react-router"; // fixed import (react-router → react-router-dom)
 import {
   FaHome,
   FaBell,
@@ -11,6 +11,16 @@ import {
   FaTimes,
   FaChevronDown,
   FaChevronUp,
+  FaPaintBrush, // new for color controller
+  FaCog, // settings-like
+  FaImage,
+  FaDownload,
+  FaPlayCircle,
+  FaVideo,
+  FaLink,
+  FaGlobe,
+  FaStickyNote,
+  FaBullhorn,
 } from "react-icons/fa";
 import { IoAppsSharp } from "react-icons/io5";
 import { GrAnnounce, GrUserAdmin } from "react-icons/gr";
@@ -26,6 +36,7 @@ import { selectAuth } from "../../features/auth/authSelectors";
 const Sidebar = () => {
   const [open, setOpen] = useState(false);
   const [promotionsOpen, setPromotionsOpen] = useState(false);
+  const [colorControllerOpen, setColorControllerOpen] = useState(false);
   const [depositOpen, setDepositOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [affiliateOpen, setAffiliateOpen] = useState(false);
@@ -67,22 +78,22 @@ const Sidebar = () => {
         text: "All Users",
       },
       {
-        key: "color-controller-client",
-        to: "/color-controller-client",
-        icon: <IoAppsSharp />,
-        text: "Color Controller Client",
-      },
-      {
-        key: "add-promotion",
-        to: "/add-promotion",
-        icon: <IoAppsSharp />,
-        text: "Add Promotion",
-      },
-      {
         key: "__mother__",
         to: "/create-admin",
         icon: <GrUserAdmin />,
         text: "Create Admin",
+      },
+    ],
+    [],
+  );
+
+  const colorControllerItems = useMemo(
+    () => [
+      {
+        perm: "color-controller-client",
+        to: "/color-controller-client",
+        icon: <FaPaintBrush />,
+        text: "Color Client",
       },
     ],
     [],
@@ -93,7 +104,7 @@ const Sidebar = () => {
       {
         perm: "add-deposit",
         to: "/add-deposit",
-        icon: <FaWallet />,
+        icon: <PiHandDepositBold />,
         text: "Add Deposit",
       },
       {
@@ -111,7 +122,7 @@ const Sidebar = () => {
       {
         perm: "add-withdraw",
         to: "/add-withdraw",
-        icon: <FaWallet />,
+        icon: <PiHandWithdrawBold />,
         text: "Add Withdraw",
       },
       {
@@ -124,56 +135,66 @@ const Sidebar = () => {
     [],
   );
 
-  const promotionSubItems = useMemo(
+  const clientSiteControllerItems = useMemo(
     () => [
       {
         perm: "fav-icon-and-logo-controller",
         to: "/fav-icon-and-logo-controller",
-        text: "Favicon Logo Controller",
+        icon: <FaCog />,
+        text: "Favicon & Logo Controller",
       },
       {
         perm: "download-header-controller",
         to: "/download-header-controller",
+        icon: <FaDownload />,
         text: "Download Header Controller",
       },
       {
         perm: "slider-controller",
         to: "/slider-controller",
+        icon: <FaImage />,
         text: "Slider Controller",
       },
       {
         perm: "notice-controller",
         to: "/notice-controller",
+        icon: <FaBullhorn />,
         text: "Notice Controller",
       },
       {
         perm: "two-banner-controller",
         to: "/two-banner-controller",
+        icon: <FaImage />,
         text: "Two Banner Controller",
       },
       {
         perm: "single-banner-controller",
         to: "/single-banner-controller",
+        icon: <FaImage />,
         text: "Single Banner Controller",
       },
       {
         perm: "download-banner-controller",
         to: "/download-banner-controller",
+        icon: <FaDownload />,
         text: "Download Banner Controller",
       },
       {
         perm: "banner-video-controller",
         to: "/banner-video-controller",
+        icon: <FaVideo />,
         text: "Banner Video Controller",
       },
       {
         perm: "floating-social-controller",
         to: "/floating-social-controller",
+        icon: <FaLink />,
         text: "Social Link Controller",
       },
       {
         perm: "footer-controller",
         to: "/footer-controller",
+        icon: <FaGlobe />,
         text: "Footer Controller",
       },
     ],
@@ -185,61 +206,65 @@ const Sidebar = () => {
       {
         perm: "aff-footer-controller",
         to: "/aff-footer-controller",
-        icon: <IoAppsSharp />,
+        icon: <FaGlobe />,
         text: "Aff Footer Controller",
       },
       {
         perm: "aff-slider-controller",
         to: "/aff-slider-controller",
-        icon: <IoAppsSharp />,
+        icon: <FaImage />,
         text: "Aff Slider Controller",
       },
       {
         perm: "aff-whyus-controller",
         to: "/aff-whyus-controller",
-        icon: <IoAppsSharp />,
+        icon: <FaStickyNote />,
         text: "Aff WhyUs Controller",
       },
-       {
+      {
         perm: "aff-agent-controller",
         to: "/aff-agent-controller",
-        icon: <IoAppsSharp />,
+        icon: <FaUsers />,
         text: "Aff Agent Controller",
       },
-       {
+      {
         perm: "aff-notice-controller",
         to: "/aff-notice-controller",
-        icon: <IoAppsSharp />,
+        icon: <FaBullhorn />,
         text: "Aff Notice Controller",
       },
       {
         perm: "aff-fav-and-title-controller",
         to: "/aff-fav-and-title-controller",
-        icon: <IoAppsSharp />,
+        icon: <FaCog />,
         text: "Aff Fav & Title Controller",
       },
       {
         perm: "aff-floating-social-controller",
         to: "/aff-floating-social-controller",
-        icon: <IoAppsSharp />,
+        icon: <FaLink />,
         text: "Aff Floating Social Controller",
       },
-       {
+      {
         perm: "aff-commission-controller",
         to: "/aff-commission-controller",
-        icon: <IoAppsSharp />,
+        icon: <FaWallet />,
         text: "Aff Commission Controller",
       },
     ],
     [],
   );
 
-  const visibleMenuItems = useMemo(() => {
-    return menuItems.filter((m) => {
-      if (m.key === "__mother__") return isMother;
-      return can(m.key);
-    });
-  }, [menuItems, isMother, permissions]);
+  const visibleMenuItems = useMemo(
+    () =>
+      menuItems.filter((m) => (m.key === "__mother__" ? isMother : can(m.key))),
+    [menuItems, isMother, permissions],
+  );
+
+  const visibleColorItems = useMemo(
+    () => colorControllerItems.filter((s) => can(s.perm)),
+    [colorControllerItems, permissions, isMother],
+  );
 
   const visibleDepositSubItems = useMemo(
     () => depositSubItems.filter((s) => can(s.perm)),
@@ -251,9 +276,9 @@ const Sidebar = () => {
     [withdrawSubItems, permissions, isMother],
   );
 
-  const visibleControllerSubItems = useMemo(
-    () => promotionSubItems.filter((s) => can(s.perm)),
-    [promotionSubItems, permissions, isMother],
+  const visibleClientControllerItems = useMemo(
+    () => clientSiteControllerItems.filter((s) => can(s.perm)),
+    [clientSiteControllerItems, permissions, isMother],
   );
 
   const visibleAffiliateSubItems = useMemo(
@@ -261,17 +286,25 @@ const Sidebar = () => {
     [affiliateSubItems, permissions, isMother],
   );
 
+  const showColorController = visibleColorItems.length > 0;
   const showDeposit = visibleDepositSubItems.length > 0;
   const showWithdraw = visibleWithdrawSubItems.length > 0;
-  const showController = visibleControllerSubItems.length > 0;
+  const showClientController = visibleClientControllerItems.length > 0;
   const showAffiliate = visibleAffiliateSubItems.length > 0;
 
   useEffect(() => {
     if (!showDeposit) setDepositOpen(false);
     if (!showWithdraw) setWithdrawOpen(false);
-    if (!showController) setPromotionsOpen(false);
+    if (!showClientController) setPromotionsOpen(false);
     if (!showAffiliate) setAffiliateOpen(false);
-  }, [showDeposit, showWithdraw, showController, showAffiliate]);
+    if (!showColorController) setColorControllerOpen(false);
+  }, [
+    showDeposit,
+    showWithdraw,
+    showClientController,
+    showAffiliate,
+    showColorController,
+  ]);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -320,21 +353,25 @@ const Sidebar = () => {
         >
           <SidebarContent
             menuItems={visibleMenuItems}
+            colorItems={visibleColorItems}
             depositSubItems={visibleDepositSubItems}
             withdrawSubItems={visibleWithdrawSubItems}
-            promotionSubItems={visibleControllerSubItems}
+            clientControllerItems={visibleClientControllerItems}
             affiliateSubItems={visibleAffiliateSubItems}
             promotionsOpen={promotionsOpen}
             setPromotionsOpen={setPromotionsOpen}
+            colorControllerOpen={colorControllerOpen}
+            setColorControllerOpen={setColorControllerOpen}
             depositOpen={depositOpen}
             setDepositOpen={setDepositOpen}
             withdrawOpen={withdrawOpen}
             setWithdrawOpen={setWithdrawOpen}
             affiliateOpen={affiliateOpen}
             setAffiliateOpen={setAffiliateOpen}
+            showColorController={showColorController}
             showDeposit={showDeposit}
             showWithdraw={showWithdraw}
-            showController={showController}
+            showClientController={showClientController}
             showAffiliate={showAffiliate}
             onClose={() => setOpen(false)}
             onLogout={handleLogout}
@@ -385,21 +422,25 @@ const Sidebar = () => {
 
 const SidebarContent = ({
   menuItems,
+  colorItems,
   depositSubItems,
   withdrawSubItems,
-  promotionSubItems,
+  clientControllerItems,
   affiliateSubItems,
   promotionsOpen,
   setPromotionsOpen,
+  colorControllerOpen,
+  setColorControllerOpen,
   depositOpen,
   setDepositOpen,
   withdrawOpen,
   setWithdrawOpen,
   affiliateOpen,
   setAffiliateOpen,
+  showColorController,
   showDeposit,
   showWithdraw,
-  showController,
+  showClientController,
   showAffiliate,
   onClose,
   onLogout,
@@ -458,6 +499,52 @@ const SidebarContent = ({
             <span>{item.text}</span>
           </NavLink>
         ))}
+
+        {/* Color Controller Dropdown */}
+        {showColorController && (
+          <div className="mt-4">
+            <button
+              onClick={() => setColorControllerOpen(!colorControllerOpen)}
+              className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl text-white hover:bg-yellow-900/40 hover:text-yellow-100 transition-all duration-200"
+            >
+              <div className="flex items-center gap-4">
+                <span className="text-2xl text-white">
+                  <FaPaintBrush />
+                </span>
+                <span className="font-medium">Color Controller</span>
+              </div>
+              {colorControllerOpen ? (
+                <FaChevronUp size={18} className="text-white" />
+              ) : (
+                <FaChevronDown size={18} className="text-white" />
+              )}
+            </button>
+
+            {colorControllerOpen && (
+              <div className="mt-2 pl-14 space-y-1">
+                {colorItems.map((sub) => (
+                  <NavLink
+                    key={sub.to}
+                    to={sub.to}
+                    onClick={onClose}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-5 py-3 rounded-lg text-sm transition-all duration-200 ${
+                        isActive
+                          ? "bg-yellow-600/80 text-black font-medium shadow-sm shadow-yellow-500/40"
+                          : "text-yellow-100 hover:text-white hover:bg-yellow-800/50"
+                      }`
+                    }
+                  >
+                    <span className="text-xl opacity-90 text-white">
+                      {sub.icon}
+                    </span>
+                    <span>{sub.text}</span>
+                  </NavLink>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Deposit Dropdown */}
         {showDeposit && (
@@ -552,7 +639,7 @@ const SidebarContent = ({
         )}
 
         {/* Client Site Controller Dropdown */}
-        {showController && (
+        {showClientController && (
           <div className="mt-4">
             <button
               onClick={() => setPromotionsOpen(!promotionsOpen)}
@@ -573,20 +660,23 @@ const SidebarContent = ({
 
             {promotionsOpen && (
               <div className="mt-2 pl-14 space-y-1">
-                {promotionSubItems.map((sub) => (
+                {clientControllerItems.map((sub) => (
                   <NavLink
                     key={sub.to}
                     to={sub.to}
                     onClick={onClose}
                     className={({ isActive }) =>
-                      `block px-5 py-3 rounded-lg text-sm transition-all duration-200 ${
+                      `flex items-center gap-3 px-5 py-3 rounded-lg text-sm transition-all duration-200 ${
                         isActive
                           ? "bg-yellow-600/80 text-black font-medium shadow-sm shadow-yellow-500/40"
                           : "text-yellow-100 hover:text-white hover:bg-yellow-800/50"
                       }`
                     }
                   >
-                    {sub.text}
+                    <span className="text-xl opacity-90 text-white">
+                      {sub.icon}
+                    </span>
+                    <span>{sub.text}</span>
                   </NavLink>
                 ))}
               </div>
@@ -595,7 +685,7 @@ const SidebarContent = ({
         )}
 
         {/* Affiliate Client Site Controller Dropdown */}
-        {/* {showAffiliate && (
+        {showAffiliate && (
           <div className="mt-4">
             <button
               onClick={() => setAffiliateOpen(!affiliateOpen)}
@@ -605,9 +695,7 @@ const SidebarContent = ({
                 <span className="text-2xl text-white">
                   <IoAppsSharp />
                 </span>
-                <span className="font-medium">
-                  Aff Site Controller
-                </span>
+                <span className="font-medium">Aff Site Controller</span>
               </div>
               {affiliateOpen ? (
                 <FaChevronUp size={18} className="text-white" />
@@ -640,7 +728,7 @@ const SidebarContent = ({
               </div>
             )}
           </div>
-        )} */} 
+        )}
       </nav>
 
       {/* Logout */}

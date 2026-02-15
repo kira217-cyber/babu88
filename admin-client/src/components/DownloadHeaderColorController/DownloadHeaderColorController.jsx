@@ -240,7 +240,7 @@ const DownloadHeaderColorController = () => {
           <div className="space-y-10 sm:space-y-12">
             <div>
               <h3 className={sectionTitleCls}>Header Container</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
                   label="Container Background"
                   value={form.containerBg}
@@ -261,7 +261,7 @@ const DownloadHeaderColorController = () => {
 
             <div>
               <h3 className={sectionTitleCls}>Close Button (×)</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
                   label="Hover Background"
                   value={form.closeHoverBg}
@@ -292,7 +292,7 @@ const DownloadHeaderColorController = () => {
 
             <div>
               <h3 className={sectionTitleCls}>Icon / Logo Box</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
                   label="Icon Box Background"
                   value={form.iconBoxBg}
@@ -322,7 +322,7 @@ const DownloadHeaderColorController = () => {
 
             <div>
               <h3 className={sectionTitleCls}>Header Title</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
                   label="Title Color"
                   value={form.titleColor}
@@ -338,7 +338,7 @@ const DownloadHeaderColorController = () => {
 
             <div>
               <h3 className={sectionTitleCls}>Download Button</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
                   label="Button Background"
                   value={form.btnBg}

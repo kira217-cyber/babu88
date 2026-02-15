@@ -3,52 +3,54 @@ import { toast } from "react-toastify";
 import { api } from "../../api/axios";
 
 const defaults = {
-  name: "Default Hot Games Theme",
+  name: "Default Balance Theme",
   isActive: true,
 
-  // Section title (Hot Games / Popular / etc.)
-  titleColor: "#f5b400",
-  titleSize: 24,
-  titleWeight: 800,
+  // Main section / balance card wrapper
+  sectionBg: "#111111",
+  sectionBorderColor: "#f5b400",
+  sectionBorderOpacity: 0.25,
 
-  // Main game card
-  cardBg: "#111111",
-  cardBgOpacity: 1,
-  cardRadius: 12,
-  cardShadow: "0 10px 25px rgba(0,0,0,0.25)",
+  // Balance pill (main amount display)
+  pillBg: "#1a1a1a",
+  pillBorderColor: "#f5b400",
+  pillBorderOpacity: 0.3,
+  pillRadius: 999,
+  pillPaddingX: 16,
+  pillPaddingY: 10,
+  pillShadow: "0 4px 12px rgba(245,180,0,0.15)",
 
-  // Image hover effect
-  imgHoverScale: 1.05,
+  // Currency symbol & amount text
+  currencyColor: "#f5b400",
+  currencyOpacity: 0.9,
+  currencySize: 14,
+  currencyWeight: 700,
 
-  // Hover overlay (play icon appears)
-  overlayBg: "#000000",
-  overlayOpacity: 0.45,
+  amountColor: "#ffffff",
+  amountSize: 18,
+  amountWeight: 800,
 
-  // PLAY pill / button on hover
-  playPillBg: "#f5b400",
-  playPillBgOpacity: 1,
-  playPillBorder: "#f5b400",
-  playPillBorderOpacity: 0.4,
-  playTextColor: "#000000",
-  playTextSize: 13,
-  playTextWeight: 800,
+  // Refresh button (circular icon button)
+  refreshBtnBg: "#1a1a1a",
+  refreshBtnBorderColor: "#f5b400",
+  refreshBtnBorderOpacity: 0.35,
+  refreshBtnSize: 36,
+  refreshBtnRadius: 999,
+  refreshIconColor: "#f5b400",
+  refreshIconOpacity: 0.9,
+  refreshIconSize: 18,
 
-  // HOT badge (top-right corner)
-  hotBg: "#ef4444",
-  hotText: "#ffffff",
-  hotTextSize: 11,
-  hotWeight: 800,
+  // Action buttons (Deposit / Withdraw icons + labels)
+  actionIconBoxBg: "#1a1a1a",
+  actionIconBoxSize: 48,
+  actionIconBoxRadius: 12,
+  actionIconColor: "#f5b400",
+  actionIconSize: 22,
 
-  // Text below image (game name + provider)
-  gameTitleBg: "#1a1a1a",
-  gameTitleText: "#f5b400",
-  gameTitleSize: 15,
-  gameTitleWeight: 700,
-
-  providerText: "#d1d1d1",
-  providerOpacity: 0.85,
-  providerSize: 12,
-  providerWeight: 500,
+  actionLabelColor: "#e0e0e0",
+  actionLabelOpacity: 0.9,
+  actionLabelSize: 12,
+  actionLabelWeight: 600,
 };
 
 const inputWrap =
@@ -130,12 +132,12 @@ const TextField = ({ label, value, onChange }) => (
       className={fieldCls}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      placeholder="e.g. 0 10px 25px rgba(0,0,0,0.25)"
+      placeholder="e.g. 0 4px 12px rgba(245,180,0,0.15)"
     />
   </div>
 );
 
-const HotGamesColorController = () => {
+const BalanceColorController = () => {
   const [docId, setDocId] = useState(null);
   const [form, setForm] = useState(defaults);
   const [loading, setLoading] = useState(false);
@@ -146,7 +148,7 @@ const HotGamesColorController = () => {
   const loadConfig = async () => {
     try {
       setLoading(true);
-      const res = await api.get("/api/hotgames-color");
+      const res = await api.get("/api/balance-color");
       if (!res.data) {
         setDocId(null);
         setForm(defaults);
@@ -178,7 +180,7 @@ const HotGamesColorController = () => {
       delete payload.updatedAt;
       delete payload.__v;
 
-      const res = await api.put("/api/hotgames-color", payload);
+      const res = await api.put("/api/balance-color", payload);
       setDocId(res.data._id || docId);
       toast.success(docId ? "Configuration updated" : "Configuration created");
       await loadConfig();
@@ -192,8 +194,8 @@ const HotGamesColorController = () => {
   const headerText = useMemo(() => {
     if (loading) return "Loading configuration...";
     return docId
-      ? "Hot Games Section Color Controller (Edit)"
-      : "Hot Games Section Color Controller (Create New)";
+      ? "Balance Display Color Controller (Edit)"
+      : "Balance Display Color Controller (Create New)";
   }, [docId, loading]);
 
   return (
@@ -228,7 +230,7 @@ const HotGamesColorController = () => {
           {/* General Settings */}
           <div className="mb-8">
             <h3 className={sectionTitleCls}>General Settings</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
               <div>
                 <label className={labelCls}>Config Name</label>
                 <input
@@ -259,186 +261,205 @@ const HotGamesColorController = () => {
           {/* Sections */}
           <div className="space-y-10 sm:space-y-12">
             <div>
-              <h3 className={sectionTitleCls}>Section Title</h3>
+              <h3 className={sectionTitleCls}>Balance Section Wrapper</h3>
               <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
-                  label="Title Color"
-                  value={form.titleColor}
-                  onChange={(v) => setVal("titleColor", v)}
+                  label="Section Background"
+                  value={form.sectionBg}
+                  onChange={(v) => setVal("sectionBg", v)}
                 />
-                <IntField
-                  label="Title Size (px)"
-                  value={form.titleSize}
-                  onChange={(v) => setVal("titleSize", v)}
+                <ColorField
+                  label="Section Border Color"
+                  value={form.sectionBorderColor}
+                  onChange={(v) => setVal("sectionBorderColor", v)}
                 />
-                <IntField
-                  label="Title Font Weight"
-                  value={form.titleWeight}
-                  onChange={(v) => setVal("titleWeight", v)}
+                <NumField
+                  label="Section Border Opacity"
+                  value={form.sectionBorderOpacity}
+                  onChange={(v) => setVal("sectionBorderOpacity", v)}
                 />
               </div>
             </div>
 
             <div>
-              <h3 className={sectionTitleCls}>Game Card</h3>
-              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
-                <ColorField
-                  label="Card Background"
-                  value={form.cardBg}
-                  onChange={(v) => setVal("cardBg", v)}
-                />
-                <NumField
-                  label="Card BG Opacity"
-                  value={form.cardBgOpacity}
-                  onChange={(v) => setVal("cardBgOpacity", v)}
-                />
-                <IntField
-                  label="Card Border Radius (px)"
-                  value={form.cardRadius}
-                  onChange={(v) => setVal("cardRadius", v)}
-                />
-                <TextField
-                  label="Card Shadow (css value)"
-                  value={form.cardShadow}
-                  onChange={(v) => setVal("cardShadow", v)}
-                />
-                <NumField
-                  label="Image Hover Scale"
-                  value={form.imgHoverScale}
-                  onChange={(v) => setVal("imgHoverScale", v)}
-                  min={1}
-                  max={1.3}
-                  step={0.01}
-                />
-              </div>
-            </div>
-
-            <div>
-              <h3 className={sectionTitleCls}>Hover Overlay</h3>
-              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
-                <ColorField
-                  label="Overlay Background"
-                  value={form.overlayBg}
-                  onChange={(v) => setVal("overlayBg", v)}
-                />
-                <NumField
-                  label="Overlay Opacity"
-                  value={form.overlayOpacity}
-                  onChange={(v) => setVal("overlayOpacity", v)}
-                />
-              </div>
-            </div>
-
-            <div>
-              <h3 className={sectionTitleCls}>PLAY Pill / Button</h3>
+              <h3 className={sectionTitleCls}>Balance Pill (Main Display)</h3>
               <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
                   label="Pill Background"
-                  value={form.playPillBg}
-                  onChange={(v) => setVal("playPillBg", v)}
-                />
-                <NumField
-                  label="Pill BG Opacity"
-                  value={form.playPillBgOpacity}
-                  onChange={(v) => setVal("playPillBgOpacity", v)}
+                  value={form.pillBg}
+                  onChange={(v) => setVal("pillBg", v)}
                 />
                 <ColorField
                   label="Pill Border Color"
-                  value={form.playPillBorder}
-                  onChange={(v) => setVal("playPillBorder", v)}
+                  value={form.pillBorderColor}
+                  onChange={(v) => setVal("pillBorderColor", v)}
                 />
                 <NumField
-                  label="Border Opacity"
-                  value={form.playPillBorderOpacity}
-                  onChange={(v) => setVal("playPillBorderOpacity", v)}
-                />
-                <ColorField
-                  label="PLAY Text Color"
-                  value={form.playTextColor}
-                  onChange={(v) => setVal("playTextColor", v)}
+                  label="Pill Border Opacity"
+                  value={form.pillBorderOpacity}
+                  onChange={(v) => setVal("pillBorderOpacity", v)}
                 />
                 <IntField
-                  label="PLAY Text Size (px)"
-                  value={form.playTextSize}
-                  onChange={(v) => setVal("playTextSize", v)}
+                  label="Pill Border Radius (px)"
+                  value={form.pillRadius}
+                  onChange={(v) => setVal("pillRadius", v)}
                 />
                 <IntField
-                  label="PLAY Text Weight"
-                  value={form.playTextWeight}
-                  onChange={(v) => setVal("playTextWeight", v)}
+                  label="Pill Padding X (px)"
+                  value={form.pillPaddingX}
+                  onChange={(v) => setVal("pillPaddingX", v)}
+                />
+                <IntField
+                  label="Pill Padding Y (px)"
+                  value={form.pillPaddingY}
+                  onChange={(v) => setVal("pillPaddingY", v)}
+                />
+                <TextField
+                  label="Pill Shadow (css)"
+                  value={form.pillShadow}
+                  onChange={(v) => setVal("pillShadow", v)}
                 />
               </div>
             </div>
 
             <div>
-              <h3 className={sectionTitleCls}>HOT Badge</h3>
+              <h3 className={sectionTitleCls}>Currency & Amount Text</h3>
               <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
-                  label="HOT Badge Background"
-                  value={form.hotBg}
-                  onChange={(v) => setVal("hotBg", v)}
+                  label="Currency Symbol Color"
+                  value={form.currencyColor}
+                  onChange={(v) => setVal("currencyColor", v)}
                 />
+                <NumField
+                  label="Currency Opacity"
+                  value={form.currencyOpacity}
+                  onChange={(v) => setVal("currencyOpacity", v)}
+                />
+                <IntField
+                  label="Currency Size (px)"
+                  value={form.currencySize}
+                  onChange={(v) => setVal("currencySize", v)}
+                />
+                <IntField
+                  label="Currency Font Weight"
+                  value={form.currencyWeight}
+                  onChange={(v) => setVal("currencyWeight", v)}
+                />
+
                 <ColorField
-                  label="HOT Badge Text"
-                  value={form.hotText}
-                  onChange={(v) => setVal("hotText", v)}
+                  label="Amount Color"
+                  value={form.amountColor}
+                  onChange={(v) => setVal("amountColor", v)}
                 />
                 <IntField
-                  label="HOT Text Size (px)"
-                  value={form.hotTextSize}
-                  onChange={(v) => setVal("hotTextSize", v)}
+                  label="Amount Size (px)"
+                  value={form.amountSize}
+                  onChange={(v) => setVal("amountSize", v)}
                 />
                 <IntField
-                  label="HOT Font Weight"
-                  value={form.hotWeight}
-                  onChange={(v) => setVal("hotWeight", v)}
+                  label="Amount Font Weight"
+                  value={form.amountWeight}
+                  onChange={(v) => setVal("amountWeight", v)}
                 />
               </div>
             </div>
 
             <div>
-              <h3 className={sectionTitleCls}>Game Name & Provider Text</h3>
+              <h3 className={sectionTitleCls}>Refresh Button (Circular)</h3>
               <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
                 <ColorField
-                  label="Game Title Background"
-                  value={form.gameTitleBg}
-                  onChange={(v) => setVal("gameTitleBg", v)}
+                  label="Refresh Button BG"
+                  value={form.refreshBtnBg}
+                  onChange={(v) => setVal("refreshBtnBg", v)}
                 />
                 <ColorField
-                  label="Game Title Text"
-                  value={form.gameTitleText}
-                  onChange={(v) => setVal("gameTitleText", v)}
+                  label="Refresh Border Color"
+                  value={form.refreshBtnBorderColor}
+                  onChange={(v) => setVal("refreshBtnBorderColor", v)}
+                />
+                <NumField
+                  label="Refresh Border Opacity"
+                  value={form.refreshBtnBorderOpacity}
+                  onChange={(v) => setVal("refreshBtnBorderOpacity", v)}
                 />
                 <IntField
-                  label="Game Title Size (px)"
-                  value={form.gameTitleSize}
-                  onChange={(v) => setVal("gameTitleSize", v)}
+                  label="Refresh Button Size (px)"
+                  value={form.refreshBtnSize}
+                  onChange={(v) => setVal("refreshBtnSize", v)}
                 />
                 <IntField
-                  label="Game Title Weight"
-                  value={form.gameTitleWeight}
-                  onChange={(v) => setVal("gameTitleWeight", v)}
+                  label="Refresh Border Radius (px)"
+                  value={form.refreshBtnRadius}
+                  onChange={(v) => setVal("refreshBtnRadius", v)}
+                />
+                <ColorField
+                  label="Refresh Icon Color"
+                  value={form.refreshIconColor}
+                  onChange={(v) => setVal("refreshIconColor", v)}
+                />
+                <NumField
+                  label="Refresh Icon Opacity"
+                  value={form.refreshIconOpacity}
+                  onChange={(v) => setVal("refreshIconOpacity", v)}
+                />
+                <IntField
+                  label="Refresh Icon Size (px)"
+                  value={form.refreshIconSize}
+                  onChange={(v) => setVal("refreshIconSize", v)}
+                />
+              </div>
+            </div>
+
+            <div>
+              <h3 className={sectionTitleCls}>
+                Action Buttons (Deposit/Withdraw etc.)
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-5">
+                <ColorField
+                  label="Icon Box Background"
+                  value={form.actionIconBoxBg}
+                  onChange={(v) => setVal("actionIconBoxBg", v)}
+                />
+                <IntField
+                  label="Icon Box Size (px)"
+                  value={form.actionIconBoxSize}
+                  onChange={(v) => setVal("actionIconBoxSize", v)}
+                />
+                <IntField
+                  label="Icon Box Radius (px)"
+                  value={form.actionIconBoxRadius}
+                  onChange={(v) => setVal("actionIconBoxRadius", v)}
+                />
+                <ColorField
+                  label="Action Icon Color"
+                  value={form.actionIconColor}
+                  onChange={(v) => setVal("actionIconColor", v)}
+                />
+                <IntField
+                  label="Action Icon Size (px)"
+                  value={form.actionIconSize}
+                  onChange={(v) => setVal("actionIconSize", v)}
                 />
 
                 <ColorField
-                  label="Provider Text Color"
-                  value={form.providerText}
-                  onChange={(v) => setVal("providerText", v)}
+                  label="Action Label Color"
+                  value={form.actionLabelColor}
+                  onChange={(v) => setVal("actionLabelColor", v)}
                 />
                 <NumField
-                  label="Provider Opacity"
-                  value={form.providerOpacity}
-                  onChange={(v) => setVal("providerOpacity", v)}
+                  label="Action Label Opacity"
+                  value={form.actionLabelOpacity}
+                  onChange={(v) => setVal("actionLabelOpacity", v)}
                 />
                 <IntField
-                  label="Provider Text Size (px)"
-                  value={form.providerSize}
-                  onChange={(v) => setVal("providerSize", v)}
+                  label="Action Label Size (px)"
+                  value={form.actionLabelSize}
+                  onChange={(v) => setVal("actionLabelSize", v)}
                 />
                 <IntField
-                  label="Provider Font Weight"
-                  value={form.providerWeight}
-                  onChange={(v) => setVal("providerWeight", v)}
+                  label="Action Label Weight"
+                  value={form.actionLabelWeight}
+                  onChange={(v) => setVal("actionLabelWeight", v)}
                 />
               </div>
             </div>
@@ -449,4 +470,4 @@ const HotGamesColorController = () => {
   );
 };
 
-export default HotGamesColorController;
+export default BalanceColorController;
