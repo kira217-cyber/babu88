@@ -1,8 +1,9 @@
+// src/components/LiveGames.jsx
 import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/axios";
 
-// ✅ Flag URL map (no design change)
+// Flag fallback map (kept exactly as it was)
 const flagMap = {
   BD: "https://flagsapi.com/BD/shiny/64.png",
   IN: "https://flagsapi.com/IN/shiny/64.png",
@@ -30,9 +31,16 @@ const hexToRgba = (hex, alpha = 1) => {
   return `rgba(0,0,0,${alpha})`;
 };
 
+// Fetch live games color settings (kept as is)
 const fetchLiveGamesColor = async () => {
   const { data } = await api.get("/api/livegames-color");
   return data;
+};
+
+// Fetch real live games from backend
+const fetchLiveGames = async () => {
+  const { data } = await api.get("/api/live-games");
+  return data || [];
 };
 
 const StatusBadge = ({ text, variant, styles }) => {
@@ -55,36 +63,41 @@ const StatusBadge = ({ text, variant, styles }) => {
 };
 
 const LiveGames = () => {
+  // Color settings from admin
   const { data: liveColor } = useQuery({
     queryKey: ["livegames-color"],
     queryFn: fetchLiveGamesColor,
-    staleTime: 10 * 60 * 1000,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    retry: 1,
+  });
+
+  // Real games from /api/live-games
+  const { data: matchesRaw = [] } = useQuery({
+    queryKey: ["live-games"],
+    queryFn: fetchLiveGames,
+    staleTime: 30 * 1000, // 30 seconds
     retry: 1,
   });
 
   const styles = useMemo(() => {
     const d = liveColor || {};
     return {
-      // Card
       cardBg: d.cardBg || "#ffffff",
       cardBorderRgba: hexToRgba(
         d.cardBorder || "#000000",
         d.cardBorderOpacity ?? 0.1,
       ),
 
-      // Top
       topBarBg: d.topBarBg || "#f5b400",
       titleText: d.titleText || "#000000",
       titleTextSize: d.titleTextSize ?? 12,
 
-      // Datetime
       datetimeTextRgba: hexToRgba(
         d.datetimeText || "#000000",
         d.datetimeOpacity ?? 0.55,
       ),
       datetimeTextSize: d.datetimeTextSize ?? 12,
 
-      // Team row
       teamNameText: d.teamNameText || "#000000",
       teamNameTextSize: d.teamNameTextSize ?? 13,
 
@@ -94,14 +107,12 @@ const LiveGames = () => {
       dashTextRgba: hexToRgba(d.dashText || "#000000", d.dashOpacity ?? 0.3),
       dashTextSize: d.dashTextSize ?? 12,
 
-      // Badge
       badgeUpcomingBg: d.badgeUpcomingBg || "#000000",
       badgeUpcomingText: d.badgeUpcomingText || "#ffffff",
       badgeLiveBg: d.badgeLiveBg || "#ff2d2d",
       badgeLiveText: d.badgeLiveText || "#ffffff",
       badgeTextSize: d.badgeTextSize ?? 10,
 
-      // Scrollbar
       scrollbarTrack: d.scrollbarTrack || "#cfcfcf",
       scrollbarThumbFrom: d.scrollbarThumbFrom || "#f5b400",
       scrollbarThumbTo: d.scrollbarThumbTo || "#c78a00",
@@ -110,87 +121,29 @@ const LiveGames = () => {
     };
   }, [liveColor]);
 
-  // 🔁 Replace this demo data with your API data
-  const matches = useMemo(
-    () => [
-      {
-        id: 1,
-        statusText: "2nd Innings",
-        statusType: "live",
-        title: "ICC U19 World Cup",
-        datetime: "Feb 04, 2026 13:30:00",
-        teams: [
-          { name: "India U19", countryCode: "IN", score: "16/0 (3)" },
-          { name: "Afghanistan U19", countryCode: "AF", score: "310/4 (50)" },
-        ],
-      },
-      {
-        id: 2,
-        statusText: "2nd Innings",
-        statusType: "live",
-        title: "ICC Mens T20 World Cup Warm-up Match",
-        datetime: "Feb 04, 2026 15:30:00",
-        teams: [
-          { name: "Afghanistan", countryCode: "AF", score: "182/6 (20)" },
-          { name: "West Indies", countryCode: "JM", score: "38/2 (4.4)" },
-        ],
-      },
-      {
-        id: 3,
-        statusText: "1st Innings",
-        statusType: "live",
-        title: "Emirates D10 Tournament",
-        datetime: "Feb 04, 2026 17:00:00",
-        teams: [
-          {
-            name: "Sharjah",
-            countryCode: "GEN",
-            score: "0/0 (0)",
-            flagUrl: "https://cdn-icons-png.flaticon.com/512/502/502195.png",
-          },
-          {
-            name: "Dubai",
-            countryCode: "GEN",
-            score: "145/5 (9)",
-            flagUrl: "https://cdn-icons-png.flaticon.com/512/502/502195.png",
-          },
-        ],
-      },
-      {
-        id: 4,
-        statusText: "Upcoming",
-        statusType: "upcoming",
-        title: "Emirates D10 Tournament",
-        datetime: "Feb 04, 2026 19:15:00",
-        teams: [
-          {
-            name: "Emirates Blues",
-            countryCode: "GEN",
-            score: "",
-            flagUrl: "https://cdn-icons-png.flaticon.com/512/502/502195.png",
-          },
-          {
-            name: "Emirates Red",
-            countryCode: "GEN",
-            score: "",
-            flagUrl: "https://cdn-icons-png.flaticon.com/512/502/502195.png",
-          },
-        ],
-      },
-      {
-        id: 5,
-        statusText: "Upcoming",
-        statusType: "upcoming",
-        title: "ICC Mens T20 World Cup",
-        datetime: "Feb 04, 2026 19:30:00",
-        teams: [
-          { name: "India", countryCode: "IN", score: "" },
-          { name: "South Africa", countryCode: "ZA", score: "" },
-        ],
-      },
-    ],
-    [],
-  );
+  // Normalize API data to match the expected UI shape
+  const matches = useMemo(() => {
+    return (matchesRaw || []).map((m) => ({
+      id: m._id || m.gameUID,
+      gameUID: m.gameUID,
+      statusText: m.statusText,
+      statusType: m.statusType,
+      title: m.title,
+      datetime: m.datetime,
+      teams: (m.teams || []).map((t) => ({
+        name: t.name,
+        countryCode: "GEN", // fallback if needed
+        flagUrl: t.countryImage, // use the uploaded URL from admin
+      })),
+    }));
+  }, [matchesRaw]);
+
+  // Open game detail in new tab (target="_blank")
+  const openGameInNewTab = (gameUID) => {
+    if (!gameUID) return;
+    const url = `/game/${gameUID}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
 
   return (
     <section className="w-full mt-4">
@@ -207,7 +160,6 @@ const LiveGames = () => {
             snap-x snap-mandatory
           "
           style={{
-            // Firefox scrollbar-color dynamic
             scrollbarColor: `${styles.scrollbarThumbFrom} ${styles.scrollbarTrack}`,
             scrollbarWidth: "thin",
           }}
@@ -220,13 +172,21 @@ const LiveGames = () => {
                 min-w-[280px] sm:min-w-[320px] lg:min-w-[360px]
                 rounded-xl
                 overflow-hidden
+                cursor-pointer
               "
               style={{
                 backgroundColor: styles.cardBg,
                 border: `1px solid ${styles.cardBorderRgba}`,
               }}
+              onClick={() => openGameInNewTab(m.gameUID)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ")
+                  openGameInNewTab(m.gameUID);
+              }}
             >
-              {/* Top yellow bar */}
+              {/* Top bar */}
               <div
                 className="px-3 py-2 flex items-center gap-2"
                 style={{ backgroundColor: styles.topBarBg }}
@@ -255,7 +215,7 @@ const LiveGames = () => {
                     fontSize: `${styles.datetimeTextSize}px`,
                   }}
                 >
-                  {m.datetime}
+                  {m.datetime ? new Date(m.datetime).toLocaleString() : "N/A"}
                 </p>
 
                 <div className="mt-3 space-y-3">
@@ -265,12 +225,12 @@ const LiveGames = () => {
                       className="flex items-center justify-between gap-3"
                     >
                       <div className="flex items-center gap-2 min-w-0">
-                        {/* ✅ Flag image only (no design change) */}
                         <img
                           src={
-                            t.flagUrl ||
-                            flagMap[t.countryCode] ||
-                            "https://cdn-icons-png.flaticon.com/512/502/502195.png"
+                            t.flagUrl
+                              ? `${import.meta.env.VITE_API_URL}${t.flagUrl}`
+                              : flagMap[t.countryCode] ||
+                                "https://cdn-icons-png.flaticon.com/512/502/502195.png"
                           }
                           alt={t.name}
                           className="w-[18px] h-[18px] object-cover"
@@ -286,28 +246,6 @@ const LiveGames = () => {
                           {t.name}
                         </p>
                       </div>
-
-                      {t.score ? (
-                        <p
-                          className="font-extrabold whitespace-nowrap"
-                          style={{
-                            color: styles.scoreText,
-                            fontSize: `${styles.scoreTextSize}px`,
-                          }}
-                        >
-                          {t.score}
-                        </p>
-                      ) : (
-                        <span
-                          className="font-bold"
-                          style={{
-                            color: styles.dashTextRgba,
-                            fontSize: `${styles.dashTextSize}px`,
-                          }}
-                        >
-                          —
-                        </span>
-                      )}
                     </div>
                   ))}
                 </div>
@@ -316,9 +254,8 @@ const LiveGames = () => {
           ))}
         </div>
 
-        {/* Custom scrollbar styling */}
+        {/* Custom scrollbar */}
         <style>{`
-          /* Chrome/Edge/Safari */
           .live-scroll::-webkit-scrollbar {
             height: 10px;
           }

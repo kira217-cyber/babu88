@@ -8,6 +8,7 @@ import Withdraw from "../pages/Withdraw/Withdraw";
 import Deposit from "../pages/Deposit/Deposit";
 import PrivateRoute from "../PrivateRoute/PrivateRoute";
 import Promotions from "../pages/Promotions/Promotions";
+import LiveGamesPlay from "../pages/LiveGamesPlay/LiveGamesPlay";
 
 export const routes = createBrowserRouter([
   {
@@ -41,6 +42,14 @@ export const routes = createBrowserRouter([
         ),
       },
       {
+        path: "/game/:gameUID",
+        element: (
+          <PrivateRoute>
+            <LiveGamesPlay />
+          </PrivateRoute>
+        ),
+      },
+      {
         path: "login",
         element: <Login />,
       },
@@ -49,5 +58,13 @@ export const routes = createBrowserRouter([
         element: <Register />,
       },
     ],
+  },
+  {
+    path: "/game/:gameUID",
+    element: (
+      <PrivateRoute>
+        <LiveGamesPlay />
+      </PrivateRoute>
+    ),
   },
 ]);

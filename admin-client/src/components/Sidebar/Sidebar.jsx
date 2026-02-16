@@ -79,6 +79,12 @@ const Sidebar = () => {
         text: "All Users",
       },
       {
+        key: "live-controller",
+        to: "/live-controller",
+        icon: <FaPlayCircle />,
+        text: "Live Controller",
+      },
+      {
         key: "__mother__",
         to: "/create-admin",
         icon: <GrUserAdmin />,
@@ -576,7 +582,7 @@ const SidebarContent = ({
         )}
 
         {/* Aff Color Controller Dropdown */}
-        {showAffColorController && (
+        {/* {showAffColorController && (
           <div className="mt-4">
             <button
               onClick={() => setAffColorControllerOpen(!affColorControllerOpen)}
@@ -619,7 +625,7 @@ const SidebarContent = ({
               </div>
             )}
           </div>
-        )}
+        )} */}
 
         {/* Deposit Dropdown */}
         {showDeposit && (
@@ -760,7 +766,7 @@ const SidebarContent = ({
         )}
 
         {/* Affiliate Client Site Controller Dropdown */}
-        {showAffiliate && (
+        {/* {showAffiliate && (
           <div className="mt-4">
             <button
               onClick={() => setAffiliateOpen(!affiliateOpen)}
@@ -803,7 +809,7 @@ const SidebarContent = ({
               </div>
             )}
           </div>
-        )}
+        )} */}
       </nav>
 
       {/* Logout */}

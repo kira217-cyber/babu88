@@ -173,7 +173,7 @@ const AffNoticeColorController = () => {
       </div>
 
       {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Colors */}
         <Section title="Notice Bar Colors">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">

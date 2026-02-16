@@ -1,11 +1,14 @@
 import React, { useMemo, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useForm } from "react-hook-form";
 import { motion } from "framer-motion";
 import { FaEye, FaEyeSlash, FaUser, FaLock, FaSyncAlt } from "react-icons/fa";
 import { useLanguage } from "../../Context/LanguageProvider";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/axios";
+import { useDispatch } from "react-redux";
+import { demoLogin } from "../../features/auth/authSlice";
+import { toast } from "react-toastify";
 
 /* UI HELPERS */
 const Label = ({ children, required }) => (
@@ -40,6 +43,19 @@ const Input = React.forwardRef(({ error, className = "", ...props }, ref) => (
 export default function Login() {
   const { isBangla } = useLanguage();
   const [showPass, setShowPass] = useState(false);
+  const navigate = useNavigate();
+
+   const dispatch = useDispatch();
+
+
+  const handleDemoLogin = () => {
+    dispatch(demoLogin());
+    navigate("/dashboard");
+    toast.success("Logged in successfully with demo account", {
+      position: "top-right",
+      autoClose: 3000,
+    });
+  };
 
   // ✅ Login Color Config
   const { data: loginCfg } = useQuery({
@@ -255,6 +271,7 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={isSubmitting}
+                onClick={handleDemoLogin}
                 className="w-full mt-2 py-4 font-extrabold transition disabled:opacity-60 disabled:cursor-not-allowed"
                 style={{
                   borderRadius: "var(--l-submit-radius)",

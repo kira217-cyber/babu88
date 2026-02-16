@@ -216,7 +216,7 @@ const AffLoginColorController = () => {
       </div>
 
       {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Page + Card */}
         <Section title="Page & Card">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">

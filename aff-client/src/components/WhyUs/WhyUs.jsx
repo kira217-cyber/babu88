@@ -126,7 +126,7 @@ const WhyUs = () => {
   };
 
   return (
-    <section style={cssVars} className="w-full bg-[color:var(--w-bg)]">
+    <section style={cssVars} className="w-full pb-4 md:pb-8 bg-[color:var(--w-bg)]">
       <div
         style={{ paddingTop: "var(--w-pady)", paddingBottom: "var(--w-pady)" }}
         className="max-w-7xl mx-auto px-4 sm:px-6"
