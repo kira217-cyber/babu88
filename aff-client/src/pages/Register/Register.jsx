@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useForm } from "react-hook-form";
 import { motion } from "framer-motion";
 import {
@@ -13,6 +13,7 @@ import {
 import { useLanguage } from "../../Context/LanguageProvider";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/axios";
+import { toast } from "react-toastify";
 
 /* FLAGS unchanged */
 const BdFlag = ({ className = "" }) => (
@@ -97,6 +98,8 @@ const Select = React.forwardRef(
 
 export default function Register() {
   const { isBangla } = useLanguage();
+  const navigate = useNavigate();
+
   const [showPass, setShowPass] = useState(false);
   const [showPass2, setShowPass2] = useState(false);
 
@@ -154,7 +157,7 @@ export default function Register() {
 
   // generate verification code
   const genCode = () => {
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    const chars = "123456789";
     let out = "";
     for (let i = 0; i < 5; i++)
       out += chars[Math.floor(Math.random() * chars.length)];
@@ -197,6 +200,12 @@ export default function Register() {
         ? "সঠিক মোবাইল নাম্বার দিন (১১ ডিজিট)"
         : "Enter a valid 11-digit mobile number",
       codeMismatch: isBangla ? "কোড মিলছে না" : "Code does not match",
+
+      // ✅ new messages
+      pendingToast: isBangla
+        ? "রেজিস্টার সফল হয়েছে। Admin approve করলে আবার Login করুন।"
+        : "Registration successful. Please login again after admin approval.",
+      failed: isBangla ? "রেজিস্টার ব্যর্থ হয়েছে" : "Registration failed",
     }),
     [isBangla],
   );
@@ -206,6 +215,8 @@ export default function Register() {
     handleSubmit,
     watch,
     clearErrors,
+    setError,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm({
     defaultValues: {
@@ -235,7 +246,63 @@ export default function Register() {
   );
 
   const onSubmit = async (data) => {
-    // তোমার API call এখানে দিবা
+    // ✅ extra validations (UI change না করে)
+    if ((data.verifyInput || "").trim().toUpperCase() !== vCode) {
+      setError("verifyInput", { type: "validate", message: t.codeMismatch });
+      return;
+    }
+    if (!data.agree) {
+      setError("agree", { type: "validate", message: t.required });
+      return;
+    }
+
+    try {
+      clearErrors();
+
+      // ✅ Affiliate Register (server should save status: "pending" OR isActive:false)
+      // Client side থেকে status পাঠানো optional; না পাঠালেও server default pending রাখবে (best)
+      const payload = {
+        username: (data.username || "").trim(),
+        phone: (data.mobile || "").trim(),
+        password: data.password,
+        currency: data.currency,
+        email: "",
+        // status: "pending", // ✅ যদি তুমি server এ নিতে চাও, uncomment
+      };
+
+      await api.post("/api/users/register-aff", payload);
+
+      // ✅ Pending flow:
+      // token/user save করবো না, কারণ approve না হওয়া পর্যন্ত login allow করছো না
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+
+      toast.success(t.pendingToast);
+
+      // ✅ reset form + new vcode
+      reset();
+      setVCode(genCode());
+
+      // ✅ login page এ নিয়ে যাবে
+      navigate("/login");
+    } catch (err) {
+      const status = err?.response?.status;
+      const msg = err?.response?.data?.message || err?.message || t.failed;
+
+      if (status === 409) {
+        const lower = String(msg).toLowerCase();
+        if (lower.includes("username")) {
+          setError("username", { type: "server", message: msg });
+        } else if (lower.includes("phone") || lower.includes("mobile")) {
+          setError("mobile", { type: "server", message: msg });
+        } else {
+          toast.error(msg);
+        }
+        return;
+      }
+
+      toast.error(msg);
+    }
   };
 
   return (

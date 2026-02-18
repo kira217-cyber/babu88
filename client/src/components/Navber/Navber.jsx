@@ -1,6 +1,13 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
 import { Link, NavLink, useNavigate } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
+import { TfiReload } from "react-icons/tfi";
 import {
   FaBars,
   FaChevronDown,
@@ -38,8 +45,10 @@ import {
   selectAuth,
   selectIsAuthenticated,
 } from "../../features/auth/authSelectors";
+
 import { api } from "../../api/axios";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "react-toastify";
 
 const fetchBranding = async () => {
   const { data } = await api.get("/api/site-branding");
@@ -49,6 +58,14 @@ const fetchBranding = async () => {
 const fetchNavbarColor = async () => {
   const { data } = await api.get("/api/navbar-color");
   return data;
+};
+
+// ✅ balance fetch (direct API)
+const fetchMyBalance = async (token) => {
+  const { data } = await api.get("/api/users/me/balance", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return data; // { balance, currency }
 };
 
 // Tiny Flag components (unchanged)
@@ -92,7 +109,7 @@ const NavItem = ({ to, icon: Icon, label, badge, onClick, colors }) => {
     <NavLink
       to={to}
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition font-semibold"
+      className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition font-semibold cursor-pointer"
       style={({ isActive }) => ({
         backgroundColor: isActive
           ? colors.sidebarActiveBg
@@ -160,11 +177,13 @@ const Navber = () => {
   const auth = useSelector(selectAuth);
   const isAuthenticated = useSelector(selectIsAuthenticated);
 
+  const token = auth?.token;
   const user = auth?.user;
+
   const username = user?.username || user?.name || "User";
   const notifCount = user?.notificationsCount ?? 0;
-  const balance = Number(user?.balance ?? 0);
 
+  // ✅ branding view
   const view = useMemo(() => {
     const title = isBangla ? data?.titleBn : data?.titleEn;
     const faviconUrl = data?.faviconUrl
@@ -174,9 +193,38 @@ const Navber = () => {
       ? `${api.defaults.baseURL}${data.logoUrl}`
       : "";
     const isActive = data?.isActive ?? true;
-
     return { title: title || "", faviconUrl, logoUrl, isActive };
   }, [data, isBangla]);
+
+  // ✅ balance state (direct API driven, not redux user.balance)
+  const [balanceState, setBalanceState] = useState(0);
+  const [currencyState, setCurrencyState] = useState("BDT");
+
+  // ✅ initial balance fetch when token available
+  useEffect(() => {
+    let mounted = true;
+    const run = async () => {
+      if (!token) return;
+      try {
+        const d = await fetchMyBalance(token);
+        if (!mounted) return;
+        const b = Number(d?.balance) || 0;
+        const c = d?.currency || "BDT";
+        setBalanceState(b);
+        setCurrencyState(c);
+      } catch (e) {
+        // silent (optional)
+      }
+    };
+    run();
+    return () => {
+      mounted = false;
+    };
+  }, [token]);
+
+  const currencySymbol = useMemo(() => {
+    return currencyState === "USDT" ? "$" : "৳";
+  }, [currencyState]);
 
   const t = useMemo(
     () => ({
@@ -206,6 +254,14 @@ const Navber = () => {
       faq: isBangla ? "FAQ / সাহায্য" : "FAQ / Help",
       liveChat: isBangla ? "লাইভ চ্যাট" : "Live Chat",
       download: isBangla ? "ডাউনলোড করুন" : "Download App",
+
+      balanceReloadOk: isBangla
+        ? "ব্যালেন্স রিফ্রেশ হয়েছে"
+        : "Balance refreshed",
+      balanceReloadFail: isBangla
+        ? "ব্যালেন্স রিফ্রেশ ব্যর্থ"
+        : "Balance refresh failed",
+      logoutOk: isBangla ? "লগআউট সফল হয়েছে" : "Logged out successfully",
     }),
     [isBangla],
   );
@@ -255,10 +311,29 @@ const Navber = () => {
 
   const handleLogout = () => {
     dispatch(logout());
+    toast.success(t.logoutOk);
     setSidebarOpen(false);
     setLangOpen(false);
     navigate("/");
   };
+
+  // ✅ balance reload
+  const [balReloading, setBalReloading] = useState(false);
+  const reloadBalance = useCallback(async () => {
+    if (!token) return;
+    try {
+      setBalReloading(true);
+      const d = await fetchMyBalance(token);
+      const b = Number(d?.balance) || 0;
+      const c = d?.currency || "BDT";
+      setBalanceState(b);
+      setCurrencyState(c);
+    } catch (e) {
+      toast.error(t.balanceReloadFail, { autoClose: 1800 });
+    } finally {
+      setBalReloading(false);
+    }
+  }, [token, t.balanceReloadOk, t.balanceReloadFail]);
 
   const promoItems = [
     { to: "/promotions", icon: FaTag, label: t.promotions },
@@ -332,7 +407,7 @@ const Navber = () => {
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                className="lg:hidden inline-flex items-center justify-center h-10 w-10 rounded-md border border-black/10 hover:bg-black/5 active:scale-[0.98] transition"
+                className="lg:hidden inline-flex items-center justify-center h-10 w-10 rounded-md border border-black/10 hover:bg-black/5 active:scale-[0.98] transition cursor-pointer"
                 onClick={() => setSidebarOpen(true)}
                 aria-label="Open menu"
               >
@@ -340,7 +415,10 @@ const Navber = () => {
               </button>
 
               {/* logo */}
-              <Link to="/" className="flex items-center gap-2 select-none">
+              <Link
+                to="/"
+                className="flex items-center gap-2 select-none cursor-pointer"
+              >
                 {view.logoUrl ? (
                   <img
                     src={view.logoUrl}
@@ -369,7 +447,7 @@ const Navber = () => {
                       color: colors.loginText,
                       fontSize: `${colors.loginTextSize}px`,
                     }}
-                    className="hidden sm:inline-flex items-center justify-center h-10 px-4 rounded-lg font-extrabold text-sm shadow-sm hover:brightness-95 active:scale-[0.99] transition"
+                    className="hidden sm:inline-flex items-center justify-center h-10 px-4 rounded-lg font-extrabold text-sm shadow-sm hover:brightness-95 active:scale-[0.99] transition cursor-pointer"
                   >
                     {t.login}
                   </Link>
@@ -382,7 +460,7 @@ const Navber = () => {
                       color: colors.registerText,
                       fontSize: `${colors.registerTextSize}px`,
                     }}
-                    className="hidden sm:inline-flex items-center justify-center h-10 px-4 rounded-lg font-extrabold text-sm shadow-sm hover:brightness-95 active:scale-[0.99] transition"
+                    className="hidden sm:inline-flex items-center justify-center h-10 px-4 rounded-lg font-extrabold text-sm shadow-sm hover:brightness-95 active:scale-[0.99] transition cursor-pointer"
                   >
                     {t.join}
                   </Link>
@@ -392,7 +470,7 @@ const Navber = () => {
                     <button
                       type="button"
                       onClick={() => setLangOpen((v) => !v)}
-                      className="h-10 px-3 rounded-full bg-[#d9d9d9] flex items-center gap-2 border border-black/10 hover:brightness-95 active:scale-[0.99] transition"
+                      className="h-10 px-3 rounded-full bg-[#d9d9d9] flex items-center gap-2 border border-black/10 hover:brightness-95 active:scale-[0.99] transition cursor-pointer"
                       aria-haspopup="menu"
                       aria-expanded={langOpen}
                     >
@@ -408,7 +486,7 @@ const Navber = () => {
                         <button
                           type="button"
                           onClick={() => onSelectLang("Bangla")}
-                          className={`w-full px-3 py-2.5 flex items-center gap-2 text-sm font-semibold hover:bg-black/5 ${
+                          className={`w-full px-3 py-2.5 flex items-center gap-2 text-sm font-semibold hover:bg-black/5 cursor-pointer ${
                             language === "Bangla" ? "bg-black/5" : ""
                           }`}
                         >
@@ -418,7 +496,7 @@ const Navber = () => {
                         <button
                           type="button"
                           onClick={() => onSelectLang("English")}
-                          className={`w-full px-3 py-2.5 flex items-center gap-2 text-sm font-semibold hover:bg-black/5 ${
+                          className={`w-full px-3 py-2.5 flex items-center gap-2 text-sm font-semibold hover:bg-black/5 cursor-pointer ${
                             language === "English" ? "bg-black/5" : ""
                           }`}
                         >
@@ -442,7 +520,7 @@ const Navber = () => {
                     <Link
                       to="/profile"
                       style={{ backgroundColor: colors.iconBg }}
-                      className="h-10 w-10 rounded-full flex items-center justify-center shadow-sm hover:brightness-95 active:scale-[0.99] transition"
+                      className="h-10 w-10 rounded-full flex items-center justify-center shadow-sm hover:brightness-95 active:scale-[0.99] transition cursor-pointer"
                       aria-label="Profile"
                       title="Profile"
                     >
@@ -456,7 +534,7 @@ const Navber = () => {
                     <Link
                       to="/notifications"
                       style={{ backgroundColor: colors.iconBg }}
-                      className="relative h-10 w-10 rounded-full flex items-center justify-center shadow-sm hover:brightness-95 active:scale-[0.99] transition"
+                      className="relative h-10 w-10 rounded-full flex items-center justify-center shadow-sm hover:brightness-95 active:scale-[0.99] transition cursor-pointer"
                       aria-label="Notifications"
                       title="Notifications"
                     >
@@ -474,13 +552,27 @@ const Navber = () => {
 
                     {/* balance pill */}
                     <div className="hidden h-10 rounded-full bg-[#e6e6e6] md:flex items-center px-4 font-extrabold text-black text-[14px] shadow-sm">
-                      ৳ {balance.toFixed(2)}
+                      {currencySymbol} {Number(balanceState).toFixed(2)}
+                      <button
+                        type="button"
+                        onClick={reloadBalance}
+                        disabled={balReloading}
+                        className="ml-2 font-bold cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                        aria-label="Reload balance"
+                        title="Reload balance"
+                      >
+                        <span
+                          className={`${balReloading ? "animate-spin inline-block" : ""}`}
+                        >
+                          <TfiReload />
+                        </span>
+                      </button>
                     </div>
 
                     {/* add balance blue circle */}
                     <Link
                       to="/deposit"
-                      className="hidden h-10 w-10 rounded-full bg-[#0b78f0] text-white md:flex items-center justify-center shadow-sm hover:brightness-95 active:scale-[0.99] transition"
+                      className="hidden h-10 w-10 rounded-full bg-[#0b78f0] text-white md:flex items-center justify-center shadow-sm hover:brightness-95 active:scale-[0.99] transition cursor-pointer"
                       aria-label="Add balance"
                       title="Add balance"
                     >
@@ -498,7 +590,7 @@ const Navber = () => {
                       <button
                         type="button"
                         onClick={() => setLangOpen((v) => !v)}
-                        className="h-10 px-3 rounded-full bg-[#d9d9d9] flex items-center gap-2 border border-black/10 hover:brightness-95 active:scale-[0.99] transition"
+                        className="h-10 px-3 rounded-full bg-[#d9d9d9] flex items-center gap-2 border border-black/10 hover:brightness-95 active:scale-[0.99] transition cursor-pointer"
                         aria-haspopup="menu"
                         aria-expanded={langOpen}
                       >
@@ -514,7 +606,7 @@ const Navber = () => {
                           <button
                             type="button"
                             onClick={() => onSelectLang("Bangla")}
-                            className={`w-full px-3 py-2.5 flex items-center gap-2 text-sm font-semibold hover:bg-black/5 ${
+                            className={`w-full px-3 py-2.5 flex items-center gap-2 text-sm font-semibold hover:bg-black/5 cursor-pointer ${
                               language === "Bangla" ? "bg-black/5" : ""
                             }`}
                           >
@@ -524,7 +616,7 @@ const Navber = () => {
                           <button
                             type="button"
                             onClick={() => onSelectLang("English")}
-                            className={`w-full px-3 py-2.5 flex items-center gap-2 text-sm font-semibold hover:bg-black/5 ${
+                            className={`w-full px-3 py-2.5 flex items-center gap-2 text-sm font-semibold hover:bg-black/5 cursor-pointer ${
                               language === "English" ? "bg-black/5" : ""
                             }`}
                           >
@@ -539,7 +631,7 @@ const Navber = () => {
                     <button
                       type="button"
                       onClick={handleLogout}
-                      className="h-10 w-10 rounded-md bg-black/5 flex items-center justify-center hover:bg-black/10 active:scale-[0.99] transition"
+                      className="h-10 w-10 rounded-md bg-black/5 flex items-center justify-center hover:bg-black/10 active:scale-[0.99] transition cursor-pointer"
                       aria-label="Logout"
                       title="Logout"
                     >
@@ -562,7 +654,7 @@ const Navber = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.25 }}
-              className="fixed inset-0 bg-black/40 z-[70] lg:hidden"
+              className="fixed inset-0 bg-black/40 z-[70] lg:hidden cursor-pointer"
               onClick={() => setSidebarOpen(false)}
             />
 
@@ -579,7 +671,7 @@ const Navber = () => {
                     {/* logo */}
                     <Link
                       to="/"
-                      className="flex items-center gap-2 select-none"
+                      className="flex items-center gap-2 select-none cursor-pointer"
                     >
                       {view.logoUrl ? (
                         <img
@@ -598,7 +690,7 @@ const Navber = () => {
                   </div>
                   <button
                     type="button"
-                    className="h-10 w-10 rounded-md border border-black/10 flex items-center justify-center hover:bg-black/5"
+                    className="h-10 w-10 rounded-md border border-black/10 flex items-center justify-center hover:bg-black/5 cursor-pointer"
                     onClick={() => setSidebarOpen(false)}
                     aria-label="Close menu"
                   >
@@ -652,7 +744,7 @@ const Navber = () => {
                   <button
                     type="button"
                     onClick={() => setLangOpen(true)}
-                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-[14px] font-semibold text-black/70 hover:bg-black/5 transition"
+                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-[14px] font-semibold text-black/70 hover:bg-black/5 transition cursor-pointer"
                   >
                     <span className="w-8 h-8 text-2xl rounded-lg  flex items-center justify-center">
                       <FaGlobe className="text-black/80" />
@@ -676,7 +768,7 @@ const Navber = () => {
                     <button
                       type="button"
                       onClick={handleLogout}
-                      className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-[14px] font-semibold text-black/70 hover:bg-black/5 transition"
+                      className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-[14px] font-semibold text-black/70 hover:bg-black/5 transition cursor-pointer"
                     >
                       <span className="w-8 h-8 rounded-lg text-2xl flex items-center justify-center">
                         <FaSignOutAlt className="text-black/80" />
@@ -698,7 +790,7 @@ const Navber = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 z-[72] flex items-center justify-center lg:hidden"
+            className="fixed inset-0 bg-black/60 z-[72] flex items-center justify-center lg:hidden cursor-pointer"
             onClick={() => setLangOpen(false)}
           >
             <motion.div
@@ -715,7 +807,7 @@ const Navber = () => {
               <button
                 type="button"
                 onClick={() => onSelectLang("Bangla")}
-                className={`flex items-center gap-3 w-full px-5 py-4 hover:bg-black/5 transition ${
+                className={`flex items-center gap-3 w-full px-5 py-4 hover:bg-black/5 transition cursor-pointer ${
                   language === "Bangla" ? "bg-black/5" : ""
                 }`}
               >
@@ -725,7 +817,7 @@ const Navber = () => {
               <button
                 type="button"
                 onClick={() => onSelectLang("English")}
-                className={`flex items-center gap-3 w-full px-5 py-4 hover:bg-black/5 transition ${
+                className={`flex items-center gap-3 w-full px-5 py-4 hover:bg-black/5 transition cursor-pointer ${
                   language === "English" ? "bg-black/5" : ""
                 }`}
               >

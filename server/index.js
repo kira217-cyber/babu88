@@ -50,6 +50,10 @@ import affWhyUsColorRoutes from "./routes/affWhyUsColorRoutes.js";
 import affNoticeColorRoutes from "./routes/affNoticeColorRoutes.js";
 import affSliderColorRoutes from "./routes/affSliderColorRoutes.js";
 import liveGamesRoutes from "./routes/liveGamesRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
+import adminAffiliateRoutes from "./routes/adminAffiliateRoutes.js";
+
+
 
 
 
@@ -123,6 +127,8 @@ app.use("/api", affWhyUsColorRoutes);
 app.use("/api", affNoticeColorRoutes);
 app.use("/api", affSliderColorRoutes);
 app.use("/api", liveGamesRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/admin", adminAffiliateRoutes);
 
 
 // ✅ port

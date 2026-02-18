@@ -33,6 +33,8 @@ import AffCommissionController from "../pages/AffCommissionController/AffCommiss
 import ColorControllerClient from "../pages/ColorControllerClient/ColorControllerClient";
 import ColorControllerAffiliate from "../pages/ColorControllerAffiliate/ColorControllerAffiliate";
 import LiveGameController from "../pages/LiveGameController/LiveGameController";
+import AllAffiliateUser from "../pages/AllAffiliateUser/AllAffiliateUser";
+import AffiliateUserDetails from "../pages/AffiliateUserDetails/AffiliateUserDetails";
 
 export const routes = createBrowserRouter([
   {
@@ -173,7 +175,22 @@ export const routes = createBrowserRouter([
           </PrivateRoute>
         ),
       },
-
+       {
+        path: "all-affiliate-user",
+        element: (
+          <PrivateRoute permKey="all-affiliate-user">
+            <AllAffiliateUser />
+          </PrivateRoute>
+        ),
+      },
+      {
+          path: "affiliate-users/:id",
+        element: (
+          <PrivateRoute permKey="affiliate-user-details">
+            <AffiliateUserDetails />
+          </PrivateRoute>
+        ),
+      },
       // ✅ Promotions
       {
         path: "add-promotion",

@@ -1,15 +1,19 @@
+// src/routes/PrivateRoute.jsx
+import React from "react";
 import { Navigate, useLocation } from "react-router";
 import { useSelector } from "react-redux";
 import {
-  selectAuth,
+  selectAuthLoading,
   selectIsAuthenticated,
+  selectUser,
 } from "../features/auth/authSelectors";
 
-const PrivateRoute = ({ children }) => {
+const PrivateRoute = ({ children, allowedRoles }) => {
   const location = useLocation();
 
-  const { loading } = useSelector(selectAuth);
+  const loading = useSelector(selectAuthLoading);
   const isAuthenticated = useSelector(selectIsAuthenticated);
+  const user = useSelector(selectUser);
 
   if (loading) {
     return (
@@ -24,8 +28,23 @@ const PrivateRoute = ({ children }) => {
     );
   }
 
+  // ✅ not logged in
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // ✅ active check (optional but recommended)
+  if (user?.isActive !== true) {
+    // user disabled হলে login এ পাঠাও (বা আলাদা page দিলে সেখানে)
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // ✅ role-based guard (optional)
+  if (Array.isArray(allowedRoles) && allowedRoles.length > 0) {
+    const roleOk = allowedRoles.includes(user?.role);
+    if (!roleOk) {
+      return <Navigate to="/" replace />;
+    }
   }
 
   return children;

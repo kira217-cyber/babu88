@@ -1,9 +1,13 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { FaEye, FaEyeSlash, FaSyncAlt, FaChevronDown } from "react-icons/fa";
 import { useLanguage } from "../../Context/LanguageProvider";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/axios";
+import { toast } from "react-toastify";
+import { useNavigate } from "react-router";
+import { useDispatch } from "react-redux";
+import { setAuth } from "../../features/auth/authSlice";
 
 // Tiny Flag components (unchanged)
 const BdFlag = ({ className = "" }) => (
@@ -39,8 +43,10 @@ const fetchRegisterConfig = async () => {
   return data;
 };
 
-const DesktopRegister = () => {
+const DesktopRegister = ({ refCode = "" }) => {
   const { isBangla } = useLanguage();
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const [showPass, setShowPass] = useState(false);
   const [showCpass, setShowCpass] = useState(false);
@@ -59,32 +65,26 @@ const DesktopRegister = () => {
   const view = useMemo(() => {
     const d = cfg || {};
     return {
-      // if you ever want to hide register by config
       isActive: d?.isActive ?? true,
 
-      // images
       bannerUrl:
         resolveUrl(api.defaults.baseURL, d?.desktopBannerUrl) ||
         "https://babu88.gold/static/image/banner/registerBanner/register_banner_en.jpg",
 
-      // desktop colors
       pageBg: d?.deskPageBg || "#f0f0f0",
       cardBg: d?.deskCardBg || "#ffffff",
       titleColor: d?.deskTitleColor || "#000000",
       subtitleColor: d?.deskSubTitleColor || "#000000",
 
-      // register button
       registerBtnBg: d?.deskRegisterBtnBg || "#f2c200",
       registerBtnText: d?.deskRegisterBtnTextColor || "#000000",
       registerBtnTextSize: d?.deskRegisterBtnTextSizePx ?? 16,
 
-      // vcode box
       vcodeBg: d?.deskVcodeBoxBg || "#8b8b8b",
       vcodeText: d?.deskVcodeBoxTextColor || "#ffffff",
     };
   }, [cfg]);
 
-  // ✅ text (unchanged)
   const t = useMemo(() => {
     if (isBangla) {
       return {
@@ -110,6 +110,8 @@ const DesktopRegister = () => {
         fillHere: "Fill up here",
         fillPass: "Fill up password here",
         fillCpass: "Confirm the password",
+        success: "রেজিস্টার সফল হয়েছে",
+        failed: "রেজিস্টার ব্যর্থ হয়েছে",
       };
     }
 
@@ -136,6 +138,8 @@ const DesktopRegister = () => {
       fillHere: "Fill up here",
       fillPass: "Fill up password here",
       fillCpass: "Confirm the password",
+      success: "Registration successful",
+      failed: "Registration failed",
     };
   }, [isBangla]);
 
@@ -145,7 +149,9 @@ const DesktopRegister = () => {
     setError,
     clearErrors,
     control,
-    formState: { errors },
+    reset,
+    setValue, // ✅ IMPORTANT (auto fill)
+    formState: { errors, isSubmitting },
   } = useForm({
     defaultValues: {
       username: "",
@@ -160,9 +166,20 @@ const DesktopRegister = () => {
     mode: "onSubmit",
   });
 
+  // ✅ auto-fill referral from URL query (?ref=KYYNNW)
+  useEffect(() => {
+    const code = (refCode || "").trim();
+    if (!code) return;
+
+    setValue("referral", code, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+  }, [refCode, setValue]);
+
   const currency = useWatch({ control, name: "currency" });
 
-  const onSubmit = (data) => {
+  const onSubmit = async (data) => {
     if (data.password !== data.confirmPassword) {
       setError("confirmPassword", { type: "validate", message: t.mismatch });
       return;
@@ -176,8 +193,55 @@ const DesktopRegister = () => {
       return;
     }
 
-    clearErrors();
-    alert("Registered (demo)");
+    try {
+      clearErrors();
+
+      const raw = String(data.phone || "").trim();
+      const payload = {
+        username: (data.username || "").trim(),
+        phone: raw,
+        password: data.password,
+        currency: data.currency,
+        referral: (data.referral || "").trim(), // ✅ এখানে auto ref যাবে
+      };
+
+      const res = await api.post("/api/users/register", payload);
+
+      const token = res?.data?.token;
+      const user = res?.data?.user;
+
+      if (token && user) {
+        dispatch(setAuth({ user, token }));
+      }
+
+      toast.success(t.success);
+
+      reset();
+      setVCode(genCode());
+      navigate("/");
+    } catch (err) {
+      const status = err?.response?.status;
+      const msg = err?.response?.data?.message || err?.message || t.failed;
+
+      if (status === 409) {
+        const lower = String(msg).toLowerCase();
+        if (lower.includes("username")) {
+          setError("username", { type: "server", message: msg });
+        } else if (lower.includes("phone") || lower.includes("mobile")) {
+          setError("phone", { type: "server", message: msg });
+        } else {
+          toast.error(msg);
+        }
+        return;
+      }
+
+      if (status === 400 && String(msg).toLowerCase().includes("referral")) {
+        setError("referral", { type: "server", message: msg });
+        return;
+      }
+
+      toast.error(msg);
+    }
   };
 
   // --- UI atoms (match screenshot) ---
@@ -193,7 +257,7 @@ const DesktopRegister = () => {
     </span>
   );
 
-  const Label = ({ children, required, right }) => (
+  const LabelRow = ({ children, required, right }) => (
     <div className="flex items-center justify-between mb-1">
       <p className="text-[16px] font-semibold text-black/80">
         {children} {required && <span className="text-red-600">*</span>}
@@ -202,7 +266,7 @@ const DesktopRegister = () => {
     </div>
   );
 
-  const Input = ({ error, ...props }) => (
+  const InputField = ({ error, ...props }) => (
     <input
       {...props}
       className={`w-full h-[48px] rounded-md border px-3 text-[18px] outline-none bg-white
@@ -210,7 +274,7 @@ const DesktopRegister = () => {
     />
   );
 
-  const Select = ({ error, children, ...props }) => (
+  const SelectField = ({ error, children, ...props }) => (
     <div className="relative w-full">
       <select
         {...props}
@@ -235,7 +299,6 @@ const DesktopRegister = () => {
     </span>
   );
 
-  // ✅ if you ever want to hide register by config
   if (view.isActive === false) return null;
 
   return (
@@ -245,7 +308,6 @@ const DesktopRegister = () => {
         className="hidden md:block min-h-screen py-10"
         style={{ background: view.pageBg }}
       >
-        {/* Center card like screenshot */}
         <div
           className="mx-auto w-full max-w-5xl border border-black/10 shadow-[0_0_0_1px_rgba(0,0,0,0.03)]"
           style={{ background: view.cardBg }}
@@ -266,7 +328,7 @@ const DesktopRegister = () => {
             </p>
           </div>
 
-          {/* Banner (full width) */}
+          {/* Banner */}
           <div className="mt-4">
             <div className="w-full h-[220px] md overflow-hidden border border-black/10">
               <div
@@ -281,10 +343,10 @@ const DesktopRegister = () => {
             <div className="mx-auto w-full max-w-[620px]">
               {/* Username */}
               <div className="mt-6">
-                <Label required right={<QIcon />}>
+                <LabelRow required right={<QIcon />}>
                   {t.username}
-                </Label>
-                <Input
+                </LabelRow>
+                <InputField
                   placeholder={t.fillHere}
                   error={errors.username}
                   {...register("username", { required: t.required })}
@@ -294,11 +356,11 @@ const DesktopRegister = () => {
 
               {/* Password */}
               <div className="mt-4">
-                <Label required right={<QIcon />}>
+                <LabelRow required right={<QIcon />}>
                   {t.password}
-                </Label>
+                </LabelRow>
                 <div className="relative">
-                  <Input
+                  <InputField
                     type={showPass ? "text" : "password"}
                     placeholder={t.fillPass}
                     error={errors.password}
@@ -321,9 +383,9 @@ const DesktopRegister = () => {
 
               {/* Confirm Password */}
               <div className="mt-4">
-                <Label required>{t.cpass}</Label>
+                <LabelRow required>{t.cpass}</LabelRow>
                 <div className="relative">
-                  <Input
+                  <InputField
                     type={showCpass ? "text" : "password"}
                     placeholder={t.fillCpass}
                     error={errors.confirmPassword}
@@ -343,35 +405,34 @@ const DesktopRegister = () => {
 
               {/* Currency */}
               <div className="mt-4">
-                <Label required>{t.currency}</Label>
+                <LabelRow required>{t.currency}</LabelRow>
                 <div className="flex items-center gap-2">
-                  {/* right tiny flag (your requirement) */}
                   <div>
                     <CurrencyFlag />
                   </div>
                   <div className="flex-1">
-                    <Select
+                    <SelectField
                       error={errors.currency}
                       {...register("currency", { required: true })}
                     >
                       <option value="BDT">BDT</option>
                       <option value="USDT">USDT</option>
-                    </Select>
+                    </SelectField>
                   </div>
                 </div>
               </div>
 
-              {/* Mobile Number */}
+              {/* Mobile */}
               <div className="mt-4">
-                <Label required right={<InfoIcon />}>
+                <LabelRow required right={<InfoIcon />}>
                   {t.mobile}
-                </Label>
+                </LabelRow>
                 <div className="flex gap-2">
                   <div className="h-[48px] w-[90px] rounded-md border border-black/25 bg-[#efefef] flex items-center px-3 text-[18px] text-black/60">
                     +880
                   </div>
                   <div className="flex-1">
-                    <Input
+                    <InputField
                       placeholder={t.fillHere}
                       error={errors.phone}
                       {...register("phone", {
@@ -389,10 +450,10 @@ const DesktopRegister = () => {
 
               {/* Verification Code */}
               <div className="mt-4">
-                <Label required>{t.vcode}</Label>
+                <LabelRow required>{t.vcode}</LabelRow>
                 <div className="flex items-center gap-2">
                   <div className="flex-1">
-                    <Input
+                    <InputField
                       placeholder=""
                       error={errors.verifyInput}
                       {...register("verifyInput", { required: t.required })}
@@ -400,7 +461,6 @@ const DesktopRegister = () => {
                     <ErrorText msg={errors.verifyInput?.message} />
                   </div>
 
-                  {/* code box (right) */}
                   <div
                     className="h-[48px] w-[120px] rounded-md flex items-center justify-between px-3"
                     style={{ background: view.vcodeBg, color: view.vcodeText }}
@@ -424,7 +484,7 @@ const DesktopRegister = () => {
                 </div>
               </div>
 
-              {/* Referral Code */}
+              {/* Referral Code (✅ auto filled here) */}
               <div className="mt-4">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-[18px] font-semibold text-black/70">
@@ -432,24 +492,31 @@ const DesktopRegister = () => {
                   </p>
                   <FaChevronDown className="text-black/40 text-[12px]" />
                 </div>
-                <Input
+
+                <InputField
                   placeholder={t.optional}
-                  error={false}
+                  error={errors.referral}
                   {...register("referral")}
                 />
+                <ErrorText msg={errors.referral?.message} />
               </div>
 
-              {/* Register button (pill) - config driven */}
+              {/* Register button */}
               <button
                 type="submit"
-                className="mt-7 w-full h-[42px] rounded-full font-extrabold shadow-[inset_0_-1px_0_rgba(0,0,0,0.15)] active:scale-[0.99]"
+                disabled={isSubmitting}
+                className="mt-7 w-full h-[42px] rounded-full font-extrabold shadow-[inset_0_-1px_0_rgba(0,0,0,0.15)] active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
                 style={{
                   background: view.registerBtnBg,
                   color: view.registerBtnText,
                   fontSize: view.registerBtnTextSize,
                 }}
               >
-                {t.registerBtn}
+                {isSubmitting
+                  ? isBangla
+                    ? "প্রসেস হচ্ছে..."
+                    : "Processing..."
+                  : t.registerBtn}
               </button>
 
               {/* Agree */}
@@ -469,7 +536,6 @@ const DesktopRegister = () => {
         </div>
       </div>
 
-      {/* mobile hidden */}
       <div className="md:hidden" />
     </>
   );

@@ -1,29 +1,49 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   FaUsers,
   FaWallet,
   FaChartLine,
-  FaLink,
   FaCopy,
   FaEye,
   FaShareAlt,
 } from "react-icons/fa";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
+import { useSelector } from "react-redux";
 
 const Dashboard = () => {
   const [copied, setCopied] = useState(false);
 
-  const referralLink = "https://babu88.com/ref/abc123xyz";
+  // ✅ logged-in user from redux
+  const user = useSelector((state) => state?.auth?.user);
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(referralLink);
-    setCopied(true);
-    toast.success("Referral link copied!", {
-      position: "top-right",
-      autoClose: 2000,
-    });
-    setTimeout(() => setCopied(false), 2500);
+  // ✅ base url (prefer env)
+  const baseUrl = (import.meta.env.VITE_CLIENT_URL || "").trim();
+
+  const referralLink = useMemo(() => {
+    const code = (user?.referralCode || "").trim();
+    if (!baseUrl) return ""; // env missing
+    if (!code) return `${baseUrl}/register`;
+    return `${baseUrl}/register?ref=${encodeURIComponent(code)}`;
+  }, [user?.referralCode, baseUrl]);
+
+  const copyToClipboard = async () => {
+    try {
+      if (!referralLink || referralLink.endsWith("/ref/")) {
+        toast.error("Referral code পাওয়া যায়নি");
+        return;
+      }
+
+      await navigator.clipboard.writeText(referralLink);
+      setCopied(true);
+      toast.success("Referral link copied!", {
+        position: "top-right",
+        autoClose: 2000,
+      });
+      setTimeout(() => setCopied(false), 2500);
+    } catch (e) {
+      toast.error("Copy failed");
+    }
   };
 
   // Sample stats (replace with real data from API/Redux later)
@@ -91,6 +111,12 @@ const Dashboard = () => {
               <div className="bg-gray-950 border border-cyan-900/50 rounded-lg px-4 py-3 font-mono text-sm md:text-base break-all">
                 {referralLink}
               </div>
+              {/* optional small helper */}
+              {!user?.referralCode ? (
+                <p className="text-xs text-amber-300 mt-2">
+                  Referral code এখনো সেট হয়নি
+                </p>
+              ) : null}
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4">

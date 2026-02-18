@@ -1,15 +1,20 @@
+import React from "react";
 import { Navigate, useLocation } from "react-router";
 import { useSelector } from "react-redux";
 import {
   selectAuth,
   selectIsAuthenticated,
+  selectUser,
 } from "../features/auth/authSelectors";
+import { toast } from "react-toastify";
 
-const PrivateRoute = ({ children }) => {
+
+const PrivateRoute = ({ children, allowedRoles }) => {
   const location = useLocation();
 
   const { loading } = useSelector(selectAuth);
   const isAuthenticated = useSelector(selectIsAuthenticated);
+  const user = useSelector(selectUser);
 
   if (loading) {
     return (
@@ -24,7 +29,27 @@ const PrivateRoute = ({ children }) => {
     );
   }
 
+  // ✅ Not logged in
   if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // ✅ role restriction (optional)
+  if (Array.isArray(allowedRoles) && allowedRoles.length > 0) {
+    const roleOk = allowedRoles.includes(user?.role);
+    if (!roleOk) {
+      return <Navigate to="/login" state={{ from: location }} replace />;
+    }
+  }
+
+  // ✅ Affiliate special rule: must be approved
+  // যদি এই route affiliate area protect করে এবং user aff-user হয়
+  if (user?.role === "aff-user" && user?.isActive !== true) {
+    // approved না হলে logout-like behavior (optional)
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+
+    toast.error("Admin এখনো approve করেনি। Approve হলে আবার Login করুন।");
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

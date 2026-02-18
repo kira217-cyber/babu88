@@ -7,19 +7,23 @@ import { useLanguage } from "../../Context/LanguageProvider";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/axios";
 import { useDispatch } from "react-redux";
-import { demoLogin } from "../../features/auth/authSlice";
+import { setAuth } from "../../features/auth/authSlice"; // ✅ path ঠিক রাখো
 import { toast } from "react-toastify";
 
 /* UI HELPERS */
 const Label = ({ children, required }) => (
   <label className="text-sm font-extrabold" style={{ color: "var(--l-label)" }}>
-    {children} {required ? <span className="text-red-500 font-extrabold">*</span> : null}
+    {children}{" "}
+    {required ? <span className="text-red-500 font-extrabold">*</span> : null}
   </label>
 );
 
 const ErrorText = ({ msg }) =>
   msg ? (
-    <p className="mt-1 text-xs font-semibold" style={{ color: "var(--l-error)" }}>
+    <p
+      className="mt-1 text-xs font-semibold"
+      style={{ color: "var(--l-error)" }}
+    >
       {msg}
     </p>
   ) : null;
@@ -28,7 +32,10 @@ const Input = React.forwardRef(({ error, className = "", ...props }, ref) => (
   <input
     ref={ref}
     {...props}
-    className={["w-full px-4 py-3 md:py-4 outline-none transition", className].join(" ")}
+    className={[
+      "w-full px-4 py-3 md:py-4 outline-none transition",
+      className,
+    ].join(" ")}
     style={{
       borderRadius: "var(--l-input-radius)",
       background: "var(--l-input-bg)",
@@ -39,23 +46,11 @@ const Input = React.forwardRef(({ error, className = "", ...props }, ref) => (
   />
 ));
 
-/* COMPONENT */
 export default function Login() {
   const { isBangla } = useLanguage();
   const [showPass, setShowPass] = useState(false);
   const navigate = useNavigate();
-
-   const dispatch = useDispatch();
-
-
-  const handleDemoLogin = () => {
-    dispatch(demoLogin());
-    navigate("/dashboard");
-    toast.success("Logged in successfully with demo account", {
-      position: "top-right",
-      autoClose: 3000,
-    });
-  };
+  const dispatch = useDispatch();
 
   // ✅ Login Color Config
   const { data: loginCfg } = useQuery({
@@ -103,7 +98,8 @@ export default function Login() {
     "--l-submit-bg": cfg.submitBg || "#f59e0b",
     "--l-submit-hover-bg": cfg.submitHoverBg || "#d97706",
     "--l-submit-text": cfg.submitText || "#000000",
-    "--l-submit-shadow": cfg.submitShadow || "0 16px 40px rgba(245,158,11,0.35)",
+    "--l-submit-shadow":
+      cfg.submitShadow || "0 16px 40px rgba(245,158,11,0.35)",
     "--l-submit-size": `${cfg.submitTextSize ?? 16}px`,
     "--l-submit-radius": `${cfg.submitRadius ?? 16}px`,
 
@@ -116,7 +112,8 @@ export default function Login() {
   const genCode = () => {
     const chars = "123456789";
     let out = "";
-    for (let i = 0; i < 5; i++) out += chars[Math.floor(Math.random() * chars.length)];
+    for (let i = 0; i < 5; i++)
+      out += chars[Math.floor(Math.random() * chars.length)];
     return out;
   };
   const [vCode, setVCode] = useState(genCode);
@@ -135,6 +132,16 @@ export default function Login() {
       login: isBangla ? "লগইন করুন" : "Login",
       noAccount: isBangla ? "একাউন্ট নেই?" : "Don’t have an account?",
       registerNow: isBangla ? "রেজিস্টার করুন" : "Register",
+
+      // ✅ checks
+      notApproved: isBangla
+        ? "Admin এখনো approve করেনি। Approve হলে আবার Login করুন।"
+        : "Admin has not approved your account yet. Please login again after approval.",
+      notAffiliate: isBangla
+        ? "এটি Affiliate একাউন্ট নয়।"
+        : "This is not an affiliate account.",
+      success: isBangla ? "লগইন সফল হয়েছে" : "Login successful",
+      failed: isBangla ? "লগইন ব্যর্থ হয়েছে" : "Login failed",
     }),
     [isBangla],
   );
@@ -143,6 +150,7 @@ export default function Login() {
     register,
     handleSubmit,
     clearErrors,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm({
     defaultValues: { username: "", password: "", verifyInput: "" },
@@ -150,13 +158,92 @@ export default function Login() {
   });
 
   const onSubmit = async (data) => {
-    if ((data.verifyInput || "").trim().toUpperCase() !== vCode) return;
-    // এখানে login API call দিবা
+    // ✅ vcode check
+    const codeOk = (data.verifyInput || "").trim().toUpperCase() === vCode;
+    if (!codeOk) {
+      setError("verifyInput", { type: "validate", message: t.codeMismatch });
+      return;
+    }
+
+    try {
+      clearErrors();
+
+      // ✅ server expects username + password (no phone)
+      const payload = {
+        username: (data.username || "").trim(),
+        password: data.password,
+      };
+
+      // ✅ Affiliate login endpoint
+      const res = await api.post("/api/users/login-aff", payload);
+
+      // expected: { token, user }
+      const token = res?.data?.token;
+      const user = res?.data?.user;
+
+      if (!token || !user) {
+        toast.error(t.failed);
+        return;
+      }
+
+      // ✅ must be aff-user
+      if (user?.role !== "aff-user") {
+        toast.error(t.notAffiliate);
+        return;
+      }
+
+      // ✅ must be approved (isActive true)
+      if (user?.isActive !== true) {
+        // approve না হলে কোনো storage/save হবে না
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+        toast.error(t.notApproved);
+        return;
+      }
+
+      // ✅ success: save auth (this reducer also saves to localStorage)
+      dispatch(setAuth({ user, token }));
+
+      toast.success(t.success);
+      navigate("/dashboard");
+    } catch (err) {
+      const status = err?.response?.status;
+      const msg = err?.response?.data?.message || err?.message || t.failed;
+
+      // ✅ handle common errors
+      if (status === 403) {
+        // server might return: "Admin not approved for login" / "Not an affiliate account"
+        const lower = String(msg).toLowerCase();
+        if (lower.includes("approved") || lower.includes("approve")) {
+          toast.error(t.notApproved);
+        } else if (lower.includes("affiliate")) {
+          toast.error(t.notAffiliate);
+        } else {
+          toast.error(msg);
+        }
+        return;
+      }
+
+      if (status === 401 || status === 400) {
+        toast.error(msg);
+        return;
+      }
+
+      toast.error(msg);
+    }
   };
 
   return (
-    <div style={cssVars} className="min-h-screen flex items-center justify-center px-4 py-10 bg-[color:var(--l-page-bg)]">
-      <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="w-full max-w-[520px]">
+    <div
+      style={cssVars}
+      className="min-h-screen flex items-center justify-center px-4 py-10 bg-[color:var(--l-page-bg)]"
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+        className="w-full max-w-[520px]"
+      >
         <div
           className="overflow-hidden border"
           style={{
@@ -167,11 +254,20 @@ export default function Login() {
           }}
         >
           {/* Header */}
-          <div className="px-6 sm:px-8 py-6 border-b" style={{ borderColor: "var(--l-header-border)" }}>
-            <h1 className="text-2xl font-extrabold" style={{ color: "var(--l-title)" }}>
+          <div
+            className="px-6 sm:px-8 py-6 border-b"
+            style={{ borderColor: "var(--l-header-border)" }}
+          >
+            <h1
+              className="text-2xl font-extrabold"
+              style={{ color: "var(--l-title)" }}
+            >
               {t.title}
             </h1>
-            <p className="mt-2 text-sm font-semibold" style={{ color: "var(--l-subtitle)" }}>
+            <p
+              className="mt-2 text-sm font-semibold"
+              style={{ color: "var(--l-subtitle)" }}
+            >
               {t.subtitle}
             </p>
           </div>
@@ -185,12 +281,21 @@ export default function Login() {
                 <div className="mt-2 flex items-center gap-3">
                   <div
                     className="hidden sm:flex h-[52px] w-[52px] items-center justify-center"
-                    style={{ borderRadius: "var(--l-input-radius)", background: "var(--l-icon-bg)", color: "var(--l-icon)" }}
+                    style={{
+                      borderRadius: "var(--l-input-radius)",
+                      background: "var(--l-icon-bg)",
+                      color: "var(--l-icon)",
+                    }}
                   >
                     <FaUser />
                   </div>
                   <div className="flex-1">
-                    <Input placeholder={t.usernamePH} error={errors.username} {...register("username", { required: t.required })} />
+                    <Input
+                      placeholder={t.usernamePH}
+                      error={errors.username}
+                      autoComplete="username"
+                      {...register("username", { required: t.required })}
+                    />
                     <ErrorText msg={errors.username?.message} />
                   </div>
                 </div>
@@ -202,7 +307,11 @@ export default function Login() {
                 <div className="mt-2 flex items-center gap-3">
                   <div
                     className="hidden sm:flex h-[52px] w-[52px] items-center justify-center"
-                    style={{ borderRadius: "var(--l-input-radius)", background: "var(--l-icon-bg)", color: "var(--l-icon)" }}
+                    style={{
+                      borderRadius: "var(--l-input-radius)",
+                      background: "var(--l-icon-bg)",
+                      color: "var(--l-icon)",
+                    }}
                   >
                     <FaLock />
                   </div>
@@ -212,6 +321,7 @@ export default function Login() {
                       type={showPass ? "text" : "password"}
                       placeholder={t.passPH}
                       error={errors.password}
+                      autoComplete="current-password"
                       {...register("password", { required: t.required })}
                       className="pr-12"
                     />
@@ -220,11 +330,19 @@ export default function Login() {
                       onClick={() => setShowPass((s) => !s)}
                       className="absolute right-4 top-1/2 -translate-y-1/2"
                       style={{ color: "var(--l-eye)" }}
-                      onMouseEnter={(e) => (e.currentTarget.style.color = "var(--l-eye-hover)")}
-                      onMouseLeave={(e) => (e.currentTarget.style.color = "var(--l-eye)")}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.color = "var(--l-eye-hover)")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.color = "var(--l-eye)")
+                      }
                       aria-label="toggle password"
                     >
-                      {showPass ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
+                      {showPass ? (
+                        <FaEyeSlash size={18} />
+                      ) : (
+                        <FaEye size={18} />
+                      )}
                     </button>
                     <ErrorText msg={errors.password?.message} />
                   </div>
@@ -240,7 +358,9 @@ export default function Login() {
                       error={errors.verifyInput}
                       {...register("verifyInput", {
                         required: t.required,
-                        validate: (v) => (v || "").trim().toUpperCase() === vCode || t.codeMismatch,
+                        validate: (v) =>
+                          (v || "").trim().toUpperCase() === vCode ||
+                          t.codeMismatch,
                       })}
                     />
                     <ErrorText msg={errors.verifyInput?.message} />
@@ -248,9 +368,14 @@ export default function Login() {
 
                   <div
                     className="h-[48px] w-[120px] rounded-md flex items-center justify-between px-3"
-                    style={{ background: "var(--l-vcode-bg)", color: "var(--l-vcode-text)" }}
+                    style={{
+                      background: "var(--l-vcode-bg)",
+                      color: "var(--l-vcode-text)",
+                    }}
                   >
-                    <span className="font-extrabold tracking-wider text-[18px]">{vCode}</span>
+                    <span className="font-extrabold tracking-wider text-[18px]">
+                      {vCode}
+                    </span>
                     <button
                       type="button"
                       onClick={() => {
@@ -271,7 +396,6 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                onClick={handleDemoLogin}
                 className="w-full mt-2 py-4 font-extrabold transition disabled:opacity-60 disabled:cursor-not-allowed"
                 style={{
                   borderRadius: "var(--l-submit-radius)",
@@ -280,21 +404,37 @@ export default function Login() {
                   color: "var(--l-submit-text)",
                   boxShadow: "var(--l-submit-shadow)",
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--l-submit-hover-bg)")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "var(--l-submit-bg)")}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background =
+                    "var(--l-submit-hover-bg)")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.background = "var(--l-submit-bg)")
+                }
               >
-                {isSubmitting ? (isBangla ? "প্রসেস হচ্ছে..." : "Processing...") : t.login}
+                {isSubmitting
+                  ? isBangla
+                    ? "প্রসেস হচ্ছে..."
+                    : "Processing..."
+                  : t.login}
               </button>
 
               {/* Register Link */}
-              <p className="mt-4 text-center text-[13px] font-semibold" style={{ color: "var(--l-helper)" }}>
+              <p
+                className="mt-4 text-center text-[13px] font-semibold"
+                style={{ color: "var(--l-helper)" }}
+              >
                 {t.noAccount}{" "}
                 <Link
                   to="/register"
                   className="font-extrabold underline underline-offset-2"
                   style={{ color: "var(--l-link)" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = "var(--l-link-hover)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = "var(--l-link)")}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.color = "var(--l-link-hover)")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.color = "var(--l-link)")
+                  }
                 >
                   {t.registerNow}
                 </Link>

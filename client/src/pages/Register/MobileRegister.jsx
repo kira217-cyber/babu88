@@ -3,9 +3,12 @@ import { useForm, useWatch } from "react-hook-form";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaEye, FaEyeSlash, FaSyncAlt } from "react-icons/fa";
 import { useLanguage } from "../../Context/LanguageProvider";
-import { useNavigate } from "react-router";
+import { useNavigate, useLocation } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/axios";
+import { toast } from "react-toastify";
+import { useDispatch } from "react-redux";
+import { setAuth } from "../../features/auth/authSlice"; // ✅ path তোমার project অনুযায়ী ঠিক রাখো
 
 // Tiny Flag components (unchanged)
 const BdFlag = ({ className = "" }) => (
@@ -50,6 +53,8 @@ const fetchRegisterConfig = async () => {
 const MobileRegister = () => {
   const { isBangla } = useLanguage();
   const navigate = useNavigate();
+  const location = useLocation();
+  const dispatch = useDispatch();
 
   const [step, setStep] = useState(0);
 
@@ -182,6 +187,10 @@ const MobileRegister = () => {
           deposit: "ডিপোজিট করুন",
           home: "হোম পেজে যান",
         },
+        api: {
+          success: "রেজিস্টার সফল হয়েছে",
+          failed: "রেজিস্টার ব্যর্থ হয়েছে",
+        },
       };
     }
 
@@ -226,6 +235,10 @@ const MobileRegister = () => {
         deposit: "Deposit Now",
         home: "Go to Home page",
       },
+      api: {
+        success: "Registration successful",
+        failed: "Registration failed",
+      },
     };
   }, [isBangla]);
 
@@ -235,7 +248,8 @@ const MobileRegister = () => {
     setError,
     clearErrors,
     control,
-    formState: { errors },
+    setValue, // ✅ needed for auto referral
+    formState: { errors, isSubmitting },
   } = useForm({
     defaultValues: {
       username: "",
@@ -250,10 +264,23 @@ const MobileRegister = () => {
     mode: "onSubmit",
   });
 
+  // ✅ AUTO referral from /register?ref=KYYNNW (NO DESIGN CHANGE)
+  useEffect(() => {
+    const ref = new URLSearchParams(location.search).get("ref");
+    if (!ref) return;
+    const clean = String(ref).trim();
+    if (!clean) return;
+
+    // set referral input value silently
+    setValue("referral", clean, { shouldValidate: false, shouldDirty: false });
+  }, [location.search, setValue]);
+
   const selectedCurrency = useWatch({ control, name: "currency" });
 
   const onStep1 = (data, e) => {
     e.preventDefault();
+
+    // ✅ same validations
     if (data.password !== data.confirmPassword) {
       setError("confirmPassword", {
         type: "validate",
@@ -265,8 +292,11 @@ const MobileRegister = () => {
     setStep(1);
   };
 
-  const onStep2 = (data, e) => {
+  // ✅ Step2 now does REAL register like Desktop (NO UI CHANGE)
+  const onStep2 = async (data, e) => {
     e.preventDefault();
+
+    // ✅ vcode check
     if ((data.verifyInput || "").trim() !== vCode) {
       setError("verifyInput", {
         type: "validate",
@@ -274,11 +304,68 @@ const MobileRegister = () => {
       });
       return;
     }
+
+    // ✅ agree check
     if (!data.agree) {
       setError("agree", { type: "validate", message: t.step2.agreeNeed });
       return;
     }
-    setStep(2);
+
+    try {
+      clearErrors();
+
+      // ✅ normalize phone (minimal change)
+      const raw = String(data.phone || "").trim();
+      const phoneNormalized = raw; // server side normalize চাইলে server এ করো
+
+      const payload = {
+        username: (data.username || "").trim(),
+        phone: phoneNormalized,
+        password: data.password,
+        currency: data.currency,
+        referral: (data.referral || "").trim(), // ✅ auto filled from query param
+      };
+
+      const res = await api.post("/api/users/register", payload);
+
+      const token = res?.data?.token;
+      const user = res?.data?.user;
+
+      // Desktop এর মতো: token+user থাকলে auth save
+      if (token && user) {
+        dispatch(setAuth({ user, token }));
+      }
+
+      toast.success(t.api.success);
+      setStep(2);
+    } catch (err) {
+      const status = err?.response?.status;
+      const msg = err?.response?.data?.message || err?.message || t.api.failed;
+
+      // ✅ duplicate username/phone
+      if (status === 409) {
+        const lower = String(msg).toLowerCase();
+        if (lower.includes("username")) {
+          setError("username", { type: "server", message: msg });
+          setStep(0);
+          return;
+        }
+        if (lower.includes("phone") || lower.includes("mobile")) {
+          setError("phone", { type: "server", message: msg });
+          setStep(1);
+          return;
+        }
+      }
+
+      // ✅ invalid referral
+      if (status === 400 && String(msg).toLowerCase().includes("referral")) {
+        setError("referral", { type: "server", message: msg });
+        setStep(1);
+        return;
+      }
+
+      toast.error(msg);
+    }
   };
 
   const TopBar = ({ title }) => (
@@ -405,11 +492,12 @@ const MobileRegister = () => {
     </div>
   );
 
-  const PrimaryBtn = ({ children, type = "button", onClick }) => (
+  const PrimaryBtn = ({ children, type = "button", onClick, disabled }) => (
     <button
       type={type}
       onClick={onClick}
-      className="w-full mt-5 h-12 rounded-xl font-extrabold active:scale-[0.99]"
+      disabled={disabled}
+      className="w-full mt-5 h-12 rounded-xl font-extrabold active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
       style={{
         background: view.primaryBtnBg,
         color: view.primaryBtnText,
@@ -650,7 +738,7 @@ const MobileRegister = () => {
 
         <div className="mt-4">
           <LabelRow label={t.step2.referral} required={false} />
-          <InputShell hasError={false}>
+          <InputShell hasError={!!errors.referral}>
             <input
               className="w-full h-11 px-3 rounded-lg outline-none"
               style={{
@@ -662,6 +750,7 @@ const MobileRegister = () => {
               {...register("referral")}
             />
           </InputShell>
+          <ErrorText msg={errors.referral?.message} />
         </div>
 
         <div className="mt-4 flex items-start gap-3">
@@ -683,7 +772,13 @@ const MobileRegister = () => {
         </div>
         <ErrorText msg={errors.agree?.message} />
 
-        <PrimaryBtn type="submit">{t.step2.complete}</PrimaryBtn>
+        <PrimaryBtn type="submit" disabled={isSubmitting}>
+          {isSubmitting
+            ? isBangla
+              ? "প্রসেস হচ্ছে..."
+              : "Processing..."
+            : t.step2.complete}
+        </PrimaryBtn>
 
         <button
           type="button"

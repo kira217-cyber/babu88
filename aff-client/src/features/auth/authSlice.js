@@ -1,18 +1,8 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-/**
- * 👇 Demo user (same as Context)
- */
-const DEMO_USER = {
-  name: "Demo User",
-  email: "demo@example.com",
-  password: "demo123",
-  phone: "01700000000",
-};
-
 const initialState = {
   user: null,
-  token: "demo-token",
+  token: null,
   loading: true,
 };
 
@@ -20,9 +10,6 @@ const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    /**
-     * 🔁 Context useEffect equivalent
-     */
     rehydrateAuth: (state) => {
       try {
         const storedUser = localStorage.getItem("user");
@@ -31,8 +18,13 @@ const authSlice = createSlice({
         if (storedUser && storedToken) {
           state.user = JSON.parse(storedUser);
           state.token = storedToken;
+        } else {
+          state.user = null;
+          state.token = null;
         }
       } catch (err) {
+        state.user = null;
+        state.token = null;
         localStorage.removeItem("user");
         localStorage.removeItem("token");
       } finally {
@@ -40,30 +32,31 @@ const authSlice = createSlice({
       }
     },
 
-    /**
-     * ✅ Demo Login
-     */
-    demoLogin: (state) => {
-      state.user = DEMO_USER;
-      state.token = "demo-token";
+    // ✅ real login/register success
+    setAuth: (state, action) => {
+      const { user, token } = action.payload || {};
+      state.user = user || null;
+      state.token = token || null;
+      state.loading = false;
 
-      localStorage.setItem("user", JSON.stringify(DEMO_USER));
-      localStorage.setItem("token", "demo-token");
+      if (user && token) {
+        localStorage.setItem("user", JSON.stringify(user));
+        localStorage.setItem("token", token);
+      } else {
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+      }
     },
 
-    /**
-     * ❌ Logout
-     */
     logout: (state) => {
       state.user = null;
       state.token = null;
       state.loading = false;
-
       localStorage.removeItem("user");
       localStorage.removeItem("token");
     },
   },
 });
 
-export const { rehydrateAuth, demoLogin, logout } = authSlice.actions;
+export const { rehydrateAuth, setAuth, logout } = authSlice.actions;
 export default authSlice.reducer;
