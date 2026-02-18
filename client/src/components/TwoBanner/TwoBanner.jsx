@@ -224,7 +224,6 @@ const TwoBanner = () => {
                       {view.title}
                     </span>
                   </h3>
-
                   <p
                     className="
                       mt-2 text-white/85

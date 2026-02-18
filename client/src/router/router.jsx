@@ -9,6 +9,8 @@ import Deposit from "../pages/Deposit/Deposit";
 import PrivateRoute from "../PrivateRoute/PrivateRoute";
 import Promotions from "../pages/Promotions/Promotions";
 import LiveGamesPlay from "../pages/LiveGamesPlay/LiveGamesPlay";
+import Referral from "../pages/Referral/Referral";
+import ProfileLayout from "../RootLayout/ProfileLayout";
 
 export const routes = createBrowserRouter([
   {
@@ -20,51 +22,54 @@ export const routes = createBrowserRouter([
         index: true,
         element: <Home />,
       },
+
       {
         path: "promotions",
         element: <Promotions />,
       },
+
       {
-        path: "withdraw",
-        element: (
-          <PrivateRoute>
-            {" "}
-            <Withdraw />
-          </PrivateRoute>
-        ),
-      },
-      {
-        path: "deposit",
-        element: (
-          <PrivateRoute>
-            <Deposit />
-          </PrivateRoute>
-        ),
-      },
-      {
-        path: "/game/:gameUID",
+        path: "game/:gameUID",
         element: (
           <PrivateRoute>
             <LiveGamesPlay />
           </PrivateRoute>
         ),
       },
+
+      // 🔽 Profile Nested Routes
+      {
+        path: "profile",
+        element: (
+          <PrivateRoute>
+            <ProfileLayout />
+          </PrivateRoute>
+        ),
+        children: [
+          {
+            path: "referral",
+            element: <Referral />,
+          },
+          {
+            path: "deposit",
+            element: <Deposit />,
+          },
+          {
+            path: "withdraw",
+            element: <Withdraw />,
+          },
+        ],
+      },
+
       {
         path: "login",
         element: <Login />,
       },
+
       {
         path: "register",
         element: <Register />,
       },
     ],
-  },
-  {
-    path: "/game/:gameUID",
-    element: (
-      <PrivateRoute>
-        <LiveGamesPlay />
-      </PrivateRoute>
-    ),
   },
 ]);

@@ -7,11 +7,14 @@ import {
   FaArrowLeft,
   FaSyncAlt,
   FaSave,
-  FaUserSlash,
   FaUserCheck,
+  FaUserSlash,
   FaInfoCircle,
   FaPercentage,
   FaWallet,
+  FaLock,
+  FaEye,
+  FaEyeSlash,
 } from "react-icons/fa";
 
 const fetchAffiliate = async (id) => {
@@ -39,6 +42,7 @@ const AffiliateUserDetails = () => {
 
   const [saving, setSaving] = useState(false);
   const [deactivateModalOpen, setDeactivateModalOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Form state
   const [form, setForm] = useState({
@@ -60,6 +64,8 @@ const AffiliateUserDetails = () => {
     depositCommissionBalance: 0,
     referCommissionBalance: 0,
     gameWinCommissionBalance: 0,
+
+    password: "", // ← added for password change
   });
 
   // Sync form when user data arrives
@@ -84,16 +90,21 @@ const AffiliateUserDetails = () => {
       depositCommissionBalance: Number(user.depositCommissionBalance ?? 0),
       referCommissionBalance: Number(user.referCommissionBalance ?? 0),
       gameWinCommissionBalance: Number(user.gameWinCommissionBalance ?? 0),
+
+      password: "", // reset password field
     });
   }, [user]);
 
-  // Detect changed fields
+  // Detect changed fields (excluding password if empty)
   const changed = useMemo(() => {
     if (!user) return {};
     const changes = {};
     Object.keys(form).forEach((key) => {
       let a = form[key];
       let b = user[key];
+
+      // Skip password if empty (means no change)
+      if (key === "password" && (!a || a.trim() === "")) return;
 
       // Normalize
       if (
@@ -140,10 +151,21 @@ const AffiliateUserDetails = () => {
       return;
     }
 
+    // Extra password validation before sending
+    if (changed.password) {
+      if (changed.password.trim().length < 6) {
+        toast.error("Password must be at least 6 characters long");
+        return;
+      }
+    }
+
     try {
       setSaving(true);
       const { data } = await api.patch(`/api/admin/affiliates/${id}`, changed);
       toast.success(data?.message || "Affiliate updated successfully");
+
+      // Clear password field after successful save
+      setForm((prev) => ({ ...prev, password: "" }));
       await refetch();
     } catch (err) {
       toast.error(err?.response?.data?.message || "Update failed");
@@ -179,9 +201,7 @@ const AffiliateUserDetails = () => {
     }
   };
 
-  // ────────────────────────────────────────────────
-  // Styles (consistent with AllAffiliateUser page)
-  // ────────────────────────────────────────────────
+  // ─── Styles ─────────────────────────────────────────────────
   const card =
     "bg-gradient-to-b from-[#0f0f0f] to-[#1a1200] border border-amber-900/40 rounded-xl shadow-lg shadow-black/40 text-white overflow-hidden";
   const sectionTitle =
@@ -197,7 +217,7 @@ const AffiliateUserDetails = () => {
 
   if (isLoading) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gradient-to-br from-black via-amber-950/10 to-black">
+      <div className="min-h-screen p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-black via-amber-950/10 to-black">
         <div className={card + " p-6 text-center"}>
           Loading affiliate details...
         </div>
@@ -207,7 +227,7 @@ const AffiliateUserDetails = () => {
 
   if (error || !user) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gradient-to-br from-black via-amber-950/10 to-black">
+      <div className="min-h-screen p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-black via-amber-950/10 to-black">
         <div className={card + " p-6"}>
           <p className="text-red-400 text-lg">
             Failed to load affiliate details
@@ -281,7 +301,7 @@ const AffiliateUserDetails = () => {
         </div>
 
         {/* Status */}
-        <div className="mt-5 flex items-center gap-3">
+        <div className="mt-5 flex items-center gap-3 flex-wrap">
           <span
             className={`inline-flex px-4 py-1.5 rounded-full text-sm font-bold border ${
               user.isActive
@@ -298,7 +318,7 @@ const AffiliateUserDetails = () => {
           )}
         </div>
 
-        {/* Basic Information */}
+        {/* Editable Fields */}
         <div className="mt-8">
           <h3 className={sectionTitle}>
             <FaInfoCircle /> Basic Information
@@ -315,53 +335,50 @@ const AffiliateUserDetails = () => {
                 options: ["BDT", "USDT"],
               },
               { label: "Balance", key: "balance", type: "number" },
-              {
-                label: "Status",
-                key: "isActive",
-                type: "select",
-                options: [
-                  { value: true, label: "Active" },
-                  { value: false, label: "Inactive" },
-                ],
-              },
               { label: "First Name", key: "firstName" },
               { label: "Last Name", key: "lastName" },
+              {
+                label: "New Password (optional)",
+                key: "password",
+                type: "password",
+              },
             ].map((field) => (
               <div key={field.key}>
                 <label className={label}>{field.label}</label>
+
                 {field.type === "select" ? (
                   <select
                     className={inputBase}
-                    value={
-                      field.key === "isActive"
-                        ? form.isActive
-                        : form[field.key] || ""
-                    }
-                    onChange={(e) =>
-                      setForm((s) => ({
-                        ...s,
-                        [field.key]:
-                          field.key === "isActive"
-                            ? e.target.value === "true"
-                            : e.target.value,
-                      }))
-                    }
+                    value={form[field.key] || ""}
+                    onChange={handleChange(field.key)}
                   >
-                    {field.options.map((opt) =>
-                      typeof opt === "string" ? (
-                        <option key={opt} value={opt}>
-                          {opt}
-                        </option>
-                      ) : (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ),
-                    )}
+                    {field.options.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
                   </select>
+                ) : field.type === "password" ? (
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      className={`${inputBase} pr-10`}
+                      value={form[field.key] || ""}
+                      onChange={handleChange(field.key)}
+                      placeholder="Leave blank to keep current"
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-400 hover:text-amber-300"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <FaEyeSlash /> : <FaEye />}
+                    </button>
+                  </div>
                 ) : (
                   <input
                     type={field.type === "number" ? "number" : "text"}
+                    step={field.type === "number" ? "0.01" : undefined}
                     className={inputBase}
                     value={form[field.key] ?? ""}
                     onChange={
@@ -374,6 +391,14 @@ const AffiliateUserDetails = () => {
               </div>
             ))}
           </div>
+
+          {/* Password hint */}
+          {form.password.trim().length > 0 && (
+            <div className="mt-4 p-3 bg-amber-950/40 rounded-lg border border-amber-800/40 text-amber-200/90 text-sm">
+              <strong>Note:</strong> New password will be applied on save
+              (minimum 6 characters).
+            </div>
+          )}
         </div>
 
         {/* Referral & Meta */}

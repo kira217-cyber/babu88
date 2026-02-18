@@ -35,6 +35,7 @@ import ColorControllerAffiliate from "../pages/ColorControllerAffiliate/ColorCon
 import LiveGameController from "../pages/LiveGameController/LiveGameController";
 import AllAffiliateUser from "../pages/AllAffiliateUser/AllAffiliateUser";
 import AffiliateUserDetails from "../pages/AffiliateUserDetails/AffiliateUserDetails";
+import UserDetails from "../pages/UserDetials/UserDetails";
 
 export const routes = createBrowserRouter([
   {
@@ -184,10 +185,18 @@ export const routes = createBrowserRouter([
         ),
       },
       {
-          path: "affiliate-users/:id",
+        path: "affiliate-users/:id",
         element: (
           <PrivateRoute permKey="affiliate-user-details">
             <AffiliateUserDetails />
+          </PrivateRoute>
+        ),
+      },
+      {
+          path: "/users/:id",
+        element: (
+          <PrivateRoute permKey="user-details">
+            <UserDetails />
           </PrivateRoute>
         ),
       },

@@ -82,7 +82,7 @@ const Sidebar = () => {
         key: "all-affiliate-user",
         to: "/all-affiliate-user",
         icon: <FaUsers />,
-        text: "All Affiliate Users",
+        text: "All Affiliator",
       },
       {
         key: "live-controller",

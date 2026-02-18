@@ -1,24 +1,36 @@
 import express from "express";
 import mongoose from "mongoose";
 import User from "../models/User.js";
+import bcrypt from "bcryptjs";
 
 const router = express.Router();
 
 /**
- * ============================
- * ✅ GET all affiliate users (pagination + search)
- * GET /api/admin/affiliates?page=1&limit=10&search=abc
- * search => username / phone
- * ============================
+ * GET all affiliate users (with pagination, search & status filter)
+ * GET /api/admin/affiliates?page=1&limit=10&search=abc&status=all|active|inactive
+ * search   => username / phone (case-insensitive)
+ * status   => "all" (default), "active", "inactive"
  */
 router.get("/affiliates", async (req, res) => {
   try {
+    // ─── Query parsing ───────────────────────────────────────
     const page = Math.max(parseInt(req.query.page || "1", 10), 1);
     const limit = Math.min(Math.max(parseInt(req.query.limit || "10", 10), 1), 50);
-    const search = String(req.query.search || "").trim();
+    const search = String(req.query.search || "").trim().toLowerCase();
+    const status = (req.query.status || "all").toLowerCase();
 
+    // ─── Base filter ─────────────────────────────────────────
     const filter = { role: "aff-user" };
 
+    // Status filter
+    if (status === "active") {
+      filter.isActive = true;
+    } else if (status === "inactive") {
+      filter.isActive = false;
+    }
+    // "all" → no additional isActive filter
+
+    // Search filter (username or phone)
     if (search) {
       filter.$or = [
         { username: { $regex: search, $options: "i" } },
@@ -26,10 +38,16 @@ router.get("/affiliates", async (req, res) => {
       ];
     }
 
+    // ─── Count total matching documents ──────────────────────
     const totalItems = await User.countDocuments(filter);
 
+    // ─── Fetch paginated data ────────────────────────────────
     const items = await User.find(filter)
-      .select("username phone balance isActive currency referralCode createdAt gameLossCommission depositCommission referCommission gameWinCommission")
+      .select(
+        "username phone balance isActive currency referralCode createdAt " +
+        "gameLossCommission depositCommission referCommission gameWinCommission " +
+        "gameLossCommissionBalance depositCommissionBalance referCommissionBalance gameWinCommissionBalance"
+      )
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
@@ -37,6 +55,7 @@ router.get("/affiliates", async (req, res) => {
 
     const totalPages = Math.max(Math.ceil(totalItems / limit), 1);
 
+    // ─── Response ────────────────────────────────────────────
     return res.json({
       items,
       page,
@@ -45,7 +64,11 @@ router.get("/affiliates", async (req, res) => {
       totalPages,
     });
   } catch (err) {
-    return res.status(500).json({ message: "Server error", error: err.message });
+    console.error("Error fetching affiliates:", err);
+    return res.status(500).json({
+      message: "Server error while fetching affiliates",
+      error: err.message,
+    });
   }
 });
 
@@ -142,14 +165,25 @@ router.patch("/affiliates/:id/deactivate", async (req, res) => {
   }
 });
 
+/**
+ * PATCH /api/admin/affiliates/:id
+ * body: {
+ *   username?, phone?, email?, balance?, currency?, isActive?,
+ *   firstName?, lastName?,
+ *   gameLossCommission?, depositCommission?, referCommission?, gameWinCommission?,
+ *   gameLossCommissionBalance?, depositCommissionBalance?, referCommissionBalance?, gameWinCommissionBalance?,
+ *   password?    ← new field (optional)
+ * }
+ */
 router.patch("/affiliates/:id", async (req, res) => {
   try {
     const { id } = req.params;
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid id" });
     }
 
-    // ✅ only allow these fields to be updated
+    // Allowed fields (added password)
     const allowed = [
       "username",
       "phone",
@@ -169,6 +203,8 @@ router.patch("/affiliates/:id", async (req, res) => {
       "depositCommissionBalance",
       "referCommissionBalance",
       "gameWinCommissionBalance",
+
+      "password",           // ← added
     ];
 
     const toNum = (v) => {
@@ -180,7 +216,7 @@ router.patch("/affiliates/:id", async (req, res) => {
     for (const k of allowed) {
       if (typeof req.body?.[k] === "undefined") continue;
 
-      // number fields normalize
+      // Number fields
       const numberFields = new Set([
         "balance",
         "gameLossCommission",
@@ -195,16 +231,37 @@ router.patch("/affiliates/:id", async (req, res) => {
 
       if (numberFields.has(k)) {
         updates[k] = toNum(req.body[k]);
-      } else if (k === "username" || k === "phone" || k === "email") {
+      }
+      // String fields with trim
+      else if (["username", "phone", "email", "firstName", "lastName"].includes(k)) {
         updates[k] = String(req.body[k] ?? "").trim();
-      } else if (k === "currency") {
+      }
+      // Currency validation
+      else if (k === "currency") {
         const val = String(req.body[k] ?? "").trim().toUpperCase();
         if (!["BDT", "USDT"].includes(val)) {
-          return res.status(400).json({ message: "Invalid currency" });
+          return res.status(400).json({ message: "Invalid currency value" });
         }
         updates[k] = val;
-      } else if (k === "isActive") {
+      }
+      // Boolean
+      else if (k === "isActive") {
         updates[k] = Boolean(req.body[k]);
+      }
+      // Password (optional - only set if provided and valid)
+      else if (k === "password") {
+        const pass = String(req.body[k] ?? "").trim();
+        if (pass.length > 0) {
+          if (pass.length < 6) {
+            return res.status(400).json({
+              message: "Password must be at least 6 characters long",
+            });
+          }
+          // Hash password here (assuming bcrypt is used)
+          const salt = await bcrypt.genSalt(10);
+          updates[k] = await bcrypt.hash(pass, salt);
+        }
+        // If password is empty string → do NOT update password field
       } else {
         updates[k] = req.body[k];
       }
@@ -217,21 +274,31 @@ router.patch("/affiliates/:id", async (req, res) => {
     const updated = await User.findOneAndUpdate(
       { _id: id, role: "aff-user" },
       { $set: updates },
-      { new: true, runValidators: true },
+      { new: true, runValidators: true }
     )
-      .select("-password")
+      .select("-password") // never return password
       .lean();
 
-    if (!updated) return res.status(404).json({ message: "Affiliate not found" });
-
-    return res.json({ message: "Updated", user: updated });
-  } catch (err) {
-    // ✅ duplicate key friendly message
-    if (err?.code === 11000) {
-      const key = Object.keys(err.keyPattern || err.keyValue || {})[0] || "field";
-      return res.status(409).json({ message: `${key} already exists` });
+    if (!updated) {
+      return res.status(404).json({ message: "Affiliate not found" });
     }
 
+    return res.json({ message: "Affiliate updated successfully", user: updated });
+  } catch (err) {
+    // Duplicate key error handling
+    if (err?.code === 11000) {
+      const key = Object.keys(err.keyValue || {})[0] || "field";
+      const messages = {
+        username: "এই username ইতিমধ্যে ব্যবহার করা হয়েছে",
+        phone: "এই phone number ইতিমধ্যে ব্যবহার করা হয়েছে",
+        email: "এই email ইতিমধ্যে ব্যবহার করা হয়েছে",
+      };
+      return res.status(409).json({
+        message: messages[key] || `${key} already exists`,
+      });
+    }
+
+    console.error("Affiliate update error:", err);
     return res.status(500).json({ message: "Server error", error: err.message });
   }
 });

@@ -288,6 +288,7 @@ const MenuItems = () => {
       vip: "VIP",
       affiliate: isBangla ? "অ্যাফিলিয়েট" : "Affiliate",
       rewards: isBangla ? "পুরস্কার" : "Rewards",
+      referral: isBangla ? "রেফারেল" : "Referral",
     }),
     [isBangla],
   );
@@ -324,6 +325,13 @@ const MenuItems = () => {
         type: "nav",
         to: "/rewards",
         badge: "new",
+      },
+      {
+        key: "Referral",
+        label: t.referral,
+        type: "nav",
+        to: "/profile/referral",
+        badge: null,
       },
     ],
     [t],

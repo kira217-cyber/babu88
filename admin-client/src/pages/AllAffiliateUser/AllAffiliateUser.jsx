@@ -9,11 +9,12 @@ import {
   FaEye,
   FaToggleOn,
   FaToggleOff,
+  FaFilter,
 } from "react-icons/fa";
 
-const fetchAffiliates = async ({ page, limit, search }) => {
+const fetchAffiliates = async ({ page, limit, search, status }) => {
   const { data } = await api.get("/api/admin/affiliates", {
-    params: { page, limit, search },
+    params: { page, limit, search, status }, // status: 'all' | 'active' | 'inactive'
   });
   return data; // { items, page, limit, totalItems, totalPages }
 };
@@ -21,12 +22,14 @@ const fetchAffiliates = async ({ page, limit, search }) => {
 const AllAffiliateUser = () => {
   const navigate = useNavigate();
 
-  // ─── States ────────────────────────────────────────────────
   const [page, setPage] = useState(1);
   const limit = 10;
 
   const [searchText, setSearchText] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  // New: filter state
+  const [statusFilter, setStatusFilter] = useState("all"); // 'all' | 'active' | 'inactive'
 
   // Modal states
   const [activateModalOpen, setActivateModalOpen] = useState(false);
@@ -41,20 +44,25 @@ const AllAffiliateUser = () => {
     gameWinCommission: "",
   });
 
-  // ─── Debounce search ───────────────────────────────────────
+  // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchText.trim());
       setPage(1);
     }, 450);
-
     return () => clearTimeout(timer);
   }, [searchText]);
 
-  // ─── Data fetching ─────────────────────────────────────────
+  // Data fetching with filter
   const { data, isLoading, isFetching, refetch, error } = useQuery({
-    queryKey: ["admin-affiliates", page, debouncedSearch],
-    queryFn: () => fetchAffiliates({ page, limit, search: debouncedSearch }),
+    queryKey: ["admin-affiliates", page, debouncedSearch, statusFilter],
+    queryFn: () =>
+      fetchAffiliates({
+        page,
+        limit,
+        search: debouncedSearch,
+        status: statusFilter,
+      }),
     staleTime: 12 * 1000,
     retry: 1,
   });
@@ -150,7 +158,7 @@ const AllAffiliateUser = () => {
     refetch();
   }, [refetch]);
 
-  // ─── Styles (matching sidebar theme) ───────────────────────
+  // ─── Styles ─────────────────────────────────────────────────
   const card =
     "bg-gradient-to-b from-[#0f0f0f] to-[#1a1200] border border-amber-900/40 rounded-xl shadow-lg shadow-black/40 text-white overflow-hidden";
   const btnBase =
@@ -161,10 +169,16 @@ const AllAffiliateUser = () => {
   const inputBase =
     "w-full bg-black/40 border border-amber-900/50 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-amber-500/70 focus:ring-2 focus:ring-amber-500/30 transition-all";
 
+  const filterOptions = [
+    { value: "all", label: "All Affiliates" },
+    { value: "active", label: "Active Only" },
+    { value: "inactive", label: "Inactive Only" },
+  ];
+
   return (
     <div className="min-h-screen p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-black via-amber-950/10 to-black text-white">
       <div className={card + " p-5 sm:p-7"}>
-        {/* Header + Search + Refresh */}
+        {/* Header + Controls */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
@@ -179,6 +193,7 @@ const AllAffiliateUser = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            {/* Search */}
             <div className="relative flex-1 min-w-[260px]">
               <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-400/70" />
               <input
@@ -189,6 +204,26 @@ const AllAffiliateUser = () => {
               />
             </div>
 
+            {/* Filter Dropdown */}
+            <div className="relative min-w-[180px]">
+              <select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setPage(1);
+                }}
+                className={inputBase + " appearance-none pr-10 cursor-pointer"}
+              >
+                {filterOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <FaFilter className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-400/70 pointer-events-none" />
+            </div>
+
+            {/* Refresh */}
             <button onClick={handleRefresh} className={secondaryBtn}>
               <FaSyncAlt className={isFetching ? "animate-spin" : ""} />
               Refresh
@@ -215,24 +250,33 @@ const AllAffiliateUser = () => {
                 <tr>
                   <td
                     colSpan={6}
-                    className="py-10 text-center text-amber-200/60"
+                    className="py-12 text-center text-amber-200/60"
                   >
-                    Loading affiliates...
+                    Loading affiliate data...
                   </td>
                 </tr>
               ) : error ? (
                 <tr>
-                  <td colSpan={6} className="py-10 text-center text-red-400">
-                    Failed to load data
+                  <td colSpan={6} className="py-12 text-center text-red-400">
+                    Failed to load affiliates
                   </td>
                 </tr>
               ) : affiliates.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan={6}
-                    className="py-10 text-center text-amber-200/50"
-                  >
-                    No affiliate users found
+                  <td colSpan={6} className="py-12 text-center">
+                    <div className="text-amber-200/70 text-lg font-medium">
+                      {statusFilter === "active"
+                        ? "No active affiliates found"
+                        : statusFilter === "inactive"
+                          ? "No inactive affiliates found"
+                          : debouncedSearch
+                            ? "No affiliates match your search"
+                            : "No affiliates found in the system"}
+                    </div>
+                    <p className="text-amber-200/50 mt-2 text-sm">
+                      {statusFilter !== "all" &&
+                        "Try changing the filter or refreshing"}
+                    </p>
                   </td>
                 </tr>
               ) : (
@@ -284,9 +328,7 @@ const AllAffiliateUser = () => {
 
                     <td className="px-5 py-4">
                       <button
-                        onClick={() =>
-                          navigate(`/affiliate-users/${aff._id}`)
-                        }
+                        onClick={() => navigate(`/affiliate-users/${aff._id}`)}
                         className={secondaryBtn + " min-w-[110px]"}
                       >
                         <FaEye /> Details
@@ -300,32 +342,34 @@ const AllAffiliateUser = () => {
         </div>
 
         {/* Pagination */}
-        <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm">
-          <div className="text-amber-200/70">
-            Page <strong>{page}</strong> of <strong>{totalPages}</strong>
-            {" • "} {totalItems} total
-          </div>
+        {totalItems > 0 && (
+          <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm">
+            <div className="text-amber-200/70">
+              Page <strong>{page}</strong> of <strong>{totalPages}</strong>
+              {" • "} Showing {affiliates.length} of {totalItems}
+            </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setPage((p) => Math.max(p - 1, 1))}
-              disabled={page <= 1}
-              className={secondaryBtn + " px-5 disabled:opacity-40"}
-            >
-              Previous
-            </button>
-            <button
-              onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
-              disabled={page >= totalPages}
-              className={secondaryBtn + " px-5 disabled:opacity-40"}
-            >
-              Next
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                disabled={page <= 1}
+                className={secondaryBtn + " px-6 disabled:opacity-40"}
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+                disabled={page >= totalPages}
+                className={secondaryBtn + " px-6 disabled:opacity-40"}
+              >
+                Next
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* ─── Activate Modal ────────────────────────────────────── */}
+      {/* Activate Modal */}
       {activateModalOpen && selectedAffiliate && (
         <div
           className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
@@ -339,7 +383,7 @@ const AllAffiliateUser = () => {
               Activate {selectedAffiliate.username}
             </h3>
             <p className="text-amber-200/70 mt-2">
-              Set commission rates and activate the affiliate account.
+              Set commission rates and activate this affiliate account.
             </p>
 
             <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -378,7 +422,7 @@ const AllAffiliateUser = () => {
               <button
                 onClick={handleActivateAndSave}
                 disabled={saving}
-                className={primaryBtn + " min-w-[140px]"}
+                className={primaryBtn + " min-w-[160px]"}
               >
                 {saving ? "Saving..." : "Save & Activate"}
               </button>
@@ -387,7 +431,7 @@ const AllAffiliateUser = () => {
         </div>
       )}
 
-      {/* ─── Deactivate Confirmation Modal ─────────────────────── */}
+      {/* Deactivate Modal */}
       {deactivateModalOpen && selectedAffiliate && (
         <div
           className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
@@ -401,8 +445,7 @@ const AllAffiliateUser = () => {
               Deactivate {selectedAffiliate.username}?
             </h3>
             <p className="mt-3 text-red-200/80">
-              This affiliate will no longer earn commissions or be visible as
-              active.
+              This affiliate will stop earning commissions and appear inactive.
             </p>
 
             <div className="mt-8 flex justify-end gap-4">
@@ -416,7 +459,7 @@ const AllAffiliateUser = () => {
               <button
                 onClick={handleDeactivate}
                 disabled={saving}
-                className={dangerBtn + " min-w-[140px]"}
+                className={dangerBtn + " min-w-[160px]"}
               >
                 {saving ? "Processing..." : "Yes, Deactivate"}
               </button>
