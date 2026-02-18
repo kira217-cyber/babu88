@@ -230,7 +230,7 @@ const TwoBanner = () => {
                       mt-2 text-white/85
                       text-[12px] sm:text-[13px] lg:text-[18px]
                       leading-relaxed
-                      line-clamp-2
+                      line-clamp-1
                       sm:line-clamp-none
                     "
                     style={{
