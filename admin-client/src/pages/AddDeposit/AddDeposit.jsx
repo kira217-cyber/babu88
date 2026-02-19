@@ -27,7 +27,7 @@ const defaultInput = () => ({
 });
 
 // ────────────────────────────────────────────────
-// Shared styling classes (matching sidebar aesthetic)
+// Shared styling classes
 // ────────────────────────────────────────────────
 const cardBase =
   "bg-gradient-to-br from-black via-yellow-950/30 to-black rounded-xl border border-yellow-700/40 shadow-lg shadow-yellow-900/20 overflow-hidden";
@@ -39,13 +39,14 @@ const inputBase =
   "w-full h-11 bg-black/60 border border-yellow-700/50 rounded-lg px-4 text-white placeholder-yellow-400/50 focus:outline-none focus:border-yellow-400/70 focus:ring-2 focus:ring-yellow-400/30 transition-all";
 
 const btnBase =
-  "h-11 px-6 rounded-lg font-semibold text-sm transition-all duration-200 shadow-md";
-const btnPrimary = `${btnBase} bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-black border border-yellow-400/40 hover:shadow-yellow-500/40`;
-const btnGhost = `${btnBase} bg-transparent border border-yellow-700/60 text-yellow-300 hover:bg-yellow-900/30 hover:border-yellow-500/60`;
-const btnDanger = `${btnBase} bg-gradient-to-r from-red-700 to-red-600 hover:from-red-600 hover:to-red-500 text-white border border-red-500/50 hover:shadow-red-600/40`;
+  "h-10 px-5 rounded-lg font-medium text-sm transition-all duration-200 shadow-sm";
+const btnPrimary = `${btnBase} bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 text-white border border-yellow-500/40 hover:shadow-yellow-600/30`;
+const btnGhost = `${btnBase} bg-transparent border border-yellow-700/60 text-yellow-300 hover:bg-yellow-900/40 hover:border-yellow-500/60`;
+const btnDanger = `${btnBase} bg-gradient-to-r from-red-800 to-red-700 hover:from-red-700 hover:to-red-600 text-white border border-red-600/50 hover:shadow-red-700/30`;
+const btnSmall = "h-8 px-3 text-xs";
 
 // ────────────────────────────────────────────────
-// Reusable bilingual input component
+// Bilingual input component
 // ────────────────────────────────────────────────
 const BiInput = ({ title, bnProps, enProps }) => (
   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -73,9 +74,9 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, methodName }) => {
           Confirm Delete
         </h3>
         <p className="text-yellow-100/90 mb-6">
-          Are you sure you want to delete deposit method{" "}
+          Are you sure you want to delete{" "}
           <span className="font-semibold text-yellow-300">
-            {methodName || "this method"}
+            {methodName || "this deposit method"}
           </span>
           ? This action cannot be undone.
         </p>
@@ -93,7 +94,7 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, methodName }) => {
 };
 
 // ────────────────────────────────────────────────
-// Main Component
+// Main Component – AddDeposit
 // ────────────────────────────────────────────────
 const AddDeposit = () => {
   const qc = useQueryClient();
@@ -112,6 +113,11 @@ const AddDeposit = () => {
   });
 
   const [selectedId, setSelectedId] = useState("");
+  const [deleteId, setDeleteId] = useState(null);
+  const [deleteName, setDeleteName] = useState("");
+
+  const isCreateMode = selectedId === "";
+
   const selected = useMemo(
     () => list.find((x) => x._id === selectedId) || null,
     [list, selectedId],
@@ -162,7 +168,6 @@ const AddDeposit = () => {
 
   const [logoFile, setLogoFile] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const { register, reset, watch, handleSubmit } = useForm({
     defaultValues: {
@@ -181,15 +186,40 @@ const AddDeposit = () => {
     },
   });
 
-  // Auto-select first item when list loads
+  // Auto-select first method only when appropriate
   useEffect(() => {
-    if (!selectedId && list?.[0]?._id) setSelectedId(list[0]._id);
-  }, [list, selectedId]);
+    if (
+      !selectedId && // nothing selected yet
+      list?.length > 0 && // we have methods
+      !isCreateMode // don't auto-select when creating new
+    ) {
+      setSelectedId(list[0]._id);
+    }
+  }, [list, selectedId, isCreateMode]);
 
-  // Fill form when selected method changes
+  // Fill form when selected method changes or create mode
   useEffect(() => {
-    if (!selected) return;
+    if (!selected) {
+      // Create mode
+      if (isCreateMode) {
+        setChannels([defaultChannel()]);
+        setInputs([
+          {
+            key: "amount",
+            label: { bn: "পরিমাণ (৳)", en: "Amount (৳)" },
+            placeholder: { bn: "1000", en: "1000" },
+            type: "number",
+            required: true,
+            minLength: 0,
+            maxLength: 0,
+          },
+        ]);
+        setLogoFile(null);
+      }
+      return;
+    }
 
+    // Edit mode
     reset({
       methodId: selected.methodId || "",
       methodName_bn: selected.methodName?.bn || "",
@@ -214,11 +244,21 @@ const AddDeposit = () => {
     setInputs(
       Array.isArray(selected.details?.inputs) && selected.details.inputs.length
         ? selected.details.inputs
-        : [defaultInput()],
+        : [
+            {
+              key: "amount",
+              label: { bn: "পরিমাণ (৳)", en: "Amount (৳)" },
+              placeholder: { bn: "1000", en: "1000" },
+              type: "number",
+              required: true,
+              minLength: 0,
+              maxLength: 0,
+            },
+          ],
     );
 
     setLogoFile(null);
-  }, [selected, reset]);
+  }, [selected, reset, isCreateMode]);
 
   const clearToCreate = () => {
     setSelectedId("");
@@ -251,8 +291,9 @@ const AddDeposit = () => {
     setLogoFile(null);
   };
 
-  // ─── Channel handlers ───────────────────────────────────────
+  // ─── Channel Handlers ───
   const addChannel = () => setChannels((p) => [...p, defaultChannel()]);
+
   const removeChannel = (idx) =>
     setChannels((p) => p.filter((_, i) => i !== idx));
 
@@ -268,8 +309,9 @@ const AddDeposit = () => {
       ),
     );
 
-  // ─── Input field handlers ───────────────────────────────────
+  // ─── Input Field Handlers ───
   const addInput = () => setInputs((p) => [...p, defaultInput()]);
+
   const removeInput = (idx) => setInputs((p) => p.filter((_, i) => i !== idx));
 
   const patchInput = (idx, key, val) =>
@@ -284,7 +326,6 @@ const AddDeposit = () => {
       ),
     );
 
-  // ─── Validation before save ─────────────────────────────────
   const validateBeforeSave = (values) => {
     const mid = String(values.methodId || "")
       .trim()
@@ -308,7 +349,6 @@ const AddDeposit = () => {
     return null;
   };
 
-  // ─── Save / Update handler ──────────────────────────────────
   const onSave = async (values) => {
     const err = validateBeforeSave(values);
     if (err) return toast.error(err);
@@ -373,6 +413,7 @@ const AddDeposit = () => {
 
       qc.invalidateQueries({ queryKey: ["deposit-methods"] });
       refetch();
+      if (isCreateMode) clearToCreate();
     } catch (e) {
       toast.error(e?.response?.data?.message || "Save failed");
     } finally {
@@ -380,18 +421,23 @@ const AddDeposit = () => {
     }
   };
 
-  // ─── Delete handler ─────────────────────────────────────────
-  const onDeleteConfirm = async () => {
-    if (!selected?._id) return;
-    setShowDeleteModal(false);
+  const requestDelete = (id, name) => {
+    setDeleteId(id);
+    setDeleteName(name);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    setDeleteId(null);
+    setDeleteName("");
 
     try {
       setSaving(true);
-      await api.delete(`/api/deposit-methods/${selected._id}`);
-      toast.success("Method deleted");
+      await api.delete(`/api/deposit-methods/${deleteId}`);
+      toast.success("Method deleted successfully");
       qc.invalidateQueries({ queryKey: ["deposit-methods"] });
-      clearToCreate();
       refetch();
+      if (selectedId === deleteId) clearToCreate();
     } catch (e) {
       toast.error(e?.response?.data?.message || "Delete failed");
     } finally {
@@ -399,89 +445,17 @@ const AddDeposit = () => {
     }
   };
 
-  // ────────────────────────────────────────────────────────────
-  // RENDER
-  // ────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-yellow-950/20 to-black text-white p-4 md:p-6">
-      <div className="grid grid-cols-1 xl:grid-cols-[380px_1fr] gap-6">
-        {/* LEFT – List of existing methods */}
-        <div className={`${cardBase} p-5 flex flex-col h-[calc(100vh-3rem)]`}>
-          <div className="flex items-center justify-between mb-5">
-            <h2 className={headCls}>Deposit Methods</h2>
-            <button onClick={refetch} className={btnGhost}>
-              Refresh
-            </button>
-          </div>
-
-          <button
-            onClick={clearToCreate}
-            className={`${btnPrimary} w-full mb-5`}
-          >
-            + Create New Method
-          </button>
-
-          <div className="flex-1 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
-            {isLoading ? (
-              <div className="text-yellow-400/60 text-center py-10">
-                Loading methods...
-              </div>
-            ) : list.length === 0 ? (
-              <div className="text-yellow-400/50 text-center py-10">
-                No deposit methods yet
-              </div>
-            ) : (
-              list.map((m) => {
-                const active = m._id === selectedId;
-                return (
-                  <button
-                    key={m._id}
-                    type="button"
-                    onClick={() => setSelectedId(m._id)}
-                    className={`w-full text-left p-4 rounded-lg border transition-all duration-200 group ${
-                      active
-                        ? "bg-yellow-500/20 border-yellow-400/60 shadow-yellow-500/20"
-                        : "border-yellow-700/40 hover:bg-yellow-950/40 hover:border-yellow-500/50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-lg border border-yellow-700/50 overflow-hidden bg-black/40 flex-shrink-0">
-                        {m.logoUrl ? (
-                          <img
-                            src={`${import.meta.env.VITE_API_URL}${m.logoUrl}`}
-                            alt=""
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-yellow-500/40 text-xs font-bold">
-                            LOGO
-                          </div>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="font-semibold text-yellow-100 truncate">
-                          {m.methodName?.en || m.methodId}
-                        </div>
-                        <div className="text-xs text-yellow-400/70 mt-0.5">
-                          {m.methodId} • {m.isActive ? "Active" : "Inactive"}
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </div>
-
-        {/* RIGHT – Form */}
-        <div className={`${cardBase} p-6`}>
+      <div className="flex flex-col gap-8 max-w-7xl mx-auto">
+        {/* ==================== FORM SECTION ==================== */}
+        <div className={`${cardBase} p-6 md:p-8`}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div>
               <h2 className={headCls}>
-                {selected
-                  ? "Update Deposit Method"
-                  : "Create New Deposit Method"}
+                {isCreateMode
+                  ? "Create New Deposit Method"
+                  : "Update Deposit Method"}
               </h2>
               <p className="text-sm text-yellow-400/70 mt-1">
                 Fill BN + EN fields for both languages
@@ -489,10 +463,17 @@ const AddDeposit = () => {
             </div>
 
             <div className="flex items-center gap-3 flex-wrap">
-              {selected && (
+              {!isCreateMode && (
                 <button
                   type="button"
-                  onClick={() => setShowDeleteModal(true)}
+                  onClick={() =>
+                    requestDelete(
+                      selected._id,
+                      watch("methodName_en") ||
+                        watch("methodId") ||
+                        "this method",
+                    )
+                  }
                   disabled={saving}
                   className={btnDanger}
                 >
@@ -507,14 +488,14 @@ const AddDeposit = () => {
               >
                 {saving
                   ? "Saving..."
-                  : selected
-                    ? "Update Method"
-                    : "Create Method"}
+                  : isCreateMode
+                    ? "Create Method"
+                    : "Update Method"}
               </button>
             </div>
           </div>
 
-          {/* ─── Basic info ─────────────────────────────────────── */}
+          {/* Basic Information */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
             <div>
               <label className={labelCls}>Method ID (unique, lowercase)</label>
@@ -552,7 +533,7 @@ const AddDeposit = () => {
 
             <div className="lg:col-span-2">
               <label className={labelCls}>
-                Logo (replaces current if uploaded)
+                Logo (will replace current if uploaded)
               </label>
               <div className="mt-2 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                 <input
@@ -561,7 +542,7 @@ const AddDeposit = () => {
                   onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
                   className="text-yellow-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-yellow-500/20 file:text-yellow-300 hover:file:bg-yellow-500/30 cursor-pointer"
                 />
-                {selected?.logoUrl && (
+                {!isCreateMode && selected?.logoUrl && (
                   <div className="flex items-center gap-3">
                     <img
                       src={`${import.meta.env.VITE_API_URL}${selected.logoUrl}`}
@@ -611,7 +592,7 @@ const AddDeposit = () => {
             </div>
           </div>
 
-          {/* ─── Deposit Details Section ────────────────────────── */}
+          {/* Deposit Details */}
           <div className="mb-8">
             <h3 className={subheadCls}>Deposit Details (per method)</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
@@ -646,7 +627,7 @@ const AddDeposit = () => {
             />
           </div>
 
-          {/* ─── Channels Section ───────────────────────────────── */}
+          {/* Channels Section */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
               <h3 className={subheadCls}>Deposit Channels</h3>
@@ -669,7 +650,7 @@ const AddDeposit = () => {
                       type="button"
                       onClick={() => removeChannel(idx)}
                       disabled={channels.length === 1}
-                      className={`${btnDanger} text-xs px-3 py-1.5 h-auto`}
+                      className={`${btnDanger} ${btnSmall}`}
                     >
                       Remove
                     </button>
@@ -781,7 +762,7 @@ const AddDeposit = () => {
             </div>
           </div>
 
-          {/* ─── Custom Input Fields Section ────────────────────── */}
+          {/* Input Fields Section */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
               <h3 className={subheadCls}>Deposit Modal Input Fields</h3>
@@ -804,7 +785,7 @@ const AddDeposit = () => {
                       type="button"
                       onClick={() => removeInput(idx)}
                       disabled={inputs.length === 1}
-                      className={`${btnDanger} text-xs px-3 py-1.5 h-auto`}
+                      className={`${btnDanger} ${btnSmall}`}
                     >
                       Remove
                     </button>
@@ -919,18 +900,97 @@ const AddDeposit = () => {
               ))}
             </div>
           </div>
+        </div>
 
-          {/* Delete modal */}
-          <DeleteConfirmModal
-            isOpen={showDeleteModal}
-            onClose={() => setShowDeleteModal(false)}
-            onConfirm={onDeleteConfirm}
-            methodName={
-              watch("methodName_en") || watch("methodId") || "this method"
-            }
-          />
+        {/* ==================== ALL METHODS LIST ==================== */}
+        <div className={`${cardBase} p-6 md:p-8`}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <h2 className={headCls}>All Deposit Methods</h2>
+            <div className="flex items-center gap-3">
+              <button onClick={refetch} className={btnGhost}>
+                Refresh List
+              </button>
+              <button onClick={clearToCreate} className={btnPrimary}>
+                + New Method
+              </button>
+            </div>
+          </div>
+
+          {isLoading ? (
+            <div className="text-yellow-400/60 text-center py-16">
+              Loading deposit methods...
+            </div>
+          ) : list.length === 0 ? (
+            <div className="text-yellow-400/50 text-center py-16">
+              No deposit methods found. Create your first one above.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {list.map((m) => {
+                const displayName = m.methodName?.en || m.methodId || "Unnamed";
+
+                return (
+                  <div
+                    key={m._id}
+                    className="p-5 bg-black/40 rounded-xl border border-yellow-800/30 hover:border-yellow-600/50 transition-all duration-200"
+                  >
+                    <div className="flex items-start gap-4 mb-4">
+                      <div className="w-14 h-14 rounded-lg border border-yellow-700/50 overflow-hidden bg-black/50 flex-shrink-0">
+                        {m.logoUrl ? (
+                          <img
+                            src={`${import.meta.env.VITE_API_URL}${m.logoUrl}`}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-yellow-500/40 text-xs font-bold">
+                            LOGO
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-yellow-100 text-lg truncate">
+                          {displayName}
+                        </div>
+                        <div className="text-xs text-yellow-400/80 mt-1">
+                          ID: {m.methodId} •{" "}
+                          {m.isActive ? "Active" : "Inactive"}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 mt-4">
+                      <button
+                        onClick={() => setSelectedId(m._id)}
+                        className={`${btnPrimary} ${btnSmall} flex-1`}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => requestDelete(m._id, displayName)}
+                        className={`${btnDanger} ${btnSmall}`}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
+
+      <DeleteConfirmModal
+        isOpen={!!deleteId}
+        onClose={() => {
+          setDeleteId(null);
+          setDeleteName("");
+        }}
+        onConfirm={confirmDelete}
+        methodName={deleteName}
+      />
     </div>
   );
 };

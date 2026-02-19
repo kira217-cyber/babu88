@@ -302,6 +302,11 @@ const Deposit = () => {
     targetTurnover,
   };
 
+  // Base Bonus Title – shown in promotion section
+  const baseBonusTitle = isBangla
+    ? selectedMethod?.baseBonusTitle?.bn
+    : selectedMethod?.baseBonusTitle?.en;
+
   const handleDepositClick = () => {
     if (!amountNum || amountNum <= 0) return;
     setDetailsOpen(true);
@@ -473,7 +478,7 @@ const Deposit = () => {
             </div>
           </div>
 
-          {/* Promotion (local) */}
+          {/* Promotion (local) + Base Bonus Title display */}
           <div className="mt-6">
             <div className="flex items-center gap-2">
               <label className="text-[14px] font-semibold text-black">
@@ -494,9 +499,18 @@ const Deposit = () => {
                   hover:border-black/35 transition
                 "
               >
-                <span className="text-black/80 font-semibold">
-                  {promotions.find((x) => x.id === promo)?.name}
-                </span>
+                <div className="flex flex-col items-start">
+                  <span className="text-black/80 font-semibold">
+                    {promotions.find((x) => x.id === promo)?.name}
+                  </span>
+
+                  {/* ← Base Bonus Title shown here */}
+                  {baseBonusTitle && (
+                    <span className="text-[12px] text-gray-600 mt-0.5">
+                      {baseBonusTitle}
+                    </span>
+                  )}
+                </div>
 
                 <div className="flex items-center gap-3">
                   {promo !== "none" && (
@@ -572,7 +586,7 @@ const Deposit = () => {
           </div>
         </div>
 
-        {/* RIGHT */}
+        {/* RIGHT – Notices */}
         <div className="bg-white rounded-xl border border-black/10 p-4 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
           <div className="text-[14px] font-extrabold text-black">
             {t("Important Notice", "Important Notice")}
