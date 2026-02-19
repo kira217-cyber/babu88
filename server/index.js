@@ -53,6 +53,7 @@ import liveGamesRoutes from "./routes/liveGamesRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import adminAffiliateRoutes from "./routes/adminAffiliateRoutes.js";
 import adminUserRoutes from "./routes/adminUserRoutes.js";
+import depositMethodsRoutes from "./routes/depositMethodsRoutes.js";
 
 
 
@@ -130,6 +131,7 @@ app.use("/api", liveGamesRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/admin", adminAffiliateRoutes);
 app.use("/api/admin", adminUserRoutes);
+app.use("/api", depositMethodsRoutes);
 
 
 

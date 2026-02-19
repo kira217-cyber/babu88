@@ -36,6 +36,7 @@ import LiveGameController from "../pages/LiveGameController/LiveGameController";
 import AllAffiliateUser from "../pages/AllAffiliateUser/AllAffiliateUser";
 import AffiliateUserDetails from "../pages/AffiliateUserDetails/AffiliateUserDetails";
 import UserDetails from "../pages/UserDetials/UserDetails";
+import AddDeposit from "../pages/AddDeposit/AddDeposit";
 
 export const routes = createBrowserRouter([
   {
@@ -176,7 +177,7 @@ export const routes = createBrowserRouter([
           </PrivateRoute>
         ),
       },
-       {
+      {
         path: "all-affiliate-user",
         element: (
           <PrivateRoute permKey="all-affiliate-user">
@@ -193,10 +194,18 @@ export const routes = createBrowserRouter([
         ),
       },
       {
-          path: "/users/:id",
+        path: "/users/:id",
         element: (
           <PrivateRoute permKey="user-details">
             <UserDetails />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "add-deposit",
+        element: (
+          <PrivateRoute permKey="add-deposit">
+            <AddDeposit />
           </PrivateRoute>
         ),
       },
@@ -227,7 +236,7 @@ export const routes = createBrowserRouter([
           </PrivateRoute>
         ),
       },
-       {
+      {
         path: "aff-slider-controller",
         element: (
           <PrivateRoute permKey="aff-slider-controller">
@@ -251,7 +260,7 @@ export const routes = createBrowserRouter([
           </PrivateRoute>
         ),
       },
-       {
+      {
         path: "aff-notice-controller",
         element: (
           <PrivateRoute permKey="aff-notice-controller">
@@ -267,7 +276,7 @@ export const routes = createBrowserRouter([
           </PrivateRoute>
         ),
       },
-       {
+      {
         path: "aff-floating-social-controller",
         element: (
           <PrivateRoute permKey="aff-floating-social-controller">
@@ -275,7 +284,7 @@ export const routes = createBrowserRouter([
           </PrivateRoute>
         ),
       },
-       {
+      {
         path: "aff-commission-controller",
         element: (
           <PrivateRoute permKey="aff-commission-controller">

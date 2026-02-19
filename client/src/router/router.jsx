@@ -11,6 +11,7 @@ import Promotions from "../pages/Promotions/Promotions";
 import LiveGamesPlay from "../pages/LiveGamesPlay/LiveGamesPlay";
 import Referral from "../pages/Referral/Referral";
 import ProfileLayout from "../RootLayout/ProfileLayout";
+import History from "../pages/History/History";
 
 export const routes = createBrowserRouter([
   {
@@ -58,9 +59,12 @@ export const routes = createBrowserRouter([
             path: "withdraw",
             element: <Withdraw />,
           },
+          {
+            path: "history",
+            element: <History />,
+          },
         ],
       },
-
       {
         path: "login",
         element: <Login />,
