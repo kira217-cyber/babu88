@@ -3,11 +3,41 @@ import mongoose from "mongoose";
 
 const { Schema } = mongoose;
 
+/**
+ * ✅ Per-user Referral Tier Override Schema
+ * - Admin panel থেকে add/update/delete করা হবে
+ * - amount: per referral fixed amount (BDT/USDT যেটা user.currency)
+ * - from/to inclusive range (1..10, 11..30 etc)
+ */
+const ReferralTierSchema = new Schema(
+  {
+    from: { type: Number, required: true, min: 1 },
+    to: { type: Number, required: true, min: 1 },
+    amount: { type: Number, required: true, min: 0 }, // per referral payout
+    label: { type: String, default: "" }, // optional UI label
+    isActive: { type: Boolean, default: true },
+  },
+  { _id: false },
+);
+
+/**
+ * ✅ Optional: Tier stats store (UI helper)
+ */
+const ReferralTierStatSchema = new Schema(
+  {
+    from: { type: Number, required: true, min: 1 },
+    to: { type: Number, required: true, min: 1 },
+    count: { type: Number, default: 0, min: 0 },
+    earned: { type: Number, default: 0, min: 0 },
+  },
+  { _id: false },
+);
+
 const userSchema = new Schema(
   {
     username: { type: String, required: true, trim: true },
 
-    // ❗ email unique না (তুমি যেমন চাইছো)
+    // ❗ email unique না
     email: { type: String, default: "" },
 
     phone: { type: String, required: true, trim: true },
@@ -20,22 +50,11 @@ const userSchema = new Schema(
       index: true,
     },
 
-    // ✅ aff-user: admin approve না হওয়া পর্যন্ত false রাখা হবে
-    // ✅ normal user: default true (তোমার routes এ সেট করছো)
     isActive: { type: Boolean, default: true },
 
     currency: { type: String, enum: ["BDT", "USDT"], default: "BDT" },
     balance: { type: Number, default: 0 },
 
-    /**
-     * ✅ IMPORTANT:
-     * তুমি এখন চাইছো: "সব user এরই referralCode generate হবে"
-     * তাই referralCode আর "affiliate only" না — both user & aff-user will have it
-     *
-     * - unique: true => collision prevent
-     * - sparse: true => null থাকলে duplicate error দিবে না (admin বা legacy docs)
-     * - uppercase + trim => consistent storage
-     */
     referralCode: {
       type: String,
       default: null,
@@ -43,42 +62,49 @@ const userSchema = new Schema(
       uppercase: true,
     },
 
-    // ✅ affiliate created users list (works for any role, but used by aff-user)
+    // ✅ referral relations
     createdUsers: [{ type: Schema.Types.ObjectId, ref: "User", default: [] }],
+    referredBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
 
-    // commissions (affiliate)
+    // ✅ referral counter (race-safe)
+    referralCount: { type: Number, default: 0, min: 0 },
+
+    // ✅ per-user override tiers (only for normal user)
+    referralTierOverride: {
+      type: [ReferralTierSchema],
+      default: null, // null => use default tiers
+    },
+
+    // ✅ optional stats (UI helper)
+    referralTierStats: {
+      type: [ReferralTierStatSchema],
+      default: [],
+    },
+
+    // commissions (affiliate + other)
     gameLossCommission: { type: Number, default: 0 },
     depositCommission: { type: Number, default: 0 },
-    referCommission: { type: Number, default: 0 },
+    referCommission: { type: Number, default: 0 }, // ✅ affiliate fixed payout per referral
     gameWinCommission: { type: Number, default: 0 },
 
     gameLossCommissionBalance: { type: Number, default: 0 },
     depositCommissionBalance: { type: Number, default: 0 },
-    referCommissionBalance: { type: Number, default: 0 },
+    referCommissionBalance: { type: Number, default: 0 }, // ✅ referral earning wallet
     gameWinCommissionBalance: { type: Number, default: 0 },
 
     firstName: { type: String, default: "" },
     lastName: { type: String, default: "" },
-
-    // ✅ referral দিয়ে register করলে: কে refer করলো (affiliate user id)
-    referredBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
   },
   { timestamps: true },
 );
 
 /**
  * ✅ Indexes
- * - username unique
- * - phone unique
- * - referralCode unique + sparse (null allowed)
  */
 userSchema.index({ username: 1 }, { unique: true });
 userSchema.index({ phone: 1 }, { unique: true });
-
-// ✅ sparse রাখলে null/undefined referralCode index এ ignore হবে
 userSchema.index({ referralCode: 1 }, { unique: true, sparse: true });
 
-// optional helpful indexes
 userSchema.index({ role: 1, isActive: 1 });
 userSchema.index({ referredBy: 1 });
 

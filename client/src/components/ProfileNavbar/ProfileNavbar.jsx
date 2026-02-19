@@ -5,7 +5,6 @@ import { toast } from "react-toastify";
 import {
   FaUserCircle,
   FaCrown,
-  FaGift,
   FaWallet,
   FaCopy,
   FaCoins,
@@ -13,14 +12,26 @@ import {
 
 // Redux
 import { useSelector } from "react-redux";
-import { selectIsAuthenticated, selectUser } from "../../features/auth/authSelectors";
+import {
+  selectIsAuthenticated,
+  selectUser,
+} from "../../features/auth/authSelectors";
 import { useLanguage } from "../../Context/LanguageProvider";
 
+// ✅ React Query + api
+import { useQuery } from "@tanstack/react-query";
+import { api } from "../../api/axios";
 
-
+// ✅ fetch referral wallet balance (referCommissionBalance)
+const fetchMyReferralWallet = async () => {
+  // this endpoint we created: GET /api/users/me/referrals
+  const { data } = await api.get("/api/users/me/referrals");
+  // data.user.referCommissionBalance
+  return data?.user || {};
+};
 
 const ProfileNavbar = () => {
-  const { isBangla, isEnglish } = useLanguage();
+  const { isBangla } = useLanguage();
 
   const user = useSelector(selectUser);
   const isAuthenticated = useSelector(selectIsAuthenticated);
@@ -28,9 +39,6 @@ const ProfileNavbar = () => {
   // Safe fallback if not logged in / user not loaded
   const username = user?.username || "Guest";
   const referralCode = user?.referralCode || "";
-  // You can add real reward coins / referral wallet later from user or another slice
-  const rewardCoins = 0; // ← replace with real value when available
-  const referralWallet = 0; // ← replace with real value (e.g. referCommissionBalance)
 
   const t = (bangla, english) => (isBangla ? bangla : english);
 
@@ -52,8 +60,28 @@ const ProfileNavbar = () => {
       },
       { label: t("রিওয়ার্ডস", "Rewards"), to: "/profile/rewards" },
     ],
-    [isBangla], // re-compute when language changes
+    [isBangla],
   );
+
+  // ✅ Load referral wallet from server (referCommissionBalance)
+  const {
+    data: meReferral,
+    isFetching: walletFetching,
+    refetch: refetchWallet,
+  } = useQuery({
+    queryKey: ["me-referral-wallet"],
+    queryFn: fetchMyReferralWallet,
+    enabled: !!isAuthenticated,
+    staleTime: 15_000,
+    retry: 1,
+  });
+
+  const referralWallet = Number(meReferral?.referCommissionBalance || 0);
+  const currency = meReferral?.currency || user?.currency || "BDT";
+  const currencySymbol = currency === "USDT" ? "USDT" : "৳";
+
+  // You can add real reward coins later
+  const rewardCoins = 0;
 
   const handleCopy = async () => {
     if (!referralCode) return;
@@ -86,7 +114,6 @@ const ProfileNavbar = () => {
   const blueBtn =
     "w-full bg-[#0b7cff] hover:bg-[#0a6fe6] text-white font-extrabold rounded-lg py-3 text-[13px] transition";
 
-  // Optional: show loading / not logged in state
   if (!isAuthenticated) {
     return (
       <div className="p-10 text-center">{t("লগইন করুন", "Please log in")}</div>
@@ -148,7 +175,7 @@ const ProfileNavbar = () => {
                   />
                 </div>
 
-                {/* Betting Pass – placeholder (add real data later) */}
+                {/* Betting Pass – placeholder */}
                 <div className="mt-4">
                   <div className="flex items-center justify-center gap-2 text-[12px] font-bold text-black/70">
                     <FaCrown className="text-black/50" />
@@ -208,14 +235,30 @@ const ProfileNavbar = () => {
                 </button>
               </div>
 
-              {/* Referral Wallet */}
+              {/* ✅ Referral Wallet (real referCommissionBalance) */}
               <div className={`${cardCls} p-4`}>
-                <div className="flex items-center gap-2 text-[13px] font-extrabold text-black">
-                  <FaWallet className="text-black/60" />
-                  {t("রেফারেল ওয়ালেট", "Referral Wallet")}
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 text-[13px] font-extrabold text-black">
+                    <FaWallet className="text-black/60" />
+                    {t("রেফারেল ওয়ালেট", "Referral Wallet")}
+                  </div>
+
+                  {/* tiny refresh indicator */}
+                  <button
+                    type="button"
+                    onClick={refetchWallet}
+                    className="text-[11px] font-bold text-black/50 hover:text-black/80"
+                    title="Refresh"
+                    disabled={walletFetching}
+                  >
+                    {walletFetching
+                      ? t("লোড...", "Loading...")
+                      : t("রিফ্রেশ", "Refresh")}
+                  </button>
                 </div>
+
                 <div className="mt-1 text-[#0b66ff] font-extrabold text-[14px]">
-                  ৳ {referralWallet.toFixed(2)}
+                  {currencySymbol} {referralWallet.toFixed(2)}
                 </div>
 
                 <button className={`${yellowBtn} mt-3`}>

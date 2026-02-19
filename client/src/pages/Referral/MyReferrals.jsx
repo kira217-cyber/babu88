@@ -3,44 +3,98 @@ import React, { useMemo } from "react";
 import { useSelector } from "react-redux";
 import { FaCopy, FaShareAlt, FaUser, FaUserTie } from "react-icons/fa";
 import { toast } from "react-toastify";
-import { selectIsAuthenticated, selectUser } from "../../features/auth/authSelectors";
+import { useQuery } from "@tanstack/react-query";
 import { useLanguage } from "../../Context/LanguageProvider";
+import { selectIsAuthenticated } from "../../features/auth/authSelectors";
+import { api } from "../../api/axios";
 
+const fetchMyReferralInfo = async () => {
+  const { data } = await api.get("/api/users/me/referrals");
+  return data; 
+};
 
+// fallback default tiers (client side display only)
+const DEFAULT_TIERS = [
+  { from: 1, to: 10, amount: 0, label: "Level 1 - 10", isActive: true },
+  { from: 11, to: 30, amount: 0, label: "Level 2 - 20", isActive: true },
+  { from: 31, to: 60, amount: 0, label: "Level 3 - 30", isActive: true },
+];
 
 const MyReferrals = () => {
   const { isBangla } = useLanguage();
-
-  const user = useSelector(selectUser);
   const isAuthenticated = useSelector(selectIsAuthenticated);
-
-  const referralCode = user?.referralCode || "";
-  const username = user?.username || "Guest";
-
-  const referralLink = useMemo(
-    () => (referralCode ? `https://babu88.gold?refer_code=${referralCode}` : ""),
-    [referralCode]
-  );
 
   const t = (bn, en) => (isBangla ? bn : en);
 
-  // Placeholder values — replace with real API data later
-  const tierTotals = {
-    tier1: 0,
-    tier2: 0,
-    tier3: 0,
-  };
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["me-referrals"],
+    queryFn: fetchMyReferralInfo,
+    enabled: !!isAuthenticated,
+    staleTime: 15_000,
+    retry: 1,
+  });
 
-  const bonus = {
-    referralFreeBonus: "0.00",
-    depositRequired: "0.00 / 0.00",
-    turnoverRequired: "0.00 / 0.00",
-  };
+  const me = data?.user || null;
 
-  const status = {
-    friendsInvited: 0,
-    completedInvitation: 0,
-  };
+  const referralCode = me?.referralCode || "";
+  const username = me?.username || "Guest";
+  const referralCount = Number(me?.referralCount || 0);
+  const referCommissionBalance = Number(me?.referCommissionBalance || 0);
+  
+
+  const tiers = useMemo(() => {
+    const override = me?.referralTierOverride;
+    if (Array.isArray(override) && override.length > 0) {
+      return override.map((x) => ({
+        from: Number(x.from || 1),
+        to: Number(x.to || 1),
+        amount: Number(x.amount || 0),
+        label: String(x.label || ""),
+        isActive: typeof x.isActive === "boolean" ? x.isActive : true,
+      }));
+    }
+    // if override is [] or null or missing -> show default tiers
+    return DEFAULT_TIERS;
+  }, [me?.referralTierOverride]);
+
+  const referralLink = useMemo(
+    () =>
+      referralCode
+        ? `${import.meta.env.VITE_CLIENT_URL}/register?ref=${referralCode}`
+        : "",
+    [referralCode],
+  );
+
+  // ✅ Count per tier based on referralCount and tier range
+  const tierCounts = useMemo(() => {
+    // for each tier: how many referrals fall into [from..to] given total referralCount
+    return tiers.map((tr) => {
+      const from = Number(tr.from);
+      const to = Number(tr.to);
+      if (!Number.isFinite(from) || !Number.isFinite(to)) return 0;
+      if (referralCount < from) return 0;
+      const end = Math.min(referralCount, to);
+      return Math.max(0, end - from + 1);
+    });
+  }, [tiers, referralCount]);
+
+  const bonus = useMemo(() => {
+    const currencySymbol = me?.currency === "USDT" ? "USDT" : "৳";
+    return {
+      referralFreeBonus: referCommissionBalance.toFixed(2),
+      depositRequired: "0.00 / 0.00",
+      turnoverRequired: "0.00 / 0.00",
+      currencySymbol,
+    };
+  }, [referCommissionBalance, me?.currency]);
+
+  const status = useMemo(
+    () => ({
+      friendsInvited: referralCount,
+      completedInvitation: 0, // ✅ later: তোমার business logic/API
+    }),
+    [referralCount],
+  );
 
   const copyText = async (text) => {
     if (!text) return;
@@ -70,15 +124,23 @@ const MyReferrals = () => {
       if (navigator.share) {
         await navigator.share({
           title: t("রেফারেল লিঙ্ক", "Referral Link"),
-          text: t("আমার রেফারেল লিঙ্ক দিয়ে জয়েন করুন", "Join using my referral link"),
+          text: t(
+            "আমার রেফারেল লিঙ্ক দিয়ে জয়েন করুন",
+            "Join using my referral link",
+          ),
           url: referralLink,
         });
       } else {
         await copyText(referralLink);
-        toast.info(t("শেয়ার সমর্থিত নয়, লিঙ্ক কপি করা হয়েছে!", "Share not supported, link copied!"));
+        toast.info(
+          t(
+            "শেয়ার সমর্থিত নয়, লিঙ্ক কপি করা হয়েছে!",
+            "Share not supported, link copied!",
+          ),
+        );
       }
     } catch {
-      // user cancelled → silent ignore
+      // cancelled
     }
   };
 
@@ -91,10 +153,29 @@ const MyReferrals = () => {
   const copyBtn =
     "absolute right-2 top-1/2 -translate-y-1/2 w-10 h-9 rounded-lg bg-white border border-black/10 flex items-center justify-center text-[#0b66ff] hover:bg-black/5 transition";
 
-  if (!isAuthenticated || !referralCode) {
+  if (!isAuthenticated) {
     return (
       <div className="p-8 text-center text-black/60">
-        {t("রেফারেল দেখতে লগইন করুন", "Please log in to view referral information.")}
+        {t(
+          "রেফারেল দেখতে লগইন করুন",
+          "Please log in to view referral information.",
+        )}
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className={`${card} p-6 text-center text-black/60`}>
+        {t("লোড হচ্ছে...", "Loading...")}
+      </div>
+    );
+  }
+
+  if (isError || !me || !referralCode) {
+    return (
+      <div className="p-8 text-center text-black/60">
+        {t("রেফারেল তথ্য পাওয়া যায়নি", "Referral info not found")}
       </div>
     );
   }
@@ -104,7 +185,9 @@ const MyReferrals = () => {
       {/* Referral Code + Link */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
         <div>
-          <div className={label}>{t("আপনার রেফারেল কোড :", "Your Referral Code :")}</div>
+          <div className={label}>
+            {t("আপনার রেফারেল কোড :", "Your Referral Code :")}
+          </div>
           <div className={`${inputWrap} mt-2`}>
             <input className={input} value={referralCode} readOnly />
             <button
@@ -144,7 +227,7 @@ const MyReferrals = () => {
         <div className="mt-1 text-[13px] font-medium text-[#0b66ff]">
           {t(
             "আপনার বন্ধুরা প্রতিবার ডিপোজিট করলে আপনি অতিরিক্ত লাইফটাইম ডিপোজিট কমিশন পাবেন (সর্বোচ্চ ২%)।",
-            "You also get to earn an additional lifetime deposit commission of up to 2% from your friends every time they make a deposit."
+            "You also get to earn an additional lifetime deposit commission of up to 2% from your friends every time they make a deposit.",
           )}
         </div>
       </div>
@@ -170,27 +253,47 @@ const MyReferrals = () => {
             </div>
           </div>
 
-          {/* Tier rows */}
-          {[
-            { label: t("লেভেল ১ (১%)", "Level 1 (1%)"), value: tierTotals.tier1 },
-            { label: t("লেভেল ২ (০.৭%)", "Level 2 (0.7%)"), value: tierTotals.tier2 },
-            { label: t("লেভেল ৩ (০.৩%)", "Level 3 (0.3%)"), value: tierTotals.tier3 },
-          ].map((t) => (
-            <div key={t.label} className="flex items-center gap-4 mb-5">
-              <div className="relative z-10 w-9 h-9 rounded-full bg-[#d9d9d9] flex items-center justify-center text-black/60 border border-black/10">
-                <FaUser />
-              </div>
-              <div className="h-[2px] w-10 bg-black/20" />
-              <div className="flex items-center gap-3 flex-1 max-w-[520px]">
-                <div className="flex-1 bg-[#e7e7e7] text-black font-bold text-[13px] rounded-md px-4 py-3.5 text-center border border-black/10 shadow-[0_6px_14px_rgba(0,0,0,0.12)]">
-                  {t.label}
+          {/* ✅ Tier rows now from referralTierOverride */}
+          {tiers.map((tr, idx) => {
+            const from = Number(tr.from);
+            const to = Number(tr.to);
+            const amount = Number(tr.amount || 0);
+            const active = tr.isActive !== false;
+
+            const bnLabel =
+              tr.label?.trim() ||
+              `লেভেল ${idx + 1} - ${from} থেকে ${to} (প্রতি ইউজার ${amount} %)`;
+            const enLabel =
+              tr.label?.trim() ||
+              `Level ${idx + 1} - ${from} to ${to} (per user ${amount} %)`;
+
+            return (
+              <div
+                key={`${from}-${to}-${idx}`}
+                className="flex items-center gap-4 mb-5"
+              >
+                <div
+                  className={`relative z-10 w-9 h-9 rounded-full flex items-center justify-center border ${
+                    active
+                      ? "bg-[#d9d9d9] text-black/60 border-black/10"
+                      : "bg-[#f3f3f3] text-black/30 border-black/10"
+                  }`}
+                  title={active ? "Active" : "Inactive"}
+                >
+                  <FaUser />
                 </div>
-                <div className="w-[110px] sm:w-[120px] bg-[#e7e7e7] text-black font-extrabold text-[13px] rounded-md px-3 py-3.5 text-center border border-black/10 shadow-[0_6px_14px_rgba(0,0,0,0.12)]">
-                  {t.value}
+                <div className="h-[2px] w-10 bg-black/20" />
+                <div className="flex items-center gap-3 flex-1 max-w-[520px]">
+                  <div className="flex-1 bg-[#e7e7e7] text-black font-bold text-[13px] rounded-md px-4 py-3.5 text-center border border-black/10 shadow-[0_6px_14px_rgba(0,0,0,0.12)]">
+                    {t(bnLabel, enLabel)}
+                  </div>
+                  <div className="w-[110px] sm:w-[120px] bg-[#e7e7e7] text-black font-extrabold text-[13px] rounded-md px-3 py-3.5 text-center border border-black/10 shadow-[0_6px_14px_rgba(0,0,0,0.12)]">
+                    {tierCounts[idx] || 0}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="mt-6">
@@ -219,7 +322,7 @@ const MyReferrals = () => {
                 {t("রেফারেল ফ্রি বোনাস", "Referral Free Bonus")}
               </div>
               <div className="mt-2 bg-black/5 rounded-lg px-4 py-3.5 text-[13.5px] font-extrabold text-[#0b66ff]">
-                {bonus.referralFreeBonus} ৳
+                {bonus.referralFreeBonus} {bonus.currencySymbol}
               </div>
             </div>
 
@@ -269,7 +372,6 @@ const MyReferrals = () => {
                 </div>
               </div>
 
-              {/* Placeholder for chart / illustration */}
               <div className="h-[160px] sm:h-[170px] bg-black/5" />
             </div>
           </div>
@@ -278,7 +380,7 @@ const MyReferrals = () => {
         <div className="mt-6 text-[12.5px] leading-relaxed font-medium text-[#0b66ff]">
           {t(
             "সম্পন্ন আমন্ত্রণ থাকলে সদস্যরা ফ্রি ৳৫০০ এর জন্য আবেদন করতে পারবেন। যাচাই সফল হলে বোনাস স্বয়ংক্রিয়ভাবে রেফারেল ওয়ালেটে যোগ হবে।",
-            "Members can apply for their free ৳500 if there is completed invitation. Bonus will be automatically credited to Referral Wallet upon successful verification."
+            "Members can apply for their free ৳500 if there is completed invitation. Bonus will be automatically credited to Referral Wallet upon successful verification.",
           )}
         </div>
       </div>

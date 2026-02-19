@@ -10,12 +10,14 @@ import {
   FaUserCheck,
   FaUserSlash,
   FaInfoCircle,
-  FaWallet,
   FaUserTag,
-  FaCalendarAlt,
-  FaLock,
   FaEye,
   FaEyeSlash,
+  FaPlus,
+  FaTrash,
+  FaTimes,
+  FaLayerGroup,
+  FaLock,
 } from "react-icons/fa";
 
 const fetchUser = async (id) => {
@@ -49,8 +51,13 @@ const UserDetails = () => {
     isActive: true,
     firstName: "",
     lastName: "",
-    password: "", // new field for password change
+    password: "",
   });
+
+  // ✅ Referral Levels (tiers) state
+  const [tiers, setTiers] = useState(null); // null => default, [] => disabled
+  const [tiersDirty, setTiersDirty] = useState(false);
+  const [tiersSaving, setTiersSaving] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -60,6 +67,7 @@ const UserDetails = () => {
   // Sync form when user data loads
   useEffect(() => {
     if (!user) return;
+
     setForm({
       username: user.username || "",
       email: user.email || "",
@@ -69,8 +77,30 @@ const UserDetails = () => {
       isActive: !!user.isActive,
       firstName: user.firstName || "",
       lastName: user.lastName || "",
-      password: "", // reset password field on load
+      password: "",
     });
+
+    // ✅ sync tiers
+    // - backend returns referralTierOverride (null|array)
+    // - if undefined → treat as null
+    const incoming =
+      typeof user.referralTierOverride === "undefined"
+        ? null
+        : user.referralTierOverride;
+
+    // Normalize array items
+    const normalized = Array.isArray(incoming)
+      ? incoming.map((t) => ({
+          from: Number(t.from || 1),
+          to: Number(t.to || 1),
+          amount: Number(t.amount || 0),
+          label: t.label || "",
+          isActive: typeof t.isActive === "boolean" ? t.isActive : true,
+        }))
+      : null;
+
+    setTiers(normalized);
+    setTiersDirty(false);
   }, [user]);
 
   const handleChange = (key) => (e) => {
@@ -120,7 +150,6 @@ const UserDetails = () => {
         lastName: form.lastName.trim(),
       };
 
-      // Only include password if user entered something
       if (form.password.trim().length > 0) {
         if (form.password.trim().length < 6) {
           toast.error("Password must be at least 6 characters");
@@ -131,14 +160,124 @@ const UserDetails = () => {
 
       const { data } = await api.patch(`/api/admin/users/${id}`, payload);
       toast.success(data?.message || "User updated successfully");
-
-      // Clear password field after successful save
       setForm((prev) => ({ ...prev, password: "" }));
       refetch();
     } catch (err) {
       toast.error(err?.response?.data?.message || "Update failed");
     } finally {
       setSaving(false);
+    }
+  };
+
+  // ✅ Tiers helpers
+  const markDirty = () => setTiersDirty(true);
+
+  const toArraySafe = (v) => (Array.isArray(v) ? v : []);
+
+  const hasOverlap = (arr) => {
+    const sorted = [...arr].sort((a, b) => Number(a.from) - Number(b.from));
+    for (let i = 1; i < sorted.length; i++) {
+      if (Number(sorted[i].from) <= Number(sorted[i - 1].to)) return true;
+    }
+    return false;
+  };
+
+  const validateTiersClient = (value) => {
+    if (value === null) return { ok: true };
+    if (!Array.isArray(value)) return { ok: false, message: "Tiers invalid" };
+    if (value.length === 0) return { ok: true }; // disabled payouts
+
+    for (const t of value) {
+      const from = Number(t.from);
+      const to = Number(t.to);
+      const amount = Number(t.amount);
+
+      if (!Number.isFinite(from) || !Number.isFinite(to))
+        return { ok: false, message: "From/To must be numbers" };
+      if (from < 1 || to < 1 || from > to)
+        return { ok: false, message: "Invalid range: from must be <= to" };
+      if (!Number.isFinite(amount) || amount < 0)
+        return { ok: false, message: "Amount must be >= 0" };
+    }
+
+    if (hasOverlap(value)) return { ok: false, message: "Tiers overlap" };
+    return { ok: true };
+  };
+
+  const addTier = () => {
+    const arr = toArraySafe(tiers);
+    const last = arr[arr.length - 1];
+    const nextFrom = last ? Number(last.to) + 1 : 1;
+    const nextTo = nextFrom; // default 1-length tier
+    const next = {
+      from: nextFrom,
+      to: nextTo,
+      amount: 0,
+      label: "",
+      isActive: true,
+    };
+    setTiers([...arr, next]);
+    markDirty();
+  };
+
+  const removeTier = (idx) => {
+    const arr = toArraySafe(tiers);
+    const next = arr.filter((_, i) => i !== idx);
+    setTiers(next);
+    markDirty();
+  };
+
+  const updateTierField = (idx, key, value) => {
+    const arr = toArraySafe(tiers);
+    const next = arr.map((t, i) =>
+      i === idx
+        ? {
+            ...t,
+            [key]:
+              key === "isActive"
+                ? Boolean(value)
+                : key === "from" || key === "to"
+                  ? Number(value || 0)
+                  : key === "amount"
+                    ? Number(value || 0)
+                    : value,
+          }
+        : t,
+    );
+    setTiers(next);
+    markDirty();
+  };
+
+  const resetTiersToDefault = () => {
+    setTiers(null);
+    markDirty();
+  };
+
+  const disableTiers = () => {
+    setTiers([]); // disabled payouts
+    markDirty();
+  };
+
+  const handleSaveTiers = async () => {
+    const check = validateTiersClient(tiers);
+    if (!check.ok) {
+      toast.error(check.message || "Invalid tiers");
+      return;
+    }
+
+    try {
+      setTiersSaving(true);
+      const { data } = await api.patch(
+        `/api/admin/users/${id}/referral-tiers`,
+        { tiers },
+      );
+      toast.success(data?.message || "Referral tiers updated");
+      setTiersDirty(false);
+      refetch();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to update tiers");
+    } finally {
+      setTiersSaving(false);
     }
   };
 
@@ -161,6 +300,11 @@ const UserDetails = () => {
   const primaryBtn = `${btnBase} bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black shadow-md shadow-amber-700/30`;
   const dangerBtn = `${btnBase} bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white shadow-md shadow-red-900/40`;
   const secondaryBtn = `${btnBase} bg-white/10 hover:bg-white/20 border border-white/15 text-white`;
+
+  const smallBtn =
+    "px-3 py-2 rounded-lg text-sm font-semibold transition border border-white/15 bg-white/10 hover:bg-white/15 flex items-center gap-2";
+  const smallDanger =
+    "px-3 py-2 rounded-lg text-sm font-semibold transition border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/15 text-rose-200 flex items-center gap-2";
 
   if (isLoading) {
     return (
@@ -185,6 +329,13 @@ const UserDetails = () => {
       </div>
     );
   }
+
+  const tiersModeText =
+    tiers === null
+      ? "Using Default Levels"
+      : Array.isArray(tiers) && tiers.length === 0
+        ? "Levels Disabled"
+        : "Custom Levels";
 
   return (
     <div className="min-h-screen p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-black via-amber-950/10 to-black text-white">
@@ -343,6 +494,14 @@ const UserDetails = () => {
                 value: String(user.createdUsers?.length || 0),
               },
               {
+                label: "Referral Count (safe)",
+                value: String(user.referralCount ?? 0),
+              },
+              {
+                label: "Refer Commission Balance",
+                value: String(user.referCommissionBalance ?? 0),
+              },
+              {
                 label: "Created At",
                 value: user.createdAt
                   ? new Date(user.createdAt).toLocaleString("en-US")
@@ -361,6 +520,175 @@ const UserDetails = () => {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* ✅ Referral Levels (Admin Controls) */}
+        <div className="mt-10">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+            <h3 className={sectionTitle + " mb-0"}>
+              <FaLayerGroup /> Referral Levels
+            </h3>
+
+            <div className="flex flex-wrap gap-2">
+              <span className="px-3 py-2 rounded-lg text-xs font-bold border border-amber-900/50 bg-black/30 text-amber-200">
+                {tiersModeText}
+              </span>
+
+              <button
+                type="button"
+                className={smallBtn}
+                onClick={addTier}
+                disabled={tiersSaving || saving}
+              >
+                <FaPlus /> Add Level
+              </button>
+
+              <button
+                type="button"
+                className={smallBtn}
+                onClick={resetTiersToDefault}
+                disabled={tiersSaving || saving}
+                title="Set tiers to null (use default)"
+              >
+                <FaTimes /> Reset Default
+              </button>
+
+              <button
+                type="button"
+                className={smallBtn}
+                onClick={disableTiers}
+                disabled={tiersSaving || saving}
+                title="Set tiers to [] (disable payouts)"
+              >
+                <FaLock /> Disable
+              </button>
+
+              <button
+                type="button"
+                className={smallBtn}
+                onClick={handleSaveTiers}
+                disabled={tiersSaving || saving || !tiersDirty}
+              >
+                <FaSave /> {tiersSaving ? "Saving..." : "Update Levels"}
+              </button>
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="bg-black/25 border border-amber-900/40 rounded-xl overflow-hidden">
+            <div className="grid grid-cols-12 gap-0 text-xs font-bold text-amber-200/90 bg-black/30 border-b border-amber-900/30">
+              <div className="col-span-2 px-4 py-3">From</div>
+              <div className="col-span-2 px-4 py-3">To</div>
+              <div className="col-span-3 px-4 py-3">Amount</div>
+              <div className="col-span-3 px-4 py-3">Label</div>
+              <div className="col-span-1 px-4 py-3 text-center">On</div>
+              <div className="col-span-1 px-4 py-3 text-center">Del</div>
+            </div>
+
+            {Array.isArray(tiers) && tiers.length > 0 ? (
+              <div className="divide-y divide-amber-900/20">
+                {tiers.map((t, idx) => (
+                  <div key={idx} className="grid grid-cols-12 gap-0">
+                    <div className="col-span-2 p-3">
+                      <input
+                        type="number"
+                        min={1}
+                        className={inputBase}
+                        value={t.from}
+                        onChange={(e) =>
+                          updateTierField(idx, "from", e.target.value)
+                        }
+                      />
+                    </div>
+
+                    <div className="col-span-2 p-3">
+                      <input
+                        type="number"
+                        min={1}
+                        className={inputBase}
+                        value={t.to}
+                        onChange={(e) =>
+                          updateTierField(idx, "to", e.target.value)
+                        }
+                      />
+                    </div>
+
+                    <div className="col-span-3 p-3">
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        className={inputBase}
+                        value={t.amount}
+                        onChange={(e) =>
+                          updateTierField(idx, "amount", e.target.value)
+                        }
+                        placeholder="Per referral payout"
+                      />
+                    </div>
+
+                    <div className="col-span-3 p-3">
+                      <input
+                        type="text"
+                        className={inputBase}
+                        value={t.label || ""}
+                        onChange={(e) =>
+                          updateTierField(idx, "label", e.target.value)
+                        }
+                        placeholder="Optional"
+                      />
+                    </div>
+
+                    <div className="col-span-1 p-3 flex items-center justify-center">
+                      <input
+                        type="checkbox"
+                        className="h-5 w-5 accent-amber-500"
+                        checked={t.isActive !== false}
+                        onChange={(e) =>
+                          updateTierField(idx, "isActive", e.target.checked)
+                        }
+                      />
+                    </div>
+
+                    <div className="col-span-1 p-3 flex items-center justify-center">
+                      <button
+                        type="button"
+                        className={smallDanger}
+                        onClick={() => removeTier(idx)}
+                        disabled={tiersSaving || saving}
+                        title="Delete level"
+                      >
+                        <FaTrash />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-5 text-sm text-amber-200/80">
+                {tiers === null ? (
+                  <>
+                    This user is using <strong>Default Levels</strong>. Click{" "}
+                    <strong>Add Level</strong> to create a custom override, or{" "}
+                    <strong>Disable</strong> to set payout off.
+                  </>
+                ) : (
+                  <>
+                    Levels are <strong>Disabled</strong> for this user (tiers =
+                    []). Click <strong>Add Level</strong> to enable custom tiers
+                    again, or <strong>Reset Default</strong>.
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          {tiersDirty && (
+            <div className="mt-4 p-4 bg-amber-950/30 rounded-lg border border-amber-800/40 text-amber-200/90 text-sm">
+              <strong>Note:</strong> Referral levels changed. Click{" "}
+              <strong>Update Levels</strong> to save.
+            </div>
+          )}
         </div>
 
         {/* Save hint when password is set */}

@@ -7,6 +7,7 @@ import User from "../models/User.js";
 
 const router = express.Router();
 
+
 /* =========================
    helpers
 ========================= */
@@ -27,6 +28,10 @@ const safeUser = (u) => ({
   referralCode: u.referralCode,
   createdUsers: u.createdUsers,
   referredBy: u.referredBy,
+  referralCount: u.referralCount,
+  referralTierOverride: u.referralTierOverride,
+  referralTierStats: u.referralTierStats,
+  referCommissionBalance: u.referCommissionBalance,
   createdAt: u.createdAt,
   updatedAt: u.updatedAt,
 });
@@ -53,17 +58,113 @@ const genReferralCode = (len = 6) => {
 };
 
 // ✅ unique referral maker (avoid collision)
-const makeUniqueReferralCode = async () => {
+const makeUniqueReferralCode = async (session = null) => {
   for (let i = 0; i < 10; i++) {
     const code = genReferralCode(6);
-    const exists = await User.findOne({ referralCode: code }).select("_id");
+    const q = User.findOne({ referralCode: code }).select("_id");
+    const exists = session ? await q.session(session) : await q;
     if (!exists) return code;
   }
-  // fallback (very rare)
   return `${genReferralCode(6)}${Math.floor(Math.random() * 10)}`;
 };
 
 
+/**
+ * ✅ Default tiers that will be auto-saved for every NEW normal user
+ * NOTE: amount here is per referral fixed payout
+ */
+const DEFAULT_USER_TIERS = [
+  { from: 1, to: 10, amount: 3, label: "Level - 1 (1-10) (per user 3 %)", isActive: true },
+  { from: 11, to: 30, amount: 5, label: "Level - 2 (11-30) (per user 5 %)", isActive: true },
+  { from: 31, to: 60, amount: 7, label: "Level - 3 (31-60) (per user 7 %)", isActive: true },
+];
+
+// ✅ tier selection for a normal user referrer
+const getUserTiers = (referrer) => {
+  const override = referrer?.referralTierOverride;
+  if (Array.isArray(override)) return override; // null => default, [] => disable
+  return null;
+};
+
+// ✅ payout by tier (nextCount falls in which tier range)
+const getTierPayout = (tiers, nextCount) => {
+  if (!Array.isArray(tiers) || tiers.length === 0) return 0;
+
+  const n = Number(nextCount);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+
+  const tier = tiers.find(
+    (t) =>
+      (t?.isActive !== false) &&
+      Number(t.from) <= n &&
+      n <= Number(t.to),
+  );
+  if (!tier) return 0;
+  return Number(tier.amount || 0);
+};
+
+// ✅ token extract + verify (no middleware)
+const getAuthUserId = (req) => {
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  if (!token) return { ok: false, status: 401, message: "Unauthorized (no token)" };
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    return { ok: true, userId: decoded.id, role: decoded.role };
+  } catch {
+    return { ok: false, status: 401, message: "Invalid token" };
+  }
+};
+
+
+
+/**
+ * ============================
+ * ✅ GET my referral info (single user)
+ * GET /api/users/me/referrals
+ * headers: Authorization: Bearer <token>
+ * ============================
+ */
+router.get("/me/referrals", async (req, res) => {
+  try {
+    const auth = getAuthUserId(req);
+    if (!auth.ok) return res.status(auth.status).json({ message: auth.message });
+
+    const user = await User.findById(auth.userId).select(
+      "username role isActive currency referralCode referralCount referralTierOverride referCommissionBalance",
+    );
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (user.role !== "user") {
+      return res.status(403).json({ message: "Only normal user allowed" });
+    }
+
+    if (user.isActive !== true) {
+      return res.status(403).json({ message: "Account disabled" });
+    }
+
+    return res.json({
+      user: {
+        _id: user._id,
+        username: user.username,
+        role: user.role,
+        isActive: user.isActive,
+        currency: user.currency,
+        referralCode: user.referralCode,
+        referralCount: user.referralCount || 0,
+        referralTierOverride:
+          typeof user.referralTierOverride === "undefined"
+            ? null
+            : user.referralTierOverride,
+        referCommissionBalance: user.referCommissionBalance || 0,
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
 
 /**
  * ============================
@@ -74,17 +175,13 @@ const makeUniqueReferralCode = async () => {
  */
 router.get("/me/balance", async (req, res) => {
   try {
-    // 1️⃣ token extract
     const authHeader = req.headers.authorization || "";
-    const token = authHeader.startsWith("Bearer ")
-      ? authHeader.slice(7)
-      : null;
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
     if (!token) {
       return res.status(401).json({ message: "Unauthorized (no token)" });
     }
 
-    // 2️⃣ token verify
     let decoded;
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -94,27 +191,20 @@ router.get("/me/balance", async (req, res) => {
 
     const userId = decoded.id;
 
-    // 3️⃣ user fetch
     const user = await User.findById(userId).select(
       "balance currency role isActive",
     );
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-    // 4️⃣ security checks
     if (user.role !== "user") {
-      return res
-        .status(403)
-        .json({ message: "Only normal user allowed" });
+      return res.status(403).json({ message: "Only normal user allowed" });
     }
 
     if (user.isActive !== true) {
       return res.status(403).json({ message: "Account disabled" });
     }
 
-    // 5️⃣ success
     return res.json({
       balance: user.balance || 0,
       currency: user.currency || "BDT",
@@ -126,7 +216,6 @@ router.get("/me/balance", async (req, res) => {
     });
   }
 });
-
 
 /**
  * ============================
@@ -153,7 +242,6 @@ router.post("/register-aff", async (req, res) => {
 
     const hash = await bcrypt.hash(password, 10);
 
-    // ✅ referralCode will be generated for aff-user too
     const referralCode = await makeUniqueReferralCode();
 
     const aff = await User.create({
@@ -164,7 +252,7 @@ router.post("/register-aff", async (req, res) => {
       currency,
       role: "aff-user",
       referralCode,
-      isActive: false, // ✅ admin approve required
+      isActive: false,
     });
 
     const token = signToken(aff);
@@ -183,66 +271,46 @@ router.post("/register-aff", async (req, res) => {
  * ✅ Normal User Register (role: user)
  * POST /api/users/register
  * body: { username, phone, password, currency?, referral? }
- * referral = affiliate referralCode (optional)
  *
- * ✅ তোমার চাহিদা:
- * - referral code affiliate এর হলে -> নতুন একাউন্ট role হবে "user" (always)
- * - নতুন user এরও নিজের referralCode generate হবে
+ * ✅ New logic:
+ * - referral code may belong to aff-user OR user
+ * - new user gets default referralTierOverride auto saved
+ * - payout -> referrer.referCommissionBalance
  * ============================
  */
 router.post("/register", async (req, res) => {
   const session = await mongoose.startSession();
 
   try {
-    const {
-      username,
-      phone,
-      password,
-      currency = "BDT",
-      referral = "",
-    } = req.body;
+    const { username, phone, password, currency = "BDT", referral = "" } = req.body;
 
     if (!username || !phone || !password) {
-      return res
-        .status(400)
-        .json({ message: "username, phone, password required" });
+      return res.status(400).json({ message: "username, phone, password required" });
     }
 
     const hash = await bcrypt.hash(password, 10);
     let createdUserDoc = null;
 
     await session.withTransaction(async () => {
-      let affiliate = null;
+      let referrer = null;
 
-      // ✅ referral থাকলে affiliate খুঁজবে (role aff-user + referralCode + approved)
-      const ref = String(referral || "")
-        .trim()
-        .toUpperCase();
+      const ref = String(referral || "").trim().toUpperCase();
+
+      // ✅ referral code can be user or aff-user
       if (ref) {
-        affiliate = await User.findOne({
-          role: "aff-user",
+        referrer = await User.findOne({
           referralCode: ref,
           isActive: true,
+          role: { $in: ["user", "aff-user"] },
         }).session(session);
 
-        if (!affiliate) {
-          // referral invalid হলে error
-          throw new Error("INVALID_REFERRAL");
-        }
+        if (!referrer) throw new Error("INVALID_REFERRAL");
       }
 
-      // ✅ new user also gets a unique referralCode
-      // ⚠️ must be generated INSIDE transaction so that we can retry if collision happens
-      let myRef = genReferralCode(6);
-      for (let i = 0; i < 10; i++) {
-        const exists = await User.findOne({ referralCode: myRef })
-          .session(session)
-          .select("_id");
-        if (!exists) break;
-        myRef = genReferralCode(6);
-      }
+      // ✅ new user's referralCode generated inside transaction
+      const myRef = await makeUniqueReferralCode(session);
 
-      // ✅ create user (role ALWAYS user)
+      // ✅ create new normal user (auto save default tiers)
       createdUserDoc = await User.create(
         [
           {
@@ -250,10 +318,13 @@ router.post("/register", async (req, res) => {
             phone: String(phone).trim(),
             password: hash,
             currency,
-            role: "user", // ✅ always "user"
+            role: "user",
             isActive: true,
-            referredBy: affiliate?._id || null,
-            referralCode: myRef, // ✅ generate for normal user too
+            referredBy: referrer?._id || null,
+            referralCode: myRef,
+
+            // ✅ default tiers auto save for every new normal user
+            referralTierOverride: DEFAULT_USER_TIERS.map((x) => ({ ...x })),
           },
         ],
         { session },
@@ -261,11 +332,35 @@ router.post("/register", async (req, res) => {
 
       const newUser = createdUserDoc[0];
 
-      // ✅ affiliate এর createdUsers এ push (referral use করলে)
-      if (affiliate) {
+      // ✅ if referral used, update referrer with payout
+      if (referrer) {
+        const currentCount = Number(referrer.referralCount || 0);
+        const nextCount = currentCount + 1;
+
+        let payout = 0;
+
+        if (referrer.role === "aff-user") {
+          payout = Number(referrer.referCommission || 0);
+        } else if (referrer.role === "user") {
+          const override = getUserTiers(referrer);
+
+          // if override === null => use DEFAULT_USER_TIERS for payout decision
+          // if override === []   => payout 0
+          const tiersForPayout =
+            override === null ? DEFAULT_USER_TIERS : override;
+
+          payout = getTierPayout(tiersForPayout, nextCount);
+        }
+
         await User.updateOne(
-          { _id: affiliate._id },
-          { $addToSet: { createdUsers: newUser._id } },
+          { _id: referrer._id },
+          {
+            $addToSet: { createdUsers: newUser._id },
+            $inc: {
+              referralCount: 1,
+              referCommissionBalance: payout,
+            },
+          },
           { session },
         );
       }
@@ -278,11 +373,11 @@ router.post("/register", async (req, res) => {
     if (err.message === "INVALID_REFERRAL") {
       return res.status(400).json({ message: "Invalid referral code" });
     }
+
     const msg = handleMongoDup(err);
     if (msg) return res.status(409).json({ message: msg });
-    return res
-      .status(500)
-      .json({ message: "Server error", error: err.message });
+
+    return res.status(500).json({ message: "Server error", error: err.message });
   } finally {
     session.endSession();
   }
@@ -331,7 +426,7 @@ router.post("/login-aff", async (req, res) => {
 
 /**
  * ============================
- * ✅ Normal User Login (user only) - username + password only
+ * ✅ Normal User Login (user only)
  * POST /api/users/login
  * body: { username, password }
  * ============================
@@ -340,7 +435,6 @@ router.post("/login", async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    // ✅ required
     if (!username || !password) {
       return res
         .status(400)
@@ -349,27 +443,21 @@ router.post("/login", async (req, res) => {
 
     const uname = String(username).trim();
 
-    // ✅ username দিয়ে শুধু খোঁজা হবে
     const user = await User.findOne({ username: uname });
 
-    // ❌ user না পেলে
     if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
-    // ✅ শুধু normal user allow
     if (user.role !== "user") {
       return res.status(403).json({ message: "Not a user account" });
     }
 
-    // ✅ active check
     if (user.isActive !== true) {
       return res.status(403).json({ message: "Account disabled" });
     }
 
-    // ✅ password match
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) return res.status(401).json({ message: "Invalid credentials" });
 
-    // ✅ success
     const token = signToken(user);
     return res.json({ token, user: safeUser(user) });
   } catch (err) {
@@ -378,7 +466,6 @@ router.post("/login", async (req, res) => {
       .json({ message: "Server error", error: err.message });
   }
 });
-
 
 
 
