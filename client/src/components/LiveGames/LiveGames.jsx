@@ -141,7 +141,7 @@ const LiveGames = () => {
   // Open game detail in new tab (target="_blank")
   const openGameInNewTab = (gameUID) => {
     if (!gameUID) return;
-    const url = `/game/${gameUID}`;
+    const url = `/playgame/${gameUID}`;
     window.open(url, "_blank", "noopener,noreferrer");
   };
 

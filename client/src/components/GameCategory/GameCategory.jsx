@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useLanguage } from "../../Context/LanguageProvider";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/axios";
+import { toast } from "react-toastify";
 
 const HOT_ICON = "https://babu88.gold/static/image/other/hot-icon.png";
 const NEW_ICON = "https://babu88.gold/static/svg/game-icon-new.svg";
@@ -31,13 +32,11 @@ const fetchGameCategoryColor = async () => {
   return data;
 };
 
-// ✅ DB categories (active)
 const fetchCategories = async () => {
   const { data } = await api.get("/api/public/game-categories");
   return data?.data || [];
 };
 
-// ✅ DB games by categoryId
 const fetchGamesByCategory = async (categoryId) => {
   const qs = new URLSearchParams();
   qs.set("categoryId", categoryId);
@@ -72,24 +71,23 @@ const GameCard = ({ game, onClick, ui, apiBase }) => {
         />
       </div>
 
-      {/* ✅ HOT/NEW icon badges (same position, just image instead of text) */}
       <div className="absolute top-0 right-0 flex flex-col gap-1 items-end">
-        {game?.isHot ? (
+        {game?.isHot === true && (
           <img
             src={HOT_ICON}
             alt="hot"
             className="h-8 w-auto drop-shadow"
             loading="lazy"
           />
-        ) : null}
-        {game?.isNew ? (
+        )}
+        {game?.isNew === true && (
           <img
             src={NEW_ICON}
             alt="new"
             className="h-8 w-auto drop-shadow"
             loading="lazy"
           />
-        ) : null}
+        )}
       </div>
     </motion.button>
   );
@@ -101,7 +99,6 @@ const GameCategory = () => {
 
   const API_URL = import.meta.env.VITE_API_URL;
 
-  // 🎨 UI color config (unchanged)
   const { data: colorDoc } = useQuery({
     queryKey: ["gamecategory-color"],
     queryFn: fetchGameCategoryColor,
@@ -144,39 +141,33 @@ const GameCategory = () => {
     };
   }, [colorDoc]);
 
-  // ✅ categories from DB
   const { data: categories = [], isLoading: loadingCats } = useQuery({
     queryKey: ["public-mobile-categories"],
     queryFn: fetchCategories,
-    staleTime: 60_000,
+    staleTime: 60000,
     retry: 1,
   });
 
-  // ✅ active categoryId
   const [active, setActive] = useState("");
 
-  // set default active to first category
   useEffect(() => {
     if (!active && categories?.length) {
       setActive(categories[0]._id);
     }
   }, [categories, active]);
 
-  // ✅ games for active category
   const { data: games = [], isLoading: loadingGames } = useQuery({
     queryKey: ["public-mobile-games", active],
     queryFn: () => fetchGamesByCategory(active),
     enabled: !!active,
-    staleTime: 30_000,
+    staleTime: 30000,
     retry: 1,
   });
 
-  // ✅ category scroll refs (unchanged)
   const scrollerRef = useRef(null);
   const trackRef = useRef(null);
-  const btnRefs = useRef({}); // key -> element
+  const btnRefs = useRef({});
 
-  // ✅ underline thumb state (unchanged)
   const [thumb, setThumb] = useState({ width: 40, x: 0 });
 
   const updateThumb = () => {
@@ -193,19 +184,17 @@ const GameCategory = () => {
 
     const trackW = track.clientWidth;
     const thumbW = Math.max(28, (clientWidth / scrollWidth) * trackW);
-
     const maxScroll = scrollWidth - clientWidth;
     const maxX = trackW - thumbW;
-
     const x = (scrollLeft / maxScroll) * maxX;
+
     setThumb({ width: thumbW, x });
   };
 
   useEffect(() => {
     updateThumb();
-    const onResize = () => updateThumb();
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    window.addEventListener("resize", updateThumb);
+    return () => window.removeEventListener("resize", updateThumb);
   }, []);
 
   useEffect(() => {
@@ -223,8 +212,8 @@ const GameCategory = () => {
     const currentLeft = scroller.scrollLeft;
     const btnCenter =
       btnRect.left - scrollerRect.left + btnRect.width / 2 + currentLeft;
-
     const target = btnCenter - scroller.clientWidth / 2;
+
     scroller.scrollTo({ left: target, behavior: "smooth" });
   };
 
@@ -234,13 +223,27 @@ const GameCategory = () => {
   };
 
   const handlePlay = (game) => {
-    const id = game?.gameUuid || game?.gameId || game?._id;
-    navigate(`/playgame/${id}`, { state: { game } });
+    const gameId = game?.gameId ;
+
+    if (!gameId) {
+      toast.error(isBangla ? "গেম আইডি পাওয়া যায়নি" : "Game ID not found");
+      return;
+    }
+
+    // Optional: লগইন চেক যোগ করতে পারেন (যদি redux থেকে token নেওয়া যায়)
+    // const token = useSelector(state => state.auth.token);
+    // if (!token) {
+    //   toast.error(isBangla ? "খেলতে লগইন করুন" : "Please login to play");
+    //   navigate("/login");
+    //   return;
+    // }
+
+    navigate(`/playgame/${gameId}`, { state: { game } });
   };
 
   return (
     <div className="w-full">
-      {/* ✅ Category Bar (unchanged structure/design) */}
+      {/* Category Bar */}
       <div
         className="w-full rounded-md px-2 mt-4"
         style={{ backgroundColor: hexToRgba(ui.wrapBg, ui.wrapOpacity) }}
@@ -260,11 +263,7 @@ const GameCategory = () => {
             backgroundColor: ui.scrollerBg,
           }}
         >
-          <style>
-            {`
-              .hide-scrollbar::-webkit-scrollbar { display: none; }
-            `}
-          </style>
+          <style>{`.hide-scrollbar::-webkit-scrollbar { display: none; }`}</style>
 
           {loadingCats ? (
             <div className="px-4 py-2 font-bold text-black/60">Loading...</div>
@@ -297,7 +296,6 @@ const GameCategory = () => {
                     color: isActive ? ui.btnActiveText : ui.btnInactiveTextRgba,
                   }}
                 >
-                  {/* ✅ category icon from DB (iconImage) */}
                   {c.iconImage ? (
                     <img
                       src={`${API_URL}${c.iconImage}`}
@@ -308,7 +306,6 @@ const GameCategory = () => {
                   ) : (
                     <span className="w-5 h-5 inline-block" />
                   )}
-
                   <span>{label}</span>
                 </button>
               );
@@ -316,7 +313,6 @@ const GameCategory = () => {
           )}
         </div>
 
-        {/* ✅ Underline thumb (unchanged) */}
         <div className="px-3 pb-2">
           <div
             ref={trackRef}
@@ -333,7 +329,7 @@ const GameCategory = () => {
         </div>
       </div>
 
-      {/* ✅ Games Grid (unchanged layout) */}
+      {/* Games Grid */}
       <div className="mt-4">
         {loadingGames ? (
           <div
@@ -343,7 +339,7 @@ const GameCategory = () => {
               fontSize: `${ui.emptyTextSize}px`,
             }}
           >
-            Loading...
+            {isBangla ? "গেম লোড হচ্ছে..." : "Loading games..."}
           </div>
         ) : games.length === 0 ? (
           <div

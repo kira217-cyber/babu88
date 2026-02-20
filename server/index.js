@@ -58,6 +58,8 @@ import gameCategoryRoutes from "./routes/gameCategoryRoutes.js";
 import gameProviderRoutes from "./routes/gameProviderRoutes.js";
 import gameRoutes from "./routes/gameRoutes.js";
 import publicGameRoutes from "./routes/publicGameRoutes.js";
+import callbackRoutes from "./routes/callbackRoutes.js";
+import playGameRoutes from "./routes/playGameRoutes.js";
 
 
 
@@ -141,6 +143,9 @@ app.use("/api/game-categories", gameCategoryRoutes);
 app.use("/api/game-providers", gameProviderRoutes);
 app.use("/api/games", gameRoutes);
 app.use("/api/public", publicGameRoutes);
+app.use("/api/call-back", callbackRoutes);
+app.use("/api/play-game", playGameRoutes);
+
 
 
 // ✅ port

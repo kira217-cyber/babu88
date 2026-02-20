@@ -14,6 +14,7 @@ import ProfileLayout from "../RootLayout/ProfileLayout";
 import History from "../pages/History/History";
 import GameCategory from "../pages/GameCategory/GameCategory";
 import GameCategoryMobile from "../pages/GameCategory/GameCategoryMobile";
+import PlayGame from "../pages/PlayGame/PlayGame";
 
 export const routes = createBrowserRouter([
   {
@@ -39,10 +40,10 @@ export const routes = createBrowserRouter([
         element: <GameCategoryMobile />,
       },
       {
-        path: "game/:gameUID",
+        path:"/playgame/:gameId",
         element: (
           <PrivateRoute>
-            <LiveGamesPlay />
+            <PlayGame />
           </PrivateRoute>
         ),
       },

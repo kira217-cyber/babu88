@@ -1,5 +1,6 @@
 // models/User.js
 import mongoose from "mongoose";
+import gameHistorySchema from "./GameHistory.js";
 
 const { Schema } = mongoose;
 
@@ -94,6 +95,8 @@ const userSchema = new Schema(
 
     firstName: { type: String, default: "" },
     lastName: { type: String, default: "" },
+    // Existing fields
+    gameHistory: [gameHistorySchema],
   },
   { timestamps: true },
 );

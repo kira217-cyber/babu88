@@ -1,9 +1,10 @@
-// src/components/HotGames/HotGames.jsx
 import React, { useMemo } from "react";
 import { useNavigate } from "react-router";
 import { useLanguage } from "../../Context/LanguageProvider";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/axios";
+import { useSelector } from "react-redux";
+import { toast } from "react-toastify";
 
 const fetchHotGamesColor = async () => {
   const { data } = await api.get("/api/hotgames-color");
@@ -49,9 +50,15 @@ const HotBadge = () => (
   />
 );
 
+const FALLBACK_IMG =
+  "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1200&q=60";
+
 const HotGames = () => {
   const navigate = useNavigate();
   const { isBangla } = useLanguage();
+
+  // ✅ only token check
+  const token = useSelector((state) => state.auth.token);
 
   // 🎨 UI config from DB (unchanged)
   const { data: colorDoc } = useQuery({
@@ -61,7 +68,7 @@ const HotGames = () => {
     retry: 1,
   });
 
-  // 🔥 Hot games from DB (NEW)
+  // 🔥 Hot games from DB
   const { data: games = [], isLoading } = useQuery({
     queryKey: ["hot-games-15"],
     queryFn: fetchHotGames,
@@ -111,6 +118,21 @@ const HotGames = () => {
     };
   }, [colorDoc]);
 
+  const handlePlay = (g) => {
+    const gameId = g?.gameId;
+    if (!gameId) return;
+
+    // ✅ only login required
+    if (!token) {
+      toast.error(isBangla ? "খেলতে লগইন করুন" : "Please login to play");
+      navigate("/login");
+      return;
+    }
+
+    // ✅ go play
+    navigate(`/playgame/${gameId}`);
+  };
+
   return (
     <section className="hidden lg:block w-full">
       <div className="mx-auto max-w-[1500px] px-2 py-4 lg:px-0">
@@ -139,18 +161,19 @@ const HotGames = () => {
         ) : (
           <div className="mt-5 grid grid-cols-5 gap-x-6 gap-y-8">
             {games.map((g) => {
-              const gameUuid = g.gameUuid || g.gameId || g._id; // ✅ navigate target
               const title = g.gameName || g.title || "Game";
               const provider = g.providerName || g.providerId || "";
-              const img = g.image
-                ? `${import.meta.env.VITE_API_URL}${g.image}`
-                : "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1200&q=60";
+
+              const img =
+                g.image && String(g.image).trim()
+                  ? `${import.meta.env.VITE_API_URL}${g.image}`
+                  : "";
 
               return (
                 <div key={g._id} className="group">
                   <button
                     type="button"
-                    onClick={() => navigate(`/play/${gameUuid}`)}
+                    onClick={() => handlePlay(g)}
                     className="relative w-full overflow-hidden focus:outline-none"
                     title={title}
                     style={{
@@ -165,10 +188,9 @@ const HotGames = () => {
                         alt={title}
                         className="h-48 w-full object-cover transition duration-300"
                         loading="lazy"
-                        onError={(e) => {
-                          e.currentTarget.src =
-                            "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1200&q=60";
-                        }}
+                        // onError={(e) => {
+                        //   e.currentTarget.src = FALLBACK_IMG;
+                        // }}
                       />
                     </div>
 
@@ -177,8 +199,8 @@ const HotGames = () => {
                       .group:hover img { transform: scale(${ui.imgHoverScale}); }
                     `}</style>
 
-                    {/* HOT badge always (কারণ DB থেকে isHot=true) */}
-                    <HotBadge ui={ui} />
+                    {/* HOT badge */}
+                    <HotBadge />
 
                     {/* overlay */}
                     <div

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Link, NavLink, Outlet } from "react-router"; 
+import { Link, NavLink, Outlet } from "react-router";
 import {
   FaHome,
   FaBell,
@@ -21,6 +21,10 @@ import {
   FaGlobe,
   FaStickyNote,
   FaBullhorn,
+  FaGamepad,
+  FaLayerGroup,
+  FaServer,
+  FaStream,
 } from "react-icons/fa";
 import { IoAppsSharp } from "react-icons/io5";
 import { GrAnnounce, GrUserAdmin } from "react-icons/gr";
@@ -41,14 +45,14 @@ const Sidebar = () => {
   const [depositOpen, setDepositOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [affiliateOpen, setAffiliateOpen] = useState(false);
+  const [gamesOpen, setGamesOpen] = useState(false);
+  const [usersOpen, setUsersOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
 
   const dispatch = useDispatch();
   const auth = useSelector(selectAuth);
-
   const role = auth?.admin?.role; // "mother" | "sub"
   const permissions = auth?.admin?.permissions || [];
-
   const isMother = role === "mother";
   const can = (key) => isMother || permissions.includes(key);
 
@@ -73,46 +77,58 @@ const Sidebar = () => {
         end: true,
       },
       {
-        key: "all-user",
-        to: "/all-user",
-        icon: <FaUsers />,
-        text: "All Users",
+        key: "__mother__",
+        to: "/create-admin",
+        icon: <GrUserAdmin />,
+        text: "Create Admin",
       },
+    ],
+    [],
+  );
+
+  const gamesSubItems = useMemo(
+    () => [
       {
-        key: "all-affiliate-user",
-        to: "/all-affiliate-user",
-        icon: <FaUsers />,
-        text: "All Affiliator",
-      },
-      {
-        key: "add-game-controller",
+        key: "add-game-category",
         to: "/add-game-category",
-        icon: <FaPlayCircle />,
+        icon: <FaLayerGroup className="text-cyan-400" />,
         text: "Add Game Category",
       },
       {
         key: "add-provider",
         to: "/add-provider",
-        icon: <FaPlayCircle />,
+        icon: <FaServer className="text-indigo-400" />,
         text: "Add Provider",
       },
       {
         key: "add-game",
         to: "/add-game",
-        icon: <FaPlayCircle />,
+        icon: <FaGamepad className="text-emerald-400" />,
         text: "Add Game",
       },
-       {
+      {
         key: "live-controller",
         to: "/live-controller",
-        icon: <FaPlayCircle />,
+        icon: <FaStream className="text-rose-400" />,
         text: "Live Controller",
       },
+    ],
+    [],
+  );
+
+  const usersSubItems = useMemo(
+    () => [
       {
-        key: "__mother__",
-        to: "/create-admin",
-        icon: <GrUserAdmin />,
-        text: "Create Admin",
+        key: "all-user",
+        to: "/all-user",
+        icon: <FaUsers className="text-blue-400" />,
+        text: "All Users",
+      },
+      {
+        key: "all-affiliate-user",
+        to: "/all-affiliate-user",
+        icon: <FaUsers className="text-purple-400" />,
+        text: "All Affiliator",
       },
     ],
     [],
@@ -133,8 +149,8 @@ const Sidebar = () => {
   const affColorControllerItems = useMemo(
     () => [
       {
-        perm: "color-controller-client", // you can change permission key if needed
-        to: "/aff-color-controller-client", // same route — change if affiliate has different route
+        perm: "color-controller-client",
+        to: "/aff-color-controller-client",
         icon: <FaPaintBrush />,
         text: "Color Client",
       },
@@ -299,9 +315,18 @@ const Sidebar = () => {
   );
 
   const visibleMenuItems = useMemo(
-    () =>
-      menuItems.filter((m) => (m.key === "__mother__" ? isMother : can(m.key))),
-    [menuItems, isMother, permissions],
+    () => menuItems.filter((m) => (m.key === "__mother__" ? isMother : true)),
+    [menuItems, isMother],
+  );
+
+  const visibleGamesItems = useMemo(
+    () => gamesSubItems.filter((item) => can(item.key)),
+    [gamesSubItems, permissions, isMother],
+  );
+
+  const visibleUsersItems = useMemo(
+    () => usersSubItems.filter((item) => can(item.key)),
+    [usersSubItems, permissions, isMother],
   );
 
   const visibleColorItems = useMemo(
@@ -334,6 +359,8 @@ const Sidebar = () => {
     [affiliateSubItems, permissions, isMother],
   );
 
+  const showGames = visibleGamesItems.length > 0;
+  const showUsers = visibleUsersItems.length > 0;
   const showColorController = visibleColorItems.length > 0;
   const showAffColorController = visibleAffColorItems.length > 0;
   const showDeposit = visibleDepositSubItems.length > 0;
@@ -348,6 +375,8 @@ const Sidebar = () => {
     if (!showAffiliate) setAffiliateOpen(false);
     if (!showColorController) setColorControllerOpen(false);
     if (!showAffColorController) setAffColorControllerOpen(false);
+    if (!showGames) setGamesOpen(false);
+    if (!showUsers) setUsersOpen(false);
   }, [
     showDeposit,
     showWithdraw,
@@ -355,6 +384,8 @@ const Sidebar = () => {
     showAffiliate,
     showColorController,
     showAffColorController,
+    showGames,
+    showUsers,
   ]);
 
   const handleLogout = () => {
@@ -404,6 +435,8 @@ const Sidebar = () => {
         >
           <SidebarContent
             menuItems={visibleMenuItems}
+            gamesItems={visibleGamesItems}
+            usersItems={visibleUsersItems}
             colorItems={visibleColorItems}
             affColorItems={visibleAffColorItems}
             depositSubItems={visibleDepositSubItems}
@@ -422,19 +455,25 @@ const Sidebar = () => {
             setWithdrawOpen={setWithdrawOpen}
             affiliateOpen={affiliateOpen}
             setAffiliateOpen={setAffiliateOpen}
+            gamesOpen={gamesOpen}
+            setGamesOpen={setGamesOpen}
+            usersOpen={usersOpen}
+            setUsersOpen={setUsersOpen}
             showColorController={showColorController}
             showAffColorController={showAffColorController}
             showDeposit={showDeposit}
             showWithdraw={showWithdraw}
             showClientController={showClientController}
             showAffiliate={showAffiliate}
+            showGames={showGames}
+            showUsers={showUsers}
             onClose={() => setOpen(false)}
             onLogout={handleLogout}
             role={role}
           />
         </motion.aside>
 
-        {/* Main Content */}
+        {/* Main Content Area */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Desktop Top Bar */}
           <div className="hidden md:flex items-center justify-between px-6 lg:px-10 py-6 border-b border-yellow-700/40 bg-gradient-to-r from-black/90 via-yellow-950/40 to-black/90 backdrop-blur-md sticky top-0 z-40 shadow-sm">
@@ -477,6 +516,8 @@ const Sidebar = () => {
 
 const SidebarContent = ({
   menuItems,
+  gamesItems,
+  usersItems,
   colorItems,
   affColorItems,
   depositSubItems,
@@ -495,12 +536,18 @@ const SidebarContent = ({
   setWithdrawOpen,
   affiliateOpen,
   setAffiliateOpen,
+  gamesOpen,
+  setGamesOpen,
+  usersOpen,
+  setUsersOpen,
   showColorController,
   showAffColorController,
   showDeposit,
   showWithdraw,
   showClientController,
   showAffiliate,
+  showGames,
+  showUsers,
   onClose,
   onLogout,
   role,
@@ -526,7 +573,7 @@ const SidebarContent = ({
         </div>
       </div>
 
-      {/* Mobile Close */}
+      {/* Mobile Close Button */}
       {onClose && (
         <button
           onClick={onClose}
@@ -559,6 +606,92 @@ const SidebarContent = ({
           </NavLink>
         ))}
 
+        {/* Games Dropdown */}
+        {showGames && (
+          <div className="mt-4">
+            <button
+              onClick={() => setGamesOpen(!gamesOpen)}
+              className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl text-white hover:bg-yellow-900/40 hover:text-yellow-100 transition-all duration-200"
+            >
+              <div className="flex items-center gap-4">
+                <span className="text-2xl text-cyan-400">
+                  <FaGamepad />
+                </span>
+                <span className="font-medium">Games</span>
+              </div>
+              {gamesOpen ? (
+                <FaChevronUp size={18} />
+              ) : (
+                <FaChevronDown size={18} />
+              )}
+            </button>
+            {gamesOpen && (
+              <div className="mt-2 pl-14 space-y-1">
+                {gamesItems.map((sub) => (
+                  <NavLink
+                    key={sub.to}
+                    to={sub.to}
+                    onClick={onClose}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-5 py-3 rounded-lg text-sm transition-all duration-200 ${
+                        isActive
+                          ? "bg-yellow-600/80 text-black font-medium shadow-sm shadow-yellow-500/40"
+                          : "text-yellow-100 hover:text-white hover:bg-yellow-800/50"
+                      }`
+                    }
+                  >
+                    <span className="text-xl">{sub.icon}</span>
+                    <span>{sub.text}</span>
+                  </NavLink>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Users Dropdown */}
+        {showUsers && (
+          <div className="mt-2">
+            <button
+              onClick={() => setUsersOpen(!usersOpen)}
+              className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl text-white hover:bg-yellow-900/40 hover:text-yellow-100 transition-all duration-200"
+            >
+              <div className="flex items-center gap-4">
+                <span className="text-2xl text-blue-400">
+                  <FaUsers />
+                </span>
+                <span className="font-medium">Users</span>
+              </div>
+              {usersOpen ? (
+                <FaChevronUp size={18} />
+              ) : (
+                <FaChevronDown size={18} />
+              )}
+            </button>
+            {usersOpen && (
+              <div className="mt-2 pl-14 space-y-1">
+                {usersItems.map((sub) => (
+                  <NavLink
+                    key={sub.to}
+                    to={sub.to}
+                    onClick={onClose}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-5 py-3 rounded-lg text-sm transition-all duration-200 ${
+                        isActive
+                          ? "bg-yellow-600/80 text-black font-medium shadow-sm shadow-yellow-500/40"
+                          : "text-yellow-100 hover:text-white hover:bg-yellow-800/50"
+                      }`
+                    }
+                  >
+                    <span className="text-xl">{sub.icon}</span>
+                    <span>{sub.text}</span>
+                  </NavLink>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Color Controller Dropdown */}
         {showColorController && (
           <div className="mt-4">
@@ -573,12 +706,11 @@ const SidebarContent = ({
                 <span className="font-medium">Color Controller</span>
               </div>
               {colorControllerOpen ? (
-                <FaChevronUp size={18} className="text-white" />
+                <FaChevronUp size={18} />
               ) : (
-                <FaChevronDown size={18} className="text-white" />
+                <FaChevronDown size={18} />
               )}
             </button>
-
             {colorControllerOpen && (
               <div className="mt-2 pl-14 space-y-1">
                 {colorItems.map((sub) => (
@@ -605,8 +737,8 @@ const SidebarContent = ({
           </div>
         )}
 
-        {/* Aff Color Controller Dropdown */}
-        {/* {showAffColorController && (
+        {/* Affiliate Color Controller Dropdown */}
+        {showAffColorController && (
           <div className="mt-4">
             <button
               onClick={() => setAffColorControllerOpen(!affColorControllerOpen)}
@@ -619,12 +751,11 @@ const SidebarContent = ({
                 <span className="font-medium">Aff Color Controller</span>
               </div>
               {affColorControllerOpen ? (
-                <FaChevronUp size={18} className="text-white" />
+                <FaChevronUp size={18} />
               ) : (
-                <FaChevronDown size={18} className="text-white" />
+                <FaChevronDown size={18} />
               )}
             </button>
-
             {affColorControllerOpen && (
               <div className="mt-2 pl-14 space-y-1">
                 {affColorItems.map((sub) => (
@@ -649,7 +780,7 @@ const SidebarContent = ({
               </div>
             )}
           </div>
-        )} */}
+        )}
 
         {/* Deposit Dropdown */}
         {showDeposit && (
@@ -665,12 +796,11 @@ const SidebarContent = ({
                 <span className="font-medium">Deposit</span>
               </div>
               {depositOpen ? (
-                <FaChevronUp size={18} className="text-white" />
+                <FaChevronUp size={18} />
               ) : (
-                <FaChevronDown size={18} className="text-white" />
+                <FaChevronDown size={18} />
               )}
             </button>
-
             {depositOpen && (
               <div className="mt-2 pl-14 space-y-1">
                 {depositSubItems.map((sub) => (
@@ -699,7 +829,7 @@ const SidebarContent = ({
 
         {/* Withdraw Dropdown */}
         {showWithdraw && (
-          <div className="mt-2">
+          <div className="mt-4">
             <button
               onClick={() => setWithdrawOpen(!withdrawOpen)}
               className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl text-white hover:bg-yellow-900/40 hover:text-yellow-100 transition-all duration-200"
@@ -711,12 +841,11 @@ const SidebarContent = ({
                 <span className="font-medium">Withdraw</span>
               </div>
               {withdrawOpen ? (
-                <FaChevronUp size={18} className="text-white" />
+                <FaChevronUp size={18} />
               ) : (
-                <FaChevronDown size={18} className="text-white" />
+                <FaChevronDown size={18} />
               )}
             </button>
-
             {withdrawOpen && (
               <div className="mt-2 pl-14 space-y-1">
                 {withdrawSubItems.map((sub) => (
@@ -757,12 +886,11 @@ const SidebarContent = ({
                 <span className="font-medium">Client Site Controller</span>
               </div>
               {promotionsOpen ? (
-                <FaChevronUp size={18} className="text-white" />
+                <FaChevronUp size={18} />
               ) : (
-                <FaChevronDown size={18} className="text-white" />
+                <FaChevronDown size={18} />
               )}
             </button>
-
             {promotionsOpen && (
               <div className="mt-2 pl-14 space-y-1">
                 {clientControllerItems.map((sub) => (
@@ -789,8 +917,8 @@ const SidebarContent = ({
           </div>
         )}
 
-        {/* Affiliate Client Site Controller Dropdown */}
-        {/* {showAffiliate && (
+        {/* Affiliate Site Controller Dropdown */}
+        {showAffiliate && (
           <div className="mt-4">
             <button
               onClick={() => setAffiliateOpen(!affiliateOpen)}
@@ -803,12 +931,11 @@ const SidebarContent = ({
                 <span className="font-medium">Aff Site Controller</span>
               </div>
               {affiliateOpen ? (
-                <FaChevronUp size={18} className="text-white" />
+                <FaChevronUp size={18} />
               ) : (
-                <FaChevronDown size={18} className="text-white" />
+                <FaChevronDown size={18} />
               )}
             </button>
-
             {affiliateOpen && (
               <div className="mt-2 pl-14 space-y-1">
                 {affiliateSubItems.map((sub) => (
@@ -833,7 +960,7 @@ const SidebarContent = ({
               </div>
             )}
           </div>
-        )} */}
+        )}
       </nav>
 
       {/* Logout */}

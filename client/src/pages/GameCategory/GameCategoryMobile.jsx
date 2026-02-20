@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/axios";
 import { useLanguage } from "../../Context/LanguageProvider";
+import { toast } from "react-toastify";
 
 const HOT_ICON = "https://babu88.gold/static/image/other/hot-icon.png";
 const NEW_ICON = "https://babu88.gold/static/svg/game-icon-new.svg";
@@ -39,38 +40,43 @@ const GameCategoryMobile = () => {
   const [activeProviderDbId, setActiveProviderDbId] = useState("");
   const [q, setQ] = useState("");
 
-  // ✅ helper: absolute vs relative path
+  // Debounce search (optional but recommended for mobile)
+  const [debouncedQ, setDebouncedQ] = useState(q);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQ(q);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [q]);
+
   const resolveImg = (path) => {
-    if (!path) return "";
+    if (!path) return "/no-image.png";
     const p = String(path).trim();
-    if (!p) return "";
-    if (/^https?:\/\//i.test(p)) return p; // absolute URL
-    if (!API_URL) return p; // if env missing, try relative
+    if (/^https?:\/\//i.test(p)) return p;
+    if (!API_URL) return p;
     return `${API_URL}${p.startsWith("/") ? "" : "/"}${p}`;
   };
 
-  // categories
   const { data: categories = [], isLoading: loadingCats } = useQuery({
     queryKey: ["mob-categories"],
     queryFn: fetchCategories,
-    staleTime: 60_000,
+    staleTime: 60000,
     retry: 1,
   });
 
-  // keep in sync with route param
   useEffect(() => {
     if (categoryId) setActiveCategoryId(categoryId);
   }, [categoryId]);
 
-  // active index for arrows
   const activeIndex = useMemo(() => {
     const idx = categories.findIndex((c) => c._id === activeCategoryId);
     return idx >= 0 ? idx : 0;
   }, [categories, activeCategoryId]);
 
-  const activeCategory = useMemo(() => {
-    return categories[activeIndex] || null;
-  }, [categories, activeIndex]);
+  const activeCategory = useMemo(
+    () => categories[activeIndex] || null,
+    [categories, activeIndex],
+  );
 
   const titleText = useMemo(() => {
     if (!activeCategory) return "";
@@ -79,53 +85,59 @@ const GameCategoryMobile = () => {
       : activeCategory.categoryName?.en;
   }, [activeCategory, isBangla]);
 
-  // providers for category
   const { data: providers = [], isLoading: loadingProviders } = useQuery({
     queryKey: ["mob-providers", activeCategoryId],
     queryFn: () => fetchProviders(activeCategoryId),
     enabled: !!activeCategoryId,
-    staleTime: 60_000,
+    staleTime: 60000,
     retry: 1,
   });
 
-  // games (server search)
   const { data: games = [], isLoading: loadingGames } = useQuery({
-    queryKey: ["mob-games", activeCategoryId, activeProviderDbId, q],
+    queryKey: ["mob-games", activeCategoryId, activeProviderDbId, debouncedQ],
     queryFn: () =>
       fetchGames({
         categoryId: activeCategoryId,
         providerDbId: activeProviderDbId,
-        q,
+        q: debouncedQ,
       }),
     enabled: !!activeCategoryId,
-    staleTime: 15_000,
+    staleTime: 15000,
     retry: 1,
   });
 
-  // ✅ client-side priority: searched game first
+  // Improved client-side sorting: exact match / start with → highest priority
   const shownGames = useMemo(() => {
-    const list = [...games];
-    const s = q.trim().toLowerCase();
-    if (!s) return list;
+    let list = [...(games || [])];
 
-    const score = (name) => {
-      const n = String(name || "").toLowerCase();
-      if (!n) return 0;
-      if (n.startsWith(s)) return 3;
-      if (n.includes(s)) return 2;
+    const term = (debouncedQ || q).trim().toLowerCase();
+    if (!term) return list;
+
+    const getPriority = (str = "") => {
+      const s = str.toLowerCase();
+      if (!s) return 0;
+      if (s === term) return 100; // exact match
+      if (s.startsWith(term)) return 50; // starts with
+      if (s.includes(term)) return 10; // contains
       return 1;
     };
 
     list.sort((a, b) => {
-      const an = a.gameName || a.gameUuid || a.gameId;
-      const bn = b.gameName || b.gameUuid || b.gameId;
-      return score(bn) - score(an);
+      const aName = a.gameName || a.gameUuid || a.gameId || "";
+      const bName = b.gameName || b.gameUuid || b.gameId || "";
+
+      const aScore = getPriority(aName);
+      const bScore = getPriority(bName);
+
+      if (bScore !== aScore) return bScore - aScore;
+
+      // same score → alphabetical fallback
+      return aName.localeCompare(bName);
     });
 
     return list;
-  }, [games, q]);
+  }, [games, q, debouncedQ]);
 
-  // arrows change category
   const goPrev = () => {
     if (!categories.length) return;
     const prev = (activeIndex - 1 + categories.length) % categories.length;
@@ -144,7 +156,7 @@ const GameCategoryMobile = () => {
     navigate(`/games-mobile/${id}`, { replace: true });
   };
 
-  // provider scroller underline like screenshot
+  // Scroll indicator logic
   const provScrollerRef = useRef(null);
   const trackRef = useRef(null);
   const [thumb, setThumb] = useState({ width: 40, x: 0 });
@@ -155,7 +167,6 @@ const GameCategoryMobile = () => {
     if (!scroller || !track) return;
 
     const { scrollLeft, scrollWidth, clientWidth } = scroller;
-
     if (scrollWidth <= clientWidth) {
       setThumb({ width: track.clientWidth, x: 0 });
       return;
@@ -163,39 +174,40 @@ const GameCategoryMobile = () => {
 
     const trackW = track.clientWidth;
     const thumbW = Math.max(28, (clientWidth / scrollWidth) * trackW);
-
     const maxScroll = scrollWidth - clientWidth;
     const maxX = trackW - thumbW;
-
     const x = (scrollLeft / maxScroll) * maxX;
+
     setThumb({ width: thumbW, x });
   };
 
   useEffect(() => {
     updateThumb();
-    const onResize = () => updateThumb();
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    window.addEventListener("resize", updateThumb);
+    return () => window.removeEventListener("resize", updateThumb);
   }, []);
 
   useEffect(() => {
-    requestAnimationFrame(() => updateThumb());
+    requestAnimationFrame(updateThumb);
   }, [activeCategoryId, providers]);
 
   const onPlay = (g) => {
-    const id = g.gameUuid || g.gameId || g._id;
-    navigate(`/playgame/${id}`, { state: { game: g } });
+    const gameId = g.gameId || g.gameUuid || g._id;
+    if (!gameId) {
+      toast.error(isBangla ? "গেম আইডি পাওয়া যায়নি" : "Game ID not found");
+      return;
+    }
+    navigate(`/playgame/${gameId}`, { state: { game: g } });
   };
 
   return (
     <div className="min-h-screen bg-[#f5f5f5]">
-      {/* ✅ Top black header */}
+      {/* Top header */}
       <div className="mx-3 mt-3 rounded-xl bg-black text-white h-[54px] flex items-center px-3">
         <button
           type="button"
           className="w-10 h-10 flex items-center justify-center text-2xl font-black"
           onClick={goPrev}
-          aria-label="Prev category"
         >
           ‹
         </button>
@@ -208,46 +220,36 @@ const GameCategoryMobile = () => {
           type="button"
           className="w-10 h-10 flex items-center justify-center text-2xl font-black"
           onClick={goNext}
-          aria-label="Next category"
         >
           ›
         </button>
       </div>
 
-      {/* ✅ Provider row (icons) */}
+      {/* Providers + Search */}
       <div className="mx-3 mt-3 bg-white rounded-xl shadow-sm p-3">
         <div
           ref={provScrollerRef}
           onScroll={updateThumb}
-          className="
-            flex items-center gap-3
-            overflow-x-auto whitespace-nowrap
-            [scrollbar-width:none]
-          "
+          className="flex items-center gap-3 overflow-x-auto whitespace-nowrap hide-scrollbar"
           style={{ WebkitOverflowScrolling: "touch" }}
         >
-          <style>{`.hide-scrollbar::-webkit-scrollbar{display:none;}`}</style>
-
-          {/* All */}
           <button
             type="button"
             onClick={() => setActiveProviderDbId("")}
             className={[
-              "shrink-0 w-[64px] h-[64px] rounded-xl border flex flex-col items-center justify-center",
-              !activeProviderDbId ? "border-[#f5b400]" : "border-black/15",
+              "shrink-0 w-[64px] h-[64px] rounded-xl border flex flex-col items-center justify-center text-[12px] font-extrabold",
+              !activeProviderDbId
+                ? "border-[#f5b400] text-[#f5b400]"
+                : "border-black/15 text-black/80",
             ].join(" ")}
           >
-            <div className="text-[12px] font-extrabold text-black/80">
-              {isBangla ? "All" : "All"}
-            </div>
+            {isBangla ? "সব" : "All"}
           </button>
 
           {loadingProviders
             ? null
             : providers.map((p) => {
                 const active = activeProviderDbId === p._id;
-
-                // ✅ FIX: correct URL (absolute/relative)
                 const iconSrc = resolveImg(p.providerIcon);
 
                 return (
@@ -267,15 +269,13 @@ const GameCategoryMobile = () => {
                         alt={p.providerName}
                         className="w-9 h-9 object-contain"
                         loading="lazy"
-                        onError={(e) => {
-                          // fallback box only (design same)
-                          e.currentTarget.style.display = "none";
-                        }}
+                        onError={(e) =>
+                          (e.currentTarget.style.display = "none")
+                        }
                       />
                     ) : (
                       <div className="w-9 h-9 rounded bg-black/5" />
                     )}
-
                     <div className="mt-1 text-[10px] font-extrabold text-black/70 truncate w-[58px] text-center">
                       {p.providerName}
                     </div>
@@ -284,7 +284,6 @@ const GameCategoryMobile = () => {
               })}
         </div>
 
-        {/* ✅ Yellow underline indicator */}
         <div className="mt-3 px-2">
           <div
             ref={trackRef}
@@ -293,28 +292,29 @@ const GameCategoryMobile = () => {
             <div
               className="absolute top-0 left-0 h-full rounded-full bg-[#f5b400]"
               style={{
-                width: thumb.width,
+                width: `${thumb.width}px`,
                 transform: `translateX(${thumb.x}px)`,
               }}
             />
           </div>
         </div>
 
-        {/* ✅ Search bar */}
         <div className="mt-3">
           <div className="h-[42px] rounded-full border border-black/20 bg-white flex items-center px-4 gap-2">
             <span className="text-black/40">🔎</span>
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search games"
+              placeholder={
+                isBangla ? "গেমের নাম লিখুন..." : "Search game name..."
+              }
               className="w-full bg-transparent outline-none text-[14px] font-semibold text-black/70"
             />
           </div>
         </div>
       </div>
 
-      {/* ✅ Games grid 3 cols */}
+      {/* Games */}
       <div className="mx-3 mt-3 pb-10">
         {loadingGames ? (
           <div className="py-10 text-center font-bold text-black/50">
@@ -322,12 +322,18 @@ const GameCategoryMobile = () => {
           </div>
         ) : shownGames.length === 0 ? (
           <div className="py-10 text-center font-bold text-black/50">
-            No games
+            {q.trim()
+              ? isBangla
+                ? "কোনো গেম মিলেনি"
+                : "No matching games"
+              : isBangla
+                ? "কোনো গেম নেই"
+                : "No games found"}
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-3">
             {shownGames.map((g) => {
-              const imgSrc = g.image ? resolveImg(g.image) : "/no-image.png";
+              const imgSrc = resolveImg(g.image);
               const label = g.gameName || g.gameUuid || g.gameId || "Game";
 
               return (
@@ -349,27 +355,27 @@ const GameCategoryMobile = () => {
                       />
                     </div>
 
-                    <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
-                      {g.isHot ? (
+                    <div className="absolute top-0 right-0 flex flex-col gap-1 items-end">
+                      {g.isHot === true && (
                         <img
                           src={HOT_ICON}
                           alt="hot"
-                          className="h-5 w-auto drop-shadow"
+                          className="h-8 w-auto drop-shadow"
                           loading="lazy"
                         />
-                      ) : null}
-                      {g.isNew ? (
+                      )}
+                      {g.isNew === true && (
                         <img
                           src={NEW_ICON}
                           alt="new"
-                          className="h-5 w-auto drop-shadow"
+                          className="h-8 w-auto drop-shadow"
                           loading="lazy"
                         />
-                      ) : null}
+                      )}
                     </div>
                   </div>
 
-                  <div className="mt-1 text-[12px] font-bold text-black/80 truncate text-center">
+                  <div className="mt-1 text-[12px] font-bold text-black/80 truncate text-center px-1">
                     {label}
                   </div>
                 </button>
