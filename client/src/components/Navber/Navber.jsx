@@ -68,6 +68,12 @@ const fetchMyBalance = async (token) => {
   return data; // { balance, currency }
 };
 
+// ✅ PUBLIC: categories list (your publicGameRoutes.js)
+const fetchPublicGameCategories = async () => {
+  const { data } = await api.get("/api/public/game-categories");
+  return data?.data || [];
+};
+
 // Tiny Flag components (unchanged)
 const BdFlag = ({ className = "" }) => (
   <span
@@ -103,8 +109,16 @@ const Badge = ({ variant = "hot", children }) => {
   );
 };
 
-// ✅ NavItem updated: design same, only color/text-size dynamic
-const NavItem = ({ to, icon: Icon, label, badge, onClick, colors }) => {
+// ✅ NavItem updated: design same, only iconImg support (fallback icon unchanged)
+const NavItem = ({
+  to,
+  icon: Icon,
+  iconImg,
+  label,
+  badge,
+  onClick,
+  colors,
+}) => {
   return (
     <NavLink
       to={to}
@@ -119,11 +133,20 @@ const NavItem = ({ to, icon: Icon, label, badge, onClick, colors }) => {
       })}
     >
       <span className="w-10 h-10 rounded-lg flex items-center justify-center">
-        {/* icon follows text color via currentColor */}
-        <Icon
-          className="text-2xl"
-          style={{ color: "currentColor", opacity: 0.9 }}
-        />
+        {iconImg ? (
+          <img
+            src={iconImg}
+            alt={label}
+            className="w-7 h-7 object-contain"
+            loading="lazy"
+            onError={(e) => (e.currentTarget.style.display = "none")}
+          />
+        ) : (
+          <Icon
+            className="text-2xl"
+            style={{ color: "currentColor", opacity: 0.9 }}
+          />
+        )}
       </span>
       <span className="truncate">{label}</span>
       {badge?.type ? <Badge variant={badge.type}>{badge.text}</Badge> : null}
@@ -149,6 +172,16 @@ const Navber = () => {
     queryFn: fetchNavbarColor,
     staleTime: 1000 * 60 * 10,
   });
+
+  // ✅ PUBLIC categories (sidebar Games)
+  const { data: dbCategories = [] } = useQuery({
+    queryKey: ["public-game-categories"],
+    queryFn: fetchPublicGameCategories,
+    staleTime: 60_000,
+    retry: 1,
+  });
+
+  const API_URL = import.meta.env.VITE_API_URL;
 
   // ✅ fallback (hardcoded values) -> design unchanged
   const colors = useMemo(() => {
@@ -213,7 +246,7 @@ const Navber = () => {
         setBalanceState(b);
         setCurrencyState(c);
       } catch (e) {
-        // silent (optional)
+        // silent
       }
     };
     run();
@@ -242,22 +275,10 @@ const Navber = () => {
       affiliates: isBangla ? "অ্যাফিলিয়েট" : "Affiliate",
       vip: isBangla ? "বেটিং: ভিআইপি" : "Betting: VIP",
 
-      slot: isBangla ? "স্লট গেম" : "Slot",
-      casino: isBangla ? "ক্যাসিনো" : "Casino",
-      crash: isBangla ? "ক্র্যাশ" : "Crash",
-      cricket: isBangla ? "ক্রিকেট" : "Cricket",
-      tableGames: isBangla ? "টেবিল গেম" : "Table Games",
-      fast: isBangla ? "ফাস্ট" : "Fast",
-      fish: isBangla ? "মাছ ধরা" : "Fish",
-      sportsBook: isBangla ? "খেলার বই" : "Sportsbook",
-
       faq: isBangla ? "FAQ / সাহায্য" : "FAQ / Help",
       liveChat: isBangla ? "লাইভ চ্যাট" : "Live Chat",
       download: isBangla ? "ডাউনলোড করুন" : "Download App",
 
-      balanceReloadOk: isBangla
-        ? "ব্যালেন্স রিফ্রেশ হয়েছে"
-        : "Balance refreshed",
       balanceReloadFail: isBangla
         ? "ব্যালেন্স রিফ্রেশ ব্যর্থ"
         : "Balance refresh failed",
@@ -333,7 +354,7 @@ const Navber = () => {
     } finally {
       setBalReloading(false);
     }
-  }, [token, t.balanceReloadOk, t.balanceReloadFail]);
+  }, [token, t.balanceReloadFail]);
 
   const promoItems = [
     { to: "/promotions", icon: FaTag, label: t.promotions },
@@ -364,21 +385,20 @@ const Navber = () => {
     },
   ];
 
-  const gameItems = [
-    { to: "/games/slot", icon: FaGamepad, label: t.slot },
-    { to: "/games/casino", icon: FaDice, label: t.casino },
-    { to: "/games/crash", icon: FaRocket, label: t.crash },
-    { to: "/games/cricket", icon: FaBaseballBall, label: t.cricket },
-    { to: "/games/table", icon: FaTable, label: t.tableGames },
-    {
-      to: "/games/fast",
-      icon: FaBolt,
-      label: t.fast,
-      badge: { type: "new", text: "new" },
-    },
-    { to: "/games/fish", icon: FaFish, label: t.fish },
-    { to: "/sportsbook", icon: FaFutbol, label: t.sportsBook },
-  ];
+  // ✅ Games section now from DB (same design)
+  const gameItems = useMemo(() => {
+    const list = Array.isArray(dbCategories) ? dbCategories : [];
+    return list.map((c) => {
+      const label = isBangla ? c.categoryName?.bn : c.categoryName?.en;
+      const iconImg = c.iconImage ? `${API_URL}${c.iconImage}` : "";
+      return {
+        to: `/games-mobile/${c._id}`,
+        icon: FaGamepad, // fallback
+        iconImg,
+        label: label || "Category",
+      };
+    });
+  }, [dbCategories, isBangla, API_URL]);
 
   const otherItems = [
     { icon: FaQuestionCircle, label: t.faq, to: "/faq" },
@@ -439,7 +459,7 @@ const Navber = () => {
             <div className="flex items-center gap-2 md:gap-8">
               {!isAuthenticated ? (
                 <>
-                  {/* ✅ login btn: only colors/text-size from DB */}
+                  {/* ✅ login btn */}
                   <Link
                     to="/login"
                     style={{
@@ -509,14 +529,12 @@ const Navber = () => {
                 </>
               ) : (
                 <>
-                  {/* ✅ Screenshot-like logged in bar */}
+                  {/* ✅ logged in bar */}
                   <div className="flex items-center gap-3">
-                    {/* username */}
                     <span className="hidden sm:inline text-[14px] font-semibold text-black">
                       {username}
                     </span>
 
-                    {/* ✅ profile (bg/icon color from DB) */}
                     <Link
                       to="/profile"
                       style={{ backgroundColor: colors.iconBg }}
@@ -530,7 +548,6 @@ const Navber = () => {
                       />
                     </Link>
 
-                    {/* ✅ notification (bg/icon color from DB) */}
                     <Link
                       to="/notifications"
                       style={{ backgroundColor: colors.iconBg }}
@@ -547,10 +564,8 @@ const Navber = () => {
                       </span>
                     </Link>
 
-                    {/* divider */}
                     <span className="hidden sm:block w-px h-8 bg-black/20" />
 
-                    {/* balance pill */}
                     <div className="hidden h-10 rounded-full bg-[#e6e6e6] md:flex items-center px-4 font-extrabold text-black text-[14px] shadow-sm">
                       {currencySymbol} {Number(balanceState).toFixed(2)}
                       <button
@@ -562,14 +577,15 @@ const Navber = () => {
                         title="Reload balance"
                       >
                         <span
-                          className={`${balReloading ? "animate-spin inline-block" : ""}`}
+                          className={`${
+                            balReloading ? "animate-spin inline-block" : ""
+                          }`}
                         >
                           <TfiReload />
                         </span>
                       </button>
                     </div>
 
-                    {/* add balance blue circle */}
                     <Link
                       to="/profile/deposit"
                       className="hidden h-10 w-10 rounded-full bg-[#0b78f0] text-white md:flex items-center justify-center shadow-sm hover:brightness-95 active:scale-[0.99] transition cursor-pointer"
@@ -579,10 +595,8 @@ const Navber = () => {
                       <FaPlus />
                     </Link>
 
-                    {/* divider */}
                     <span className="hidden sm:block w-px h-8 bg-black/20" />
 
-                    {/* language (keep same) */}
                     <div
                       className="hidden md:block relative z-[70]"
                       ref={langRef}
@@ -627,7 +641,6 @@ const Navber = () => {
                       )}
                     </div>
 
-                    {/* logout icon */}
                     <button
                       type="button"
                       onClick={handleLogout}
@@ -659,16 +672,20 @@ const Navber = () => {
             />
 
             <motion.aside
-              variants={sidebarVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
+              initial={{ x: "-100%" }}
+              animate={{
+                x: 0,
+                transition: { type: "spring", damping: 22, stiffness: 180 },
+              }}
+              exit={{
+                x: "-100%",
+                transition: { duration: 0.28, ease: [0.4, 0, 0.2, 1] },
+              }}
               className="fixed top-0 left-0 h-full w-[82%] max-w-[320px] bg-white z-[71] shadow-2xl lg:hidden"
             >
               <div className="px-4 pt-5 pb-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 select-none">
-                    {/* logo */}
                     <Link
                       to="/"
                       className="flex items-center gap-2 select-none cursor-pointer"
@@ -720,14 +737,15 @@ const Navber = () => {
                 <div className="px-2 mb-2 text-[14px] font-extrabold text-black/40">
                   {t.gamesSection}
                 </div>
+
                 <div className="grid gap-1">
                   {gameItems.map((it) => (
                     <NavItem
                       key={it.to}
                       to={it.to}
                       icon={it.icon}
+                      iconImg={it.iconImg}
                       label={it.label}
-                      badge={it.badge}
                       colors={colors}
                       onClick={() => setSidebarOpen(false)}
                     />
@@ -763,7 +781,6 @@ const Navber = () => {
                     />
                   ))}
 
-                  {/* ✅ optional: mobile logout in sidebar */}
                   {isAuthenticated && (
                     <button
                       type="button"

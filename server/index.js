@@ -54,6 +54,11 @@ import userRoutes from "./routes/userRoutes.js";
 import adminAffiliateRoutes from "./routes/adminAffiliateRoutes.js";
 import adminUserRoutes from "./routes/adminUserRoutes.js";
 import depositMethodsRoutes from "./routes/depositMethodsRoutes.js";
+import gameCategoryRoutes from "./routes/gameCategoryRoutes.js";
+import gameProviderRoutes from "./routes/gameProviderRoutes.js";
+import gameRoutes from "./routes/gameRoutes.js";
+import publicGameRoutes from "./routes/publicGameRoutes.js";
+
 
 
 
@@ -132,7 +137,10 @@ app.use("/api/users", userRoutes);
 app.use("/api/admin", adminAffiliateRoutes);
 app.use("/api/admin", adminUserRoutes);
 app.use("/api", depositMethodsRoutes);
-
+app.use("/api/game-categories", gameCategoryRoutes);
+app.use("/api/game-providers", gameProviderRoutes);
+app.use("/api/games", gameRoutes);
+app.use("/api/public", publicGameRoutes);
 
 
 // ✅ port

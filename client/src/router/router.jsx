@@ -12,6 +12,8 @@ import LiveGamesPlay from "../pages/LiveGamesPlay/LiveGamesPlay";
 import Referral from "../pages/Referral/Referral";
 import ProfileLayout from "../RootLayout/ProfileLayout";
 import History from "../pages/History/History";
+import GameCategory from "../pages/GameCategory/GameCategory";
+import GameCategoryMobile from "../pages/GameCategory/GameCategoryMobile";
 
 export const routes = createBrowserRouter([
   {
@@ -28,7 +30,14 @@ export const routes = createBrowserRouter([
         path: "promotions",
         element: <Promotions />,
       },
-
+      {
+        path: "games/:categoryId",
+        element: <GameCategory />,
+      },
+      {
+        path: "games-mobile/:categoryId",
+        element: <GameCategoryMobile />,
+      },
       {
         path: "game/:gameUID",
         element: (

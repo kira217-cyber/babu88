@@ -1,141 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { motion } from "framer-motion";
-import {
-  GiCrown,
-  GiFlame,
-  GiPokerHand,
-  GiAirplane,
-  GiCricketBat,
-  GiCardAceSpades,
-  GiRabbit,
-  GiFishing,
-  GiTwoCoins,
-} from "react-icons/gi";
 import { useLanguage } from "../../Context/LanguageProvider";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/axios";
 
-const CATEGORIES = [
-  { key: "jackpot", label: { bn: "জ্যাকপট", en: "Jackpot" }, icon: GiCrown },
-  { key: "hot", label: { bn: "হট", en: "Hot" }, icon: GiFlame },
-  { key: "slot", label: { bn: "স্লট", en: "Slot" }, icon: GiCardAceSpades },
-  { key: "casino", label: { bn: "ক্যাসিনো", en: "Casino" }, icon: GiPokerHand },
-  { key: "crash", label: { bn: "ক্র্যাশ", en: "Crash" }, icon: GiAirplane },
-  {
-    key: "cricket",
-    label: { bn: "ক্রিকেট", en: "Cricket" },
-    icon: GiCricketBat,
-  },
-  { key: "table", label: { bn: "টেবিল", en: "Table" }, icon: GiCardAceSpades },
-  { key: "fast", label: { bn: "ফাস্ট", en: "Fast" }, icon: GiRabbit },
-  {
-    key: "catching_fish",
-    label: { bn: "ক্যাচিং ফিশ", en: "Catching Fish" },
-    icon: GiFishing,
-  },
-  { key: "asb", label: { bn: "ASB", en: "ASB" }, icon: GiTwoCoins },
-];
-
-// ✅ Demo games (replace with API data)
-const GAMES = [
-  {
-    id: "super-ace-1",
-    title: "Super Ace",
-    category: "hot",
-    image:
-      "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/DtP4ZtTTSFMSTUxfRBlChuvPSaZ7F6AUlyCPF9HQ.png",
-    badge: "HOT",
-  },
-  {
-    id: "aviator-1",
-    title: "Aviator",
-    category: "crash",
-    image:
-      "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/DtP4ZtTTSFMSTUxfRBlChuvPSaZ7F6AUlyCPF9HQ.png",
-    badge: "HOT",
-  },
-  {
-    id: "fortune-gems-1",
-    title: "Fortune Gems",
-    category: "hot",
-    image:
-      "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/hRJKCIGfsKom04Ok44tFzyyHLxOTDSPXvPTQAvx6.jpg",
-    badge: "HOT",
-  },
-  {
-    id: "chicken-road-2",
-    title: "Chicken Road 2",
-    category: "hot",
-    image:
-      "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/1JbjzqcccNub15FEa8NFG8nBQbSqeO4Lzo3t33ad.jpg",
-    badge: "HOT",
-  },
-  {
-    id: "crazy-time-1",
-    title: "Crazy Time",
-    category: "hot",
-    image:
-      "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/3Y8aCs6xtWTxk6xtaxnkS9Zk7qAsOsvhgc0Jg0me.jpg",
-    badge: "HOT",
-  },
-  {
-    id: "crash-cricket-1",
-    title: "Crash Cricket",
-    category: "hot",
-    image:
-      "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/2DBG4VFxCy7icorMGJ3dvQVNBjKOzpcbDfVlBt2R.png",
-    badge: "HOT",
-  },
-  {
-    id: "roulette-1",
-    title: "Roulette",
-    category: "hot",
-    image:
-      "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/XKMsslvB0bgiBJ41meWZH3mO02J0ysgOdnE8WMc5.jpg",
-    badge: "HOT",
-  },
-  {
-    id: "fish-1",
-    title: "Fishing King",
-    category: "hot",
-    image:
-      "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/hRJKCIGfsKom04Ok44tFzyyHLxOTDSPXvPTQAvx6.jpg",
-    badge: "HOT",
-  },
-  {
-    id: "jackpot-1",
-    title: "Jackpot Mega",
-    category: "jackpot",
-    image:
-      "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/2DBG4VFxCy7icorMGJ3dvQVNBjKOzpcbDfVlBt2R.png",
-    badge: "HOT",
-  },
-  {
-    id: "asb-1",
-    title: "ASB Game",
-    category: "hot",
-    image:
-      "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/xCfRmJP2Fm1Fw9VEUHFoCtNaBpfTyXIYdr5Osuzl.png",
-    badge: "HOT",
-  },
-  {
-    id: "fast-1",
-    title: "Fast Spin",
-    category: "hot",
-    image:
-      "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/ad5CfULwpWYJ0qyEtT3a8Djc5eCghQwroEo1vLrv.jpg",
-    badge: "HOT",
-  },
-  {
-    id: "slot-2",
-    title: "Slot Pro",
-    category: "slot",
-    image:
-      "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/xCfRmJP2Fm1Fw9VEUHFoCtNaBpfTyXIYdr5Osuzl.png",
-    badge: "HOT",
-  },
-];
+const HOT_ICON = "https://babu88.gold/static/image/other/hot-icon.png";
+const NEW_ICON = "https://babu88.gold/static/svg/game-icon-new.svg";
 
 const hexToRgba = (hex, alpha = 1) => {
   if (!hex || typeof hex !== "string") return `rgba(0,0,0,${alpha})`;
@@ -160,7 +31,23 @@ const fetchGameCategoryColor = async () => {
   return data;
 };
 
-const GameCard = ({ game, onClick, ui }) => {
+// ✅ DB categories (active)
+const fetchCategories = async () => {
+  const { data } = await api.get("/api/public/game-categories");
+  return data?.data || [];
+};
+
+// ✅ DB games by categoryId
+const fetchGamesByCategory = async (categoryId) => {
+  const qs = new URLSearchParams();
+  qs.set("categoryId", categoryId);
+  const { data } = await api.get(`/api/public/all-games?${qs.toString()}`);
+  return data?.data || [];
+};
+
+const GameCard = ({ game, onClick, ui, apiBase }) => {
+  const imgSrc = game?.image ? `${apiBase}${game.image}` : "/no-image.png";
+
   return (
     <motion.button
       whileTap={{ scale: 0.98 }}
@@ -170,35 +57,40 @@ const GameCard = ({ game, onClick, ui }) => {
       style={{
         backgroundColor: hexToRgba(ui.cardBg, ui.cardBgOpacity),
         boxShadow: "0 4px 12px rgba(0,0,0,0.10)",
-        // ring-1 ring-black/10 replacement
         border: `1px solid ${hexToRgba(ui.cardRing, ui.cardRingOpacity)}`,
       }}
-      title={game.title}
+      title={game?.gameName || game?.gameUuid || game?.gameId || "Game"}
       type="button"
     >
       <div className="aspect-square w-full overflow-hidden">
         <img
-          src={game.image}
-          alt={game.title}
+          src={imgSrc}
+          alt={game?.gameName || "game"}
           className="h-full w-full object-cover"
           loading="lazy"
+          onError={(e) => (e.currentTarget.src = "/no-image.png")}
         />
       </div>
 
-      {game.badge && (
-        <div className="absolute top-2 right-2">
-          <span
-            className="font-black px-2 py-1 rounded-full shadow"
-            style={{
-              backgroundColor: ui.badgeBg,
-              color: ui.badgeText,
-              fontSize: `${ui.badgeTextSize}px`,
-            }}
-          >
-            {game.badge}
-          </span>
-        </div>
-      )}
+      {/* ✅ HOT/NEW icon badges (same position, just image instead of text) */}
+      <div className="absolute top-0 right-0 flex flex-col gap-1 items-end">
+        {game?.isHot ? (
+          <img
+            src={HOT_ICON}
+            alt="hot"
+            className="h-8 w-auto drop-shadow"
+            loading="lazy"
+          />
+        ) : null}
+        {game?.isNew ? (
+          <img
+            src={NEW_ICON}
+            alt="new"
+            className="h-8 w-auto drop-shadow"
+            loading="lazy"
+          />
+        ) : null}
+      </div>
     </motion.button>
   );
 };
@@ -207,6 +99,9 @@ const GameCategory = () => {
   const navigate = useNavigate();
   const { isBangla } = useLanguage();
 
+  const API_URL = import.meta.env.VITE_API_URL;
+
+  // 🎨 UI color config (unchanged)
   const { data: colorDoc } = useQuery({
     queryKey: ["gamecategory-color"],
     queryFn: fetchGameCategoryColor,
@@ -246,30 +141,43 @@ const GameCategory = () => {
 
       cardRing: d.cardRing || "#000000",
       cardRingOpacity: d.cardRingOpacity ?? 0.1,
-
-      badgeBg: d.badgeBg || "#ff2d2d",
-      badgeText: d.badgeText || "#ffffff",
-      badgeTextSize: d.badgeTextSize ?? 10,
     };
   }, [colorDoc]);
 
-  const [active, setActive] = useState("hot");
+  // ✅ categories from DB
+  const { data: categories = [], isLoading: loadingCats } = useQuery({
+    queryKey: ["public-mobile-categories"],
+    queryFn: fetchCategories,
+    staleTime: 60_000,
+    retry: 1,
+  });
 
-  // ✅ category scroll refs
+  // ✅ active categoryId
+  const [active, setActive] = useState("");
+
+  // set default active to first category
+  useEffect(() => {
+    if (!active && categories?.length) {
+      setActive(categories[0]._id);
+    }
+  }, [categories, active]);
+
+  // ✅ games for active category
+  const { data: games = [], isLoading: loadingGames } = useQuery({
+    queryKey: ["public-mobile-games", active],
+    queryFn: () => fetchGamesByCategory(active),
+    enabled: !!active,
+    staleTime: 30_000,
+    retry: 1,
+  });
+
+  // ✅ category scroll refs (unchanged)
   const scrollerRef = useRef(null);
   const trackRef = useRef(null);
   const btnRefs = useRef({}); // key -> element
 
-  // ✅ underline thumb state
+  // ✅ underline thumb state (unchanged)
   const [thumb, setThumb] = useState({ width: 40, x: 0 });
-
-  const games = useMemo(() => {
-    return GAMES.filter((g) => g.category === active);
-  }, [active]);
-
-  const handlePlay = (game) => {
-    navigate(`/playgame/${game.id}`, { state: { game } });
-  };
 
   const updateThumb = () => {
     const scroller = scrollerRef.current;
@@ -278,41 +186,35 @@ const GameCategory = () => {
 
     const { scrollLeft, scrollWidth, clientWidth } = scroller;
 
-    // if no overflow
     if (scrollWidth <= clientWidth) {
       setThumb({ width: track.clientWidth, x: 0 });
       return;
     }
 
     const trackW = track.clientWidth;
-
-    // thumb width proportional
     const thumbW = Math.max(28, (clientWidth / scrollWidth) * trackW);
 
     const maxScroll = scrollWidth - clientWidth;
     const maxX = trackW - thumbW;
 
     const x = (scrollLeft / maxScroll) * maxX;
-
     setThumb({ width: thumbW, x });
   };
 
   useEffect(() => {
     updateThumb();
-
     const onResize = () => updateThumb();
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
   useEffect(() => {
-    // active change এর পর layout update
     requestAnimationFrame(() => updateThumb());
   }, [active]);
 
-  const scrollToButtonCenter = (key) => {
+  const scrollToButtonCenter = (id) => {
     const scroller = scrollerRef.current;
-    const btn = btnRefs.current[key];
+    const btn = btnRefs.current[id];
     if (!scroller || !btn) return;
 
     const scrollerRect = scroller.getBoundingClientRect();
@@ -323,18 +225,22 @@ const GameCategory = () => {
       btnRect.left - scrollerRect.left + btnRect.width / 2 + currentLeft;
 
     const target = btnCenter - scroller.clientWidth / 2;
-
     scroller.scrollTo({ left: target, behavior: "smooth" });
   };
 
-  const handleCategoryClick = (key) => {
-    setActive(key);
-    scrollToButtonCenter(key);
+  const handleCategoryClick = (id) => {
+    setActive(id);
+    scrollToButtonCenter(id);
+  };
+
+  const handlePlay = (game) => {
+    const id = game?.gameUuid || game?.gameId || game?._id;
+    navigate(`/playgame/${id}`, { state: { game } });
   };
 
   return (
     <div className="w-full">
-      {/* ✅ Category Bar */}
+      {/* ✅ Category Bar (unchanged structure/design) */}
       <div
         className="w-full rounded-md px-2 mt-4"
         style={{ backgroundColor: hexToRgba(ui.wrapBg, ui.wrapOpacity) }}
@@ -354,47 +260,63 @@ const GameCategory = () => {
             backgroundColor: ui.scrollerBg,
           }}
         >
-          {/* hide scrollbar (webkit) */}
           <style>
             {`
               .hide-scrollbar::-webkit-scrollbar { display: none; }
             `}
           </style>
 
-          {CATEGORIES.map((c) => {
-            const Icon = c.icon;
-            const isActive = active === c.key;
+          {loadingCats ? (
+            <div className="px-4 py-2 font-bold text-black/60">Loading...</div>
+          ) : (
+            categories.map((c) => {
+              const isActive = active === c._id;
+              const label = isBangla ? c.categoryName?.bn : c.categoryName?.en;
 
-            return (
-              <button
-                key={c.key}
-                ref={(el) => {
-                  if (el) btnRefs.current[c.key] = el;
-                }}
-                onClick={() => handleCategoryClick(c.key)}
-                type="button"
-                className={`
-                  hide-scrollbar
-                  shrink-0 inline-flex items-center gap-2
-                  px-4 py-2 rounded-full
-                  font-extrabold
-                  transition
-                  ${isActive ? "shadow-sm" : "hover:bg-black/5"}
-                `}
-                style={{
-                  fontSize: `${ui.btnTextSize}px`,
-                  backgroundColor: isActive ? ui.btnActiveBg : ui.btnInactiveBg,
-                  color: isActive ? ui.btnActiveText : ui.btnInactiveTextRgba,
-                }}
-              >
-                <Icon className="text-xl" />
-                <span>{isBangla ? c.label.bn : c.label.en}</span>
-              </button>
-            );
-          })}
+              return (
+                <button
+                  key={c._id}
+                  ref={(el) => {
+                    if (el) btnRefs.current[c._id] = el;
+                  }}
+                  onClick={() => handleCategoryClick(c._id)}
+                  type="button"
+                  className={`
+                    hide-scrollbar
+                    shrink-0 inline-flex items-center gap-2
+                    px-4 py-2 rounded-full
+                    font-extrabold
+                    transition
+                    ${isActive ? "shadow-sm" : "hover:bg-black/5"}
+                  `}
+                  style={{
+                    fontSize: `${ui.btnTextSize}px`,
+                    backgroundColor: isActive
+                      ? ui.btnActiveBg
+                      : ui.btnInactiveBg,
+                    color: isActive ? ui.btnActiveText : ui.btnInactiveTextRgba,
+                  }}
+                >
+                  {/* ✅ category icon from DB (iconImage) */}
+                  {c.iconImage ? (
+                    <img
+                      src={`${API_URL}${c.iconImage}`}
+                      alt={label}
+                      className="w-5 h-5 object-contain"
+                      onError={(e) => (e.currentTarget.style.display = "none")}
+                    />
+                  ) : (
+                    <span className="w-5 h-5 inline-block" />
+                  )}
+
+                  <span>{label}</span>
+                </button>
+              );
+            })
+          )}
         </div>
 
-        {/* ✅ Underline = scrollbar indicator (move with scroll) */}
+        {/* ✅ Underline thumb (unchanged) */}
         <div className="px-3 pb-2">
           <div
             ref={trackRef}
@@ -411,9 +333,19 @@ const GameCategory = () => {
         </div>
       </div>
 
-      {/* ✅ Games Grid */}
+      {/* ✅ Games Grid (unchanged layout) */}
       <div className="mt-4">
-        {games.length === 0 ? (
+        {loadingGames ? (
+          <div
+            className="text-center py-10 font-semibold"
+            style={{
+              color: ui.emptyTextRgba,
+              fontSize: `${ui.emptyTextSize}px`,
+            }}
+          >
+            Loading...
+          </div>
+        ) : games.length === 0 ? (
           <div
             className="text-center py-10 font-semibold"
             style={{
@@ -429,10 +361,11 @@ const GameCategory = () => {
           <div className="grid grid-cols-3 gap-3 px-2">
             {games.map((game) => (
               <GameCard
-                key={game.id}
+                key={game._id}
                 game={game}
                 onClick={() => handlePlay(game)}
                 ui={ui}
+                apiBase={API_URL}
               />
             ))}
           </div>

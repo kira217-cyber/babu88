@@ -37,6 +37,9 @@ import AllAffiliateUser from "../pages/AllAffiliateUser/AllAffiliateUser";
 import AffiliateUserDetails from "../pages/AffiliateUserDetails/AffiliateUserDetails";
 import UserDetails from "../pages/UserDetials/UserDetails";
 import AddDeposit from "../pages/AddDeposit/AddDeposit";
+import AddGameCategory from "../pages/AddGameCategory/AddGameCategory";
+import AddProvider from "../pages/AddProvider/AddProvider";
+import AddGame from "../pages/AddGame/AddGame";
 
 export const routes = createBrowserRouter([
   {
@@ -206,6 +209,30 @@ export const routes = createBrowserRouter([
         element: (
           <PrivateRoute permKey="add-deposit">
             <AddDeposit />
+          </PrivateRoute>
+        ),
+      },
+       {
+        path: "add-game-category",
+        element: (
+          <PrivateRoute permKey="add-game-category">
+            <AddGameCategory />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "add-provider",
+        element: (
+          <PrivateRoute permKey="add-provider">
+            <AddProvider />
+          </PrivateRoute>
+        ),
+      },
+       {
+        path: "add-game",
+        element: (
+          <PrivateRoute permKey="add-game">
+            <AddGame />
           </PrivateRoute>
         ),
       },

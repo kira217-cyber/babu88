@@ -1,189 +1,23 @@
+// src/components/MenuItems/MenuItems.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { useLanguage } from "../../Context/LanguageProvider";
-
-// ✅ axios + react-query
 import { api } from "../../api/axios";
 import { useQuery } from "@tanstack/react-query";
 
-// ✅ Demo provider images (তুমি পরে real image বসাবে)
-const PROVIDERS = {
-  slot: [
-    {
-      id: "jili",
-      name: "JILI",
-      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/aNJOerVVQkubX6fla08q94flSi1TJB50WTaFNpVC.png",
-    },
-    {
-      id: "pg",
-      name: "PG",
-      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/3qiY2geP8G221Ud6zB5yxVlAoUzOpHFYD8ipLWoz.png",
-    },
-    {
-      id: "inout",
-      name: "INOUT",
-      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/UHXACNNM1DBPatlH1u39P2N8Xp497h70g6LkVFh9.png",
-    },
-    {
-      id: "winspinity",
-      name: "Winspinity",
-      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/aMXdTiIdARFCVBmSuqp0e3SFOZmHnsOqyPvQfU10.png",
-    },
-    {
-      id: "jdb",
-      name: "JDB",
-      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/FIS6fMldZFwpzL5HvXez8hWvPWHRvnpaa863glpm.png",
-    },
-    {
-      id: "bng",
-      name: "BNG",
-      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/uZeMqebF1pY4hyhI09nNJl8JPUdObpTZK8TNKRmn.png",
-    },
-    {
-      id: "habanero",
-      name: "Habanero",
-      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/hRJKCIGfsKom04Ok44tFzyyHLxOTDSPXvPTQAvx6.jpg",
-    },
-    {
-      id: "smartsoft",
-      name: "SmartSoft",
-      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/XKMsslvB0bgiBJ41meWZH3mO02J0ysgOdnE8WMc5.jpg",
-    },
-    {
-      id: "gambit",
-      name: "Gambit",
-      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/hRWrzomQ5kEifPSkA7bYLWT7fahUHvakaLyvA4th.jpg",
-    },
-    {
-      id: "million",
-      name: "Million",
-      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/f2nWuCXKcdgH6K7sC8dGxzX8ALgAqvjPLnCaI9sm.jpg",
-    },
-    {
-      id: "pragmatic",
-      name: "Pragmatic Play",
-      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/Cg4lgL5AQ5VS2uwhKGamGKwqSPbK7Xcj99bSWTno.jpg",
-    },
-    {
-      id: "spade",
-      name: "Spadegaming",
-      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/3Y8aCs6xtWTxk6xtaxnkS9Zk7qAsOsvhgc0Jg0me.jpg",
-    },
-    {
-      id: "playngo",
-      name: "Play'n GO",
-      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/ad5CfULwpWYJ0qyEtT3a8Djc5eCghQwroEo1vLrv.jpg",
-    },
-    {
-      id: "redtiger",
-      name: "Red Tiger",
-      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/1JbjzqcccNub15FEa8NFG8nBQbSqeO4Lzo3t33ad.jpg",
-    },
-    {
-      id: "microgaming",
-      name: "Microgaming",
-      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/9C93WgGFt5Hu2d4Zy8Oi4ZOTN4AfwpZ5YUFF1VRj.jpg",
-    },
-    {
-      id: "onegame",
-      name: "OneGame",
-      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/games/Msd4TdpRpg3WVJ92WgAFEF2ya5Tse1vmUWzLwFl5.png",
-    },
-    {
-      id: "playtech",
-      name: "Playtech",
-      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/games/MXwTdiEJPVWU71nSJPlApAKtRqylFTXaaleP1jXi.png",
-    },
-    {
-      id: "relax",
-      name: "Relax Gaming",
-      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/games/MpWNkkw9jLLG4DNj15Wwj7Bk2DUBgVvBrWl6INM2.png",
-    },
-    {
-      id: "netent",
-      name: "NetEnt",
-      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/games/2NRSErKoMEtUKjscmP3joLhsmA9CQGuitXVXnw2T.png",
-    },
-    {
-      id: "nolimit",
-      name: "NoLimit",
-      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/games/6V8M4TwJerxSH6sohn9wER6kxrnJ7Oio0Z5hsvbB.png",
-    },
-  ],
-  casino: [
-    {
-      id: "evolution",
-      name: "Evolution",
-      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/games/JLeiXnqnwXlBOutJPWhmCwbJIrScgsYItaystVbT.png",
-    },
-    {
-      id: "pragmatic-live",
-      name: "Pragmatic Live",
-      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/games/2U2R12bOlHk7ZSnTSWlIA2iYii38jEX6n7D53KGV.png",
-    },
-    {
-      id: "ezugi",
-      name: "Ezugi",
-      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/games/JVBrcYTOK5fBcqdSCOM1U8751fIAgF7WICtNyzNd.png",
-    },
-  ],
-  crash: [
-    {
-      id: "spribe",
-      name: "SPRIBE",
-      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/games/kHAls9yoO4bW6G0waAlr4s8qSuOLSMuE4l0ahtjy.png",
-    },
-    {
-      id: "smartsoft-crash",
-      name: "SmartSoft",
-      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/setting/j1Wsrf65POcVebSWX2lFMmGgonc1uvrB6pEtGX5q.png",
-    },
-  ],
-  cricket: [
-    {
-      id: "cricket-1",
-      name: "Cricket",
-      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/games/cRLkkUpTuq54uvS473Qc08xmKLVzDyr810ShJ0AS.png",
-    },
-  ],
-  table: [
-    {
-      id: "table-1",
-      name: "Table Games",
-      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/games/5oT0jy6Hf6siJuEF9GsMZqz3crTXQikKB0cvBbbB.png",
-    },
-  ],
-  fast: [
-    {
-      id: "fast-1",
-      name: "Fast Games",
-      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/games/vbGv3pZBg8wcPb3vXgN4oDMlgkuP1fdMwlqIwAuu.png",
-    },
-  ],
-  fish: [
-    {
-      id: "fish-1",
-      name: "Fish",
-      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/games/UBTiSJcubDayg2OB4ZcgLVQ1JlIX45Wnb3wEJ3iJ.png",
-    },
-  ],
-  sportsbook: [
-    {
-      id: "sport-1",
-      name: "Sportsbook",
-      img: "https://storage.googleapis.com/tada-cdn-asia/All-In-One/production/img/jiliPlusPlayer/games/AQLWXaYirseyIlqooFPuBtcbWxTXW4uj6w4RMo1h.png",
-    },
-  ],
-};
-
-// ✅ fetch menu items color config
+// menu style config
 const fetchMenuItemsColor = async () => {
   const { data } = await api.get("/api/menuitems-color");
   return data;
 };
 
-// ✅ helper: hex -> rgba
+// ✅ menu data from DB
+const fetchGameMenu = async () => {
+  const { data } = await api.get("/api/public/game-menu");
+  return data?.data || [];
+};
+
 const hexToRgba = (hex, alpha = 1) => {
   if (!hex || typeof hex !== "string") return `rgba(0,0,0,${alpha})`;
   const h = hex.replace("#", "").trim();
@@ -202,10 +36,8 @@ const hexToRgba = (hex, alpha = 1) => {
   return `rgba(0,0,0,${alpha})`;
 };
 
-// Badge (design same; only color from DB)
 const Badge = ({ type, colors }) => {
-  if (!type) return null;
-
+  if (!type || type === "none") return null;
   const bg = type === "new" ? colors.badgeNewBg : colors.badgeHotBg;
   const text = type === "new" ? colors.badgeNewText : colors.badgeHotText;
 
@@ -223,18 +55,22 @@ const MenuItems = () => {
   const { isBangla } = useLanguage();
   const navigate = useNavigate();
 
-  // ✅ load config from DB
   const { data: cfg } = useQuery({
     queryKey: ["menuitems-color"],
     queryFn: fetchMenuItemsColor,
     staleTime: 1000 * 60 * 10,
   });
 
-  // ✅ fallback keeps current design exactly
+  const { data: menuCats = [] } = useQuery({
+    queryKey: ["public-game-menu"],
+    queryFn: fetchGameMenu,
+    staleTime: 1000 * 60 * 2,
+  });
+
+  // fallback style same
   const colors = useMemo(() => {
     return {
       barBg: cfg?.barBg || "#3e3e3e",
-
       itemText: cfg?.itemText || "#ffffff",
       itemTextOpacity: cfg?.itemTextOpacity ?? 0.9,
       itemTextSize: cfg?.itemTextSize ?? 14,
@@ -271,71 +107,59 @@ const MenuItems = () => {
     };
   }, [cfg]);
 
-  const t = useMemo(
-    () => ({
-      slot: isBangla ? "স্লট" : "Slot",
-      casino: isBangla ? "ক্যাসিনো" : "Casino",
-      crash: isBangla ? "ক্র্যাশ" : "Crash",
-      cricket: isBangla ? "ক্রিকেট" : "Cricket",
-      table: isBangla ? "টেবিল" : "Table",
-      fast: isBangla ? "ফাস্ট" : "Fast",
-      fish: isBangla ? "মাছ" : "Fish",
-      sportsbook: isBangla ? "বই" : "Book",
+  // ✅ DB categories -> dropdown menus
+  // label bn/en
+  const dropdownMenus = useMemo(() => {
+    return (menuCats || []).map((c) => ({
+      key: c._id, // use categoryId as openKey
+      label: isBangla ? c.categoryName?.bn || "" : c.categoryName?.en || "",
+      badge: c.badge || "none",
+      providers: c.providers || [],
+      categoryId: c._id,
+      menuKey: c.menuKey,
+    }));
+  }, [menuCats, isBangla]);
 
-      promotion: isBangla ? "প্রমোশন" : "Promotion",
-      bettingPass: isBangla ? "বেটিং পাস" : "Betting Pass",
-      superAffiliate: isBangla ? "সুপারঅ্যাফিলিয়েট" : "Super Affiliate",
-      vip: "VIP",
-      affiliate: isBangla ? "অ্যাফিলিয়েট" : "Affiliate",
-      rewards: isBangla ? "পুরস্কার" : "Rewards",
-      referral: isBangla ? "রেফারেল" : "Referral",
-    }),
-    [isBangla],
-  );
-
-  const MENUS = useMemo(
+  // other nav items fixed
+  const fixedNav = useMemo(
     () => [
-      { key: "slot", label: t.slot, type: "dropdown", badge: null },
-      { key: "casino", label: t.casino, type: "dropdown", badge: null },
-      { key: "crash", label: t.crash, type: "dropdown", badge: null },
-      { key: "cricket", label: t.cricket, type: "dropdown", badge: null },
-      { key: "table", label: t.table, type: "dropdown", badge: null },
-      { key: "fast", label: t.fast, type: "dropdown", badge: "new" },
-      { key: "fish", label: t.fish, type: "dropdown", badge: null },
-      { key: "sportsbook", label: t.sportsbook, type: "dropdown", badge: null },
-
       {
         key: "promotion",
-        label: t.promotion,
+        label: isBangla ? "প্রমোশন" : "Promotion",
         type: "nav",
         to: "/promotions",
-        badge: null,
+        badge: "none",
       },
-      { key: "vip", label: t.vip, type: "nav", to: "/vip", badge: "new" },
+      { key: "vip", label: "VIP", type: "nav", to: "/vip", badge: "new" },
       {
         key: "affiliate",
-        label: t.affiliate,
+        label: isBangla ? "অ্যাফিলিয়েট" : "Affiliate",
         type: "nav",
         to: "/affiliate",
-        badge: null,
+        badge: "none",
       },
       {
         key: "rewards",
-        label: t.rewards,
+        label: isBangla ? "পুরস্কার" : "Rewards",
         type: "nav",
         to: "/rewards",
         badge: "new",
       },
       {
-        key: "Referral",
-        label: t.referral,
+        key: "referral",
+        label: isBangla ? "রেফারেল" : "Referral",
         type: "nav",
         to: "/profile/referral",
-        badge: null,
+        badge: "none",
       },
     ],
-    [t],
+    [isBangla],
   );
+
+  const MENUS = useMemo(() => {
+    const drops = dropdownMenus.map((m) => ({ ...m, type: "dropdown" }));
+    return [...drops, ...fixedNav];
+  }, [dropdownMenus, fixedNav]);
 
   const wrapRef = useRef(null);
   const [openKey, setOpenKey] = useState(null);
@@ -345,13 +169,11 @@ const MenuItems = () => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
     setOpenKey(key);
   };
-
   const closeMenu = () => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
     closeTimer.current = setTimeout(() => setOpenKey(null), 120);
   };
 
-  // outside click close
   useEffect(() => {
     const onOutside = (e) => {
       if (!wrapRef.current) return;
@@ -361,7 +183,6 @@ const MenuItems = () => {
     return () => document.removeEventListener("mousedown", onOutside);
   }, []);
 
-  // ✅ hover handling without changing functionality/design
   const onHoverIn = (e) => {
     e.currentTarget.dataset.prevColor = e.currentTarget.style.color || "";
     e.currentTarget.style.color = colors.itemHoverText;
@@ -372,10 +193,12 @@ const MenuItems = () => {
     delete e.currentTarget.dataset.prevColor;
   };
 
+  const openMenuObj = useMemo(() => {
+    return dropdownMenus.find((x) => x.key === openKey) || null;
+  }, [dropdownMenus, openKey]);
+
   return (
-    // ✅ parent must be relative to position dropdown absolute
     <div className="hidden lg:block relative" ref={wrapRef}>
-      {/* Dark bar */}
       <div
         className="w-full relative z-[60]"
         style={{ backgroundColor: colors.barBg }}
@@ -395,12 +218,7 @@ const MenuItems = () => {
                   >
                     <button
                       type="button"
-                      className={[
-                        "relative h-[56px] px-4",
-                        "font-bold",
-                        // keep same behavior: isOpen bg like bg-black/35
-                        isOpen ? "bg-transparent" : "bg-transparent",
-                      ].join(" ")}
+                      className="relative h-[56px] px-4 font-bold bg-transparent"
                       style={{
                         fontSize: `${colors.itemTextSize}px`,
                         color: colors.itemText,
@@ -414,6 +232,11 @@ const MenuItems = () => {
                       }}
                       onMouseEnter={onHoverIn}
                       onMouseLeave={onHoverOut}
+                      // ✅ category click -> category page (show all providers games)
+                      onClick={() => {
+                        setOpenKey(null);
+                        navigate(`/games/${m.categoryId}`);
+                      }}
                     >
                       {m.label}
                       <Badge type={m.badge} colors={colors} />
@@ -436,7 +259,6 @@ const MenuItems = () => {
                       opacity: isActive ? 1 : colors.itemTextOpacity,
                     })}
                     onMouseEnter={(e) => {
-                      // if active -> don't override
                       if (
                         e.currentTarget.getAttribute("aria-current") === "page"
                       )
@@ -461,9 +283,9 @@ const MenuItems = () => {
         </div>
       </div>
 
-      {/* ✅ Floating Mega Dropdown (ABSOLUTE overlay, transparent bg) */}
+      {/* Mega dropdown */}
       <AnimatePresence>
-        {openKey ? (
+        {openKey && openMenuObj ? (
           <motion.div
             key="mega"
             onMouseEnter={() => openMenu(openKey)}
@@ -472,16 +294,10 @@ const MenuItems = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.18 }}
-            className="
-              absolute left-0  w-full
-              z-[55]
-              pointer-events-auto
-            "
+            className="absolute left-0 w-full z-[55] pointer-events-auto"
           >
-            {/* Transparent overlay area */}
             <div className="w-full">
               <div className="mx-auto">
-                {/* Panel (semi transparent + blur) */}
                 <div
                   className="shadow-[0_18px_40px_rgba(0,0,0,0.55)]"
                   style={{
@@ -489,73 +305,57 @@ const MenuItems = () => {
                       colors.megaPanelBg,
                       colors.megaPanelBgOpacity,
                     ),
-                    border: `1px solid ${hexToRgba(
-                      colors.megaPanelBorder,
-                      colors.megaPanelBorderOpacity,
-                    )}`,
+                    border: `1px solid ${hexToRgba(colors.megaPanelBorder, colors.megaPanelBorderOpacity)}`,
                   }}
                 >
                   <div className="p-5 max-w-6xl mx-auto">
                     <div className="grid grid-cols-5 gap-8">
-                      {(PROVIDERS[openKey] || []).map((p) => (
+                      {(openMenuObj.providers || []).map((p) => (
                         <motion.button
-                          key={p.id}
+                          key={p._id}
                           whileHover={{ y: -3, scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
                           type="button"
                           onClick={() => {
                             setOpenKey(null);
-                            navigate(`/play/${p.id}`);
+                            // ✅ provider click -> category page with provider filter
+                            navigate(
+                              `/games/${openMenuObj.categoryId}?provider=${p._id}`,
+                            );
                           }}
-                          className={[
-                            "group relative overflow-hidden rounded-xl",
-                            "transition",
-                          ].join(" ")}
+                          className="group relative overflow-hidden transition"
                           style={{
                             backgroundColor: hexToRgba(
                               colors.cardBg,
                               colors.cardBgOpacity,
                             ),
-                            border: `1px solid ${hexToRgba(
-                              colors.cardBorder,
-                              colors.cardBorderOpacity,
-                            )}`,
+                            border: `1px solid ${hexToRgba(colors.cardBorder, colors.cardBorderOpacity)}`,
                           }}
                           onMouseEnter={(e) => {
-                            // keep hover behavior same: hover border + hover bg
                             e.currentTarget.style.backgroundColor = hexToRgba(
                               colors.cardHoverBg,
                               colors.cardHoverBgOpacity,
                             );
-                            e.currentTarget.style.border = `1px solid ${hexToRgba(
-                              colors.cardHoverBorder,
-                              colors.cardHoverBorderOpacity,
-                            )}`;
+                            e.currentTarget.style.border = `1px solid ${hexToRgba(colors.cardHoverBorder, colors.cardHoverBorderOpacity)}`;
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.backgroundColor = hexToRgba(
                               colors.cardBg,
                               colors.cardBgOpacity,
                             );
-                            e.currentTarget.style.border = `1px solid ${hexToRgba(
-                              colors.cardBorder,
-                              colors.cardBorderOpacity,
-                            )}`;
+                            e.currentTarget.style.border = `1px solid ${hexToRgba(colors.cardBorder, colors.cardBorderOpacity)}`;
                           }}
-                          title={p.name}
+                          title={p.providerName}
                         >
-                          <div>
-                            <div className="aspect-[1/1] w-full">
-                              <img
-                                src={p.img}
-                                alt={p.name}
-                                className="w-full h-66 cursor-pointer object-cover"
-                                loading="lazy"
-                              />
-                            </div>
+                          <div className="aspect-[1/1] w-full">
+                            <img
+                              src={`${import.meta.env.VITE_API_URL}${p.providerImage}`}
+                              alt={p.providerName}
+                              className="w-full h-66 cursor-pointer object-cover"
+                              loading="lazy"
+                            />
                           </div>
 
-                          {/* glow */}
                           <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition">
                             <div className="absolute -inset-8 bg-[radial-gradient(circle_at_center,rgba(245,180,0,0.25),transparent_60%)]" />
                           </div>

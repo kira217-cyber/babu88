@@ -85,6 +85,24 @@ const Sidebar = () => {
         text: "All Affiliator",
       },
       {
+        key: "add-game-controller",
+        to: "/add-game-category",
+        icon: <FaPlayCircle />,
+        text: "Add Game Category",
+      },
+      {
+        key: "add-provider",
+        to: "/add-provider",
+        icon: <FaPlayCircle />,
+        text: "Add Provider",
+      },
+      {
+        key: "add-game",
+        to: "/add-game",
+        icon: <FaPlayCircle />,
+        text: "Add Game",
+      },
+       {
         key: "live-controller",
         to: "/live-controller",
         icon: <FaPlayCircle />,
