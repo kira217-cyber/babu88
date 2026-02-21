@@ -221,13 +221,13 @@ const DepositModal = ({ open, onClose, data, methodDoc }) => {
       <div className="absolute inset-0 bg-[#1f6b57]">
         <div className="h-full w-full flex items-center justify-center px-4 py-8">
           {/* Card */}
-          <div className="w-full max-w-[640px] bg-white rounded-lg shadow-[0_24px_70px_rgba(0,0,0,0.35)] overflow-hidden">
+          <div className="h-[600px] overflow-y-auto [scrollbar-width:none] md:h-[720px] w-full max-w-[640px] bg-white rounded-lg shadow-[0_24px_70px_rgba(0,0,0,0.35)] overflow-hidden">
             <div className="p-6">
               {/* Header */}
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-4">
                   {logoUrl ? (
-                    <div className="w-[64px] h-[64px] rounded-full overflow-hidden border border-[#0a8f62] bg-white">
+                    <div className="w-[120px] h-[60px] overflow-hidden border border-[#0a8f62] bg-white">
                       <img
                         src={logoUrl}
                         alt={methodId}

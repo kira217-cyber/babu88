@@ -1,3 +1,4 @@
+// src/pages/Profile/Deposit/Deposit.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "../../Context/LanguageProvider";
 import { FaExclamationCircle, FaQuestionCircle, FaTimes } from "react-icons/fa";
@@ -71,7 +72,6 @@ const calcBonus = (
   const percent = parsePercentFromTag(channelTagText);
   const percentBonus = (amountNum * percent) / 100;
 
-  // promo from DB
   const promoDoc = (methodPromotions || []).find(
     (p) =>
       String(p?.id || "").toLowerCase() === String(promoId || "").toLowerCase(),
@@ -80,11 +80,9 @@ const calcBonus = (
   let promoBonus = 0;
   if (promoDoc && promoId !== "none" && promoDoc?.isActive !== false) {
     const bonusValue = Number(promoDoc?.bonusValue ?? 0) || 0;
-    if (promoDoc?.bonusType === "percent") {
+    if (promoDoc?.bonusType === "percent")
       promoBonus = (amountNum * bonusValue) / 100;
-    } else {
-      promoBonus = bonusValue;
-    }
+    else promoBonus = bonusValue;
   }
 
   return {
@@ -187,7 +185,6 @@ const Deposit = () => {
     retry: 1,
   });
 
-  // quick amounts (still local UI)
   const quickAmounts = useMemo(
     () => [
       { v: 200, tag: "" },
@@ -250,14 +247,15 @@ const Deposit = () => {
   const [selectedOption, setSelectedOption] = useState("");
   const [selectedChannel, setSelectedChannel] = useState("");
   const [amount, setAmount] = useState("1000");
+
   const [promo, setPromo] = useState("none");
   const [promoOpen, setPromoOpen] = useState(false);
 
-  // ✅ Modals state
+  // Modals state
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
 
-  // set defaults when methods loaded
+  // defaults
   useEffect(() => {
     if (methods?.length && !selectedOption) {
       const first = methods[0];
@@ -279,7 +277,6 @@ const Deposit = () => {
     return ch.filter((c) => c?.isActive !== false);
   }, [selectedMethod]);
 
-  // ✅ promotions from DB (per method)
   const promotions = useMemo(() => {
     const list = Array.isArray(selectedMethod?.promotions)
       ? selectedMethod.promotions
@@ -299,14 +296,14 @@ const Deposit = () => {
     ];
   }, [selectedMethod, isBangla]);
 
-  // ✅ keep selectedChannel valid when method changes
+  // keep selectedChannel valid
   useEffect(() => {
     if (!selectedMethod) return;
     const exists = channels.some((c) => c.id === selectedChannel);
     if (!exists) setSelectedChannel(channels?.[0]?.id || "");
   }, [selectedMethod, channels, selectedChannel]);
 
-  // ✅ keep promo valid when method changes (if promo not exists -> none)
+  // keep promo valid
   useEffect(() => {
     const exists = promotions.some((p) => p.id === promo);
     if (!exists) setPromo("none");
@@ -316,14 +313,11 @@ const Deposit = () => {
 
   const channelTagText =
     channels.find((c) => c.id === selectedChannel)?.tagText || "+0%";
-
   const amountNum = Number(amount || 0) || 0;
 
-  // raw method promotions (full docs) for calc
   const methodPromotionsRaw = Array.isArray(selectedMethod?.promotions)
     ? selectedMethod.promotions
     : [];
-
   const { promoBonus, percentBonus, percent } = calcBonus(
     amountNum,
     promo,
@@ -343,7 +337,6 @@ const Deposit = () => {
     targetTurnover,
   };
 
-  // Base Bonus Title – shown in promotion section
   const baseBonusTitle = isBangla
     ? selectedMethod?.baseBonusTitle?.bn
     : selectedMethod?.baseBonusTitle?.en;
@@ -358,10 +351,10 @@ const Deposit = () => {
     setPayOpen(true);
   };
 
-  const apiBase = import.meta.env.VITE_API_URL || ""; // for image url
+  const apiBase = import.meta.env.VITE_API_URL || "";
 
   return (
-    <div className="w-full ">
+    <div className="w-full">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4">
         {/* LEFT */}
         <div className="bg-white rounded-xl border border-black/10 p-5 sm:p-6 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
@@ -377,9 +370,11 @@ const Deposit = () => {
             </label>
 
             {isLoading ? (
-              <div className="mt-3 text-[13px] text-black/60">Loading...</div>
+              <div className="mt-3 text-[13px] text-black/60">
+                {t("লোড হচ্ছে...", "Loading...")}
+              </div>
             ) : methods.length ? (
-              <div className="mt-3 flex flex-wrap items-center gap-3">
+              <div className="mt-3 flex flex-wrap gap-3">
                 {methods.map((m) => {
                   const active = selectedOption === m.methodId;
                   const name = isBangla ? m?.methodName?.bn : m?.methodName?.en;
@@ -387,43 +382,43 @@ const Deposit = () => {
                   return (
                     <button
                       key={m._id || m.methodId}
-                      onClick={() => setSelectedOption(m.methodId)}
                       type="button"
+                      onClick={() => setSelectedOption(m.methodId)}
                       className={`
-                        h-[58px] min-w-[96px] px-3 rounded-xl flex items-center justify-center gap-2
-                        border-2 transition bg-white
+                        h-[56px] w-[92px] cursor-pointer sm:w-[110px]
+                        rounded-md border-2 bg-white
+                        flex items-center justify-center
+                        transition
                         ${
                           active
-                            ? "border-[#f5c400] shadow-[0_6px_16px_rgba(0,0,0,0.08)]"
-                            : "border-black/25 hover:border-black/40"
+                            ? "border-[#f5c400] shadow-[0_8px_18px_rgba(0,0,0,0.08)]"
+                            : "border-black/20 hover:border-black/35"
                         }
                       `}
+                      title={name || m.methodId}
                     >
-                      {/* Logo */}
                       {m.logoUrl ? (
-                        <div className="w-10 h-10 rounded-full overflow-hidden border border-black/10 bg-white">
-                          <img
-                            src={`${apiBase}${m.logoUrl}`}
-                            alt={m.methodId}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
+                        <img
+                          src={`${apiBase}${m.logoUrl}`}
+                          alt={m.methodId}
+                          className="max-h-[32px] max-w-[80px] object-contain"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                          }}
+                        />
                       ) : (
                         <OptionLogo type={m.methodId} />
                       )}
-
-                      <div className="text-left leading-none">
-                        <div className="text-[13px] font-extrabold text-black">
-                          {name || m.methodId}
-                        </div>
-                      </div>
                     </button>
                   );
                 })}
               </div>
             ) : (
               <div className="mt-3 text-[13px] text-black/60">
-                No deposit methods found.
+                {t(
+                  "কোনো ডিপোজিট মেথড পাওয়া যায়নি।",
+                  "No deposit methods found.",
+                )}
               </div>
             )}
           </div>
@@ -446,10 +441,10 @@ const Deposit = () => {
                     type="button"
                     onClick={() => setSelectedChannel(c.id)}
                     className={`
-                      relative px-5 py-2 rounded-lg text-[14px] font-extrabold transition bg-white border
+                      relative px-5 py-2 cursor-pointer rounded-lg text-[14px] font-extrabold transition bg-white border
                       ${
                         active
-                          ? "border-[#f5c400] shadow-[0_6px_16px_rgba(0,0,0,0.08)]"
+                          ? "border-[#f5c400] border-2 shadow-[0_6px_16px_rgba(0,0,0,0.08)]"
                           : "border-black/30 hover:border-black/45"
                       }
                     `}
@@ -459,6 +454,7 @@ const Deposit = () => {
                   </button>
                 );
               })}
+
               {!channels.length ? (
                 <div className="text-[13px] text-black/60">
                   {t("কোনো চ্যানেল নেই", "No channels")}
@@ -499,7 +495,7 @@ const Deposit = () => {
                     type="button"
                     onClick={() => onPickAmount(a.v)}
                     className={`
-                      relative h-[44px] rounded-lg font-extrabold text-[15px] transition
+                      relative h-[44px] cursor-pointer rounded-lg font-extrabold text-[15px] transition
                       ${
                         active
                           ? "bg-[#f5c400] text-black"
@@ -519,7 +515,7 @@ const Deposit = () => {
             </div>
           </div>
 
-          {/* Promotion (DB-driven) + Base Bonus Title display */}
+          {/* Promotion */}
           <div className="mt-6">
             <div className="flex items-center gap-2">
               <label className="text-[14px] font-semibold text-black">
@@ -544,7 +540,6 @@ const Deposit = () => {
                   <span className="text-black/80 font-semibold">
                     {promotions.find((x) => x.id === promo)?.name}
                   </span>
-
                   {baseBonusTitle && (
                     <span className="text-[12px] text-gray-600 mt-0.5">
                       {baseBonusTitle}
@@ -560,7 +555,7 @@ const Deposit = () => {
                         e.stopPropagation();
                         setPromo("none");
                       }}
-                      className="p-1 rounded-md hover:bg-black/5"
+                      className="p-1 cursor-pointer rounded-md hover:bg-black/5"
                       title="Clear"
                     >
                       <FaTimes className="text-black/40" />
@@ -583,7 +578,7 @@ const Deposit = () => {
                         setPromoOpen(false);
                       }}
                       className={`
-                        w-full text-left px-4 py-3 text-[14px] font-semibold transition
+                        w-full text-left cursor-pointer px-4 py-3 text-[14px] font-semibold transition
                         hover:bg-black/5
                         ${promo === p.id ? "bg-[#fff3bf]" : "bg-white"}
                       `}
@@ -595,7 +590,6 @@ const Deposit = () => {
               )}
             </div>
 
-            {/* Optional tiny hint */}
             {promo !== "none" ? (
               <div className="mt-2 text-[12px] text-black/55">
                 {(() => {
@@ -613,10 +607,13 @@ const Deposit = () => {
           <div className="mt-6 max-w-[520px]">
             <button
               type="button"
-              onClick={handleDepositClick}
+              onClick={() => {
+                if (!amountNum || amountNum <= 0) return;
+                setDetailsOpen(true);
+              }}
               disabled={!selectedMethod || !selectedChannel}
               className={`
-                w-full h-[46px] rounded-full
+                w-full h-[46px] cursor-pointer rounded-full
                 font-extrabold text-[14px]
                 shadow-[0_10px_22px_rgba(0,136,255,0.25)]
                 transition
@@ -656,16 +653,19 @@ const Deposit = () => {
         </div>
       </div>
 
-      {/* ✅ Details modal */}
+      {/* Details modal */}
       <DepositDetailsModal
         open={detailsOpen}
         onClose={() => setDetailsOpen(false)}
-        onConfirm={handleConfirm}
+        onConfirm={() => {
+          setDetailsOpen(false);
+          setPayOpen(true);
+        }}
         details={modalDetails}
         t={t}
       />
 
-      {/* ✅ Payment window modal */}
+      {/* Payment window modal */}
       <DepositModal
         open={payOpen}
         onClose={() => setPayOpen(false)}

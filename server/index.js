@@ -60,6 +60,10 @@ import gameRoutes from "./routes/gameRoutes.js";
 import publicGameRoutes from "./routes/publicGameRoutes.js";
 import callbackRoutes from "./routes/callbackRoutes.js";
 import playGameRoutes from "./routes/playGameRoutes.js";
+import betHistoryRoutes from "./routes/betHistoryRoutes.js";
+import meRoutes from "./routes/meRoutes.js";
+import withdrawMethodRoutes from "./routes/withdrawMethodRoutes.js";
+
 
 
 
@@ -145,6 +149,9 @@ app.use("/api/games", gameRoutes);
 app.use("/api/public", publicGameRoutes);
 app.use("/api/call-back", callbackRoutes);
 app.use("/api/play-game", playGameRoutes);
+app.use("/api", betHistoryRoutes);
+app.use("/api", meRoutes); 
+app.use("/api", withdrawMethodRoutes);
 
 
 

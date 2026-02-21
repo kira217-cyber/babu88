@@ -10,6 +10,7 @@ import PrivateRoute from "../PrivateRoute/PrivateRoute";
 import DashBoardLayout from "../RootLayout/DashBoardLayout";
 import Dashboard from "../components/Dashboard/Dashboard";
 import MyRefer from "../pages/MyRefer/MyRefer";
+import Profile from "../pages/Profile/Profile";
 
 export const routes = createBrowserRouter([
   {
@@ -65,6 +66,14 @@ export const routes = createBrowserRouter([
         element: (
           <PrivateRoute>
             <MyRefer />
+          </PrivateRoute>
+        ),
+      },
+       {
+        path: "profile",
+        element: (
+          <PrivateRoute>
+            <Profile />
           </PrivateRoute>
         ),
       },

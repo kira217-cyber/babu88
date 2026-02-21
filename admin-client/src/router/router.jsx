@@ -40,6 +40,7 @@ import AddDeposit from "../pages/AddDeposit/AddDeposit";
 import AddGameCategory from "../pages/AddGameCategory/AddGameCategory";
 import AddProvider from "../pages/AddProvider/AddProvider";
 import AddGame from "../pages/AddGame/AddGame";
+import AddWithdraw from "../pages/AddWithdraw/AddWithdraw";
 
 export const routes = createBrowserRouter([
   {
@@ -209,6 +210,14 @@ export const routes = createBrowserRouter([
         element: (
           <PrivateRoute permKey="add-deposit">
             <AddDeposit />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "add-withdraw",
+        element: (
+          <PrivateRoute permKey="add-withdraw">
+            <AddWithdraw />
           </PrivateRoute>
         ),
       },

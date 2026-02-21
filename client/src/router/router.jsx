@@ -15,6 +15,7 @@ import History from "../pages/History/History";
 import GameCategory from "../pages/GameCategory/GameCategory";
 import GameCategoryMobile from "../pages/GameCategory/GameCategoryMobile";
 import PlayGame from "../pages/PlayGame/PlayGame";
+import Profile from "../components/Profile/Profile";
 
 export const routes = createBrowserRouter([
   {
@@ -72,6 +73,10 @@ export const routes = createBrowserRouter([
           {
             path: "history",
             element: <History />,
+          },
+          {
+            path: "me",
+            element: <Profile />,
           },
         ],
       },
