@@ -16,6 +16,15 @@ const defaultChannel = () => ({
   isActive: true,
 });
 
+const defaultPromotion = () => ({
+  id: "", // "welcome"
+  name: { ...emptyBi }, // BN/EN
+  bonusType: "fixed", // fixed | percent
+  bonusValue: 0, // fixed amount OR percent
+  sort: 0,
+  isActive: true,
+});
+
 const defaultInput = () => ({
   key: "",
   label: { ...emptyBi },
@@ -124,6 +133,7 @@ const AddDeposit = () => {
   );
 
   const [channels, setChannels] = useState([defaultChannel()]);
+  const [promotions, setPromotions] = useState([defaultPromotion()]); // ✅ NEW
   const [inputs, setInputs] = useState([
     {
       key: "amount",
@@ -186,23 +196,12 @@ const AddDeposit = () => {
     },
   });
 
-  // Auto-select first method only when appropriate
-  useEffect(() => {
-    if (
-      !selectedId && // nothing selected yet
-      list?.length > 0 && // we have methods
-      !isCreateMode // don't auto-select when creating new
-    ) {
-      setSelectedId(list[0]._id);
-    }
-  }, [list, selectedId, isCreateMode]);
-
   // Fill form when selected method changes or create mode
   useEffect(() => {
     if (!selected) {
-      // Create mode
       if (isCreateMode) {
         setChannels([defaultChannel()]);
+        setPromotions([defaultPromotion()]); // ✅ NEW
         setInputs([
           {
             key: "amount",
@@ -241,6 +240,13 @@ const AddDeposit = () => {
         : [defaultChannel()],
     );
 
+    // ✅ NEW: promotions load
+    setPromotions(
+      Array.isArray(selected.promotions) && selected.promotions.length
+        ? selected.promotions
+        : [defaultPromotion()],
+    );
+
     setInputs(
       Array.isArray(selected.details?.inputs) && selected.details.inputs.length
         ? selected.details.inputs
@@ -277,6 +283,7 @@ const AddDeposit = () => {
       instructions_en: "",
     });
     setChannels([defaultChannel()]);
+    setPromotions([defaultPromotion()]); // ✅ NEW
     setInputs([
       {
         key: "amount",
@@ -293,13 +300,10 @@ const AddDeposit = () => {
 
   // ─── Channel Handlers ───
   const addChannel = () => setChannels((p) => [...p, defaultChannel()]);
-
   const removeChannel = (idx) =>
     setChannels((p) => p.filter((_, i) => i !== idx));
-
   const patchChannel = (idx, key, val) =>
     setChannels((p) => p.map((c, i) => (i === idx ? { ...c, [key]: val } : c)));
-
   const patchChannelBi = (idx, key, lang, val) =>
     setChannels((p) =>
       p.map((c, i) =>
@@ -309,14 +313,28 @@ const AddDeposit = () => {
       ),
     );
 
+  // ─── Promotion Handlers (NEW) ───
+  const addPromotion = () => setPromotions((p) => [...p, defaultPromotion()]);
+  const removePromotion = (idx) =>
+    setPromotions((p) => p.filter((_, i) => i !== idx));
+  const patchPromotion = (idx, key, val) =>
+    setPromotions((p) =>
+      p.map((x, i) => (i === idx ? { ...x, [key]: val } : x)),
+    );
+  const patchPromotionBi = (idx, key, lang, val) =>
+    setPromotions((p) =>
+      p.map((x, i) =>
+        i === idx
+          ? { ...x, [key]: { ...(x[key] || emptyBi), [lang]: val } }
+          : x,
+      ),
+    );
+
   // ─── Input Field Handlers ───
   const addInput = () => setInputs((p) => [...p, defaultInput()]);
-
   const removeInput = (idx) => setInputs((p) => p.filter((_, i) => i !== idx));
-
   const patchInput = (idx, key, val) =>
     setInputs((p) => p.map((x, i) => (i === idx ? { ...x, [key]: val } : x)));
-
   const patchInputBi = (idx, key, lang, val) =>
     setInputs((p) =>
       p.map((x, i) =>
@@ -338,6 +356,17 @@ const AddDeposit = () => {
       if (!String(c.id || "").trim()) return "Channel ID cannot be empty";
       if (!c.name?.bn?.trim() || !c.name?.en?.trim())
         return "Channel name (BN/EN) both required";
+    }
+
+    // ✅ Promotions required (you can relax this if you want)
+    for (const p of promotions) {
+      if (!String(p.id || "").trim()) return "Promotion ID cannot be empty";
+      if (!p.name?.bn?.trim() || !p.name?.en?.trim())
+        return "Promotion name (BN/EN) both required";
+      const v = Number(p.bonusValue ?? 0);
+      if (Number.isNaN(v) || v < 0) return "Promotion bonusValue must be >= 0";
+      if (p.bonusType === "percent" && v > 100)
+        return "Promotion percent cannot be more than 100";
     }
 
     for (const f of inputs) {
@@ -384,6 +413,10 @@ const AddDeposit = () => {
       );
       payload.append("baseBonusPercent", String(values.baseBonusPercent ?? 0));
       payload.append("channels", JSON.stringify(channels));
+
+      // ✅ NEW
+      payload.append("promotions", JSON.stringify(promotions));
+
       payload.append(
         "details",
         JSON.stringify({
@@ -463,7 +496,7 @@ const AddDeposit = () => {
             </div>
 
             <div className="flex items-center gap-3 flex-wrap">
-              {!isCreateMode && (
+              {!isCreateMode && selected?._id && (
                 <button
                   type="button"
                   onClick={() =>
@@ -628,7 +661,7 @@ const AddDeposit = () => {
           </div>
 
           {/* Channels Section */}
-          <div className="mb-8">
+          <div className="mb-10">
             <div className="flex items-center justify-between mb-4">
               <h3 className={subheadCls}>Deposit Channels</h3>
               <button type="button" onClick={addChannel} className={btnGhost}>
@@ -762,8 +795,148 @@ const AddDeposit = () => {
             </div>
           </div>
 
+          {/* ✅ Promotions Section (NEW) */}
+          <div className="mb-10">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className={subheadCls}>Promotions (Client Bonus Options)</h3>
+              <button type="button" onClick={addPromotion} className={btnGhost}>
+                + Add Promotion
+              </button>
+            </div>
+
+            <div className="space-y-5">
+              {promotions.map((p, idx) => (
+                <div
+                  key={idx}
+                  className="p-5 bg-black/40 rounded-xl border border-yellow-800/30"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="text-yellow-200 font-medium">
+                      Promotion #{idx + 1}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removePromotion(idx)}
+                      disabled={promotions.length === 1}
+                      className={`${btnDanger} ${btnSmall}`}
+                    >
+                      Remove
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className={labelCls}>Promotion ID</label>
+                      <input
+                        className={inputBase}
+                        value={p.id || ""}
+                        onChange={(e) =>
+                          patchPromotion(
+                            idx,
+                            "id",
+                            String(e.target.value || "").toLowerCase(),
+                          )
+                        }
+                        placeholder="welcome / reload / special"
+                      />
+                    </div>
+
+                    <div className="flex items-end pt-6">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="w-5 h-5 accent-yellow-500"
+                          checked={p.isActive ?? true}
+                          onChange={(e) =>
+                            patchPromotion(idx, "isActive", e.target.checked)
+                          }
+                        />
+                        <span className="text-yellow-100 font-medium">
+                          Active
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <BiInput
+                    title="Promotion Name"
+                    bnProps={{
+                      value: p.name?.bn || "",
+                      onChange: (e) =>
+                        patchPromotionBi(idx, "name", "bn", e.target.value),
+                      placeholder: "যেমন: ওয়েলকাম বোনাস",
+                    }}
+                    enProps={{
+                      value: p.name?.en || "",
+                      onChange: (e) =>
+                        patchPromotionBi(idx, "name", "en", e.target.value),
+                      placeholder: "e.g. Welcome Bonus",
+                    }}
+                  />
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                    <div>
+                      <label className={labelCls}>Bonus Type</label>
+                      <select
+                        className={inputBase}
+                        value={p.bonusType || "fixed"}
+                        onChange={(e) =>
+                          patchPromotion(idx, "bonusType", e.target.value)
+                        }
+                      >
+                        <option value="fixed">fixed (৳)</option>
+                        <option value="percent">percent (%)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className={labelCls}>
+                        Bonus Value {p.bonusType === "percent" ? "(%)" : "(৳)"}
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        className={inputBase}
+                        value={Number(p.bonusValue ?? 0)}
+                        onChange={(e) =>
+                          patchPromotion(
+                            idx,
+                            "bonusValue",
+                            Number(e.target.value || 0),
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div>
+                      <label className={labelCls}>Sort</label>
+                      <input
+                        type="number"
+                        step="1"
+                        className={inputBase}
+                        value={Number(p.sort ?? 0)}
+                        onChange={(e) =>
+                          patchPromotion(
+                            idx,
+                            "sort",
+                            Number(e.target.value || 0),
+                          )
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-3 text-xs text-yellow-400/70">
+                    Tip: Client dropdown এ এই promotion show হবে। percent হলে
+                    amount-এর উপর % হিসাব হবে, fixed হলে নির্দিষ্ট টাকা যোগ হবে।
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Input Fields Section */}
-          <div className="mb-8">
+          <div className="mb-2">
             <div className="flex items-center justify-between mb-4">
               <h3 className={subheadCls}>Deposit Modal Input Fields</h3>
               <button type="button" onClick={addInput} className={btnGhost}>
@@ -956,6 +1129,12 @@ const AddDeposit = () => {
                         <div className="text-xs text-yellow-400/80 mt-1">
                           ID: {m.methodId} •{" "}
                           {m.isActive ? "Active" : "Inactive"}
+                        </div>
+                        <div className="text-[11px] text-yellow-400/70 mt-1">
+                          Promotions:{" "}
+                          {Array.isArray(m.promotions)
+                            ? m.promotions.length
+                            : 0}
                         </div>
                       </div>
                     </div>

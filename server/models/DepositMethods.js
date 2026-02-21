@@ -11,14 +11,10 @@ const TextBiSchema = new mongoose.Schema(
 
 const DepositInputSchema = new mongoose.Schema(
   {
-    key: { type: String, required: true }, // e.g. "senderNumber", "trxId"
+    key: { type: String, required: true },
     label: { type: TextBiSchema, default: () => ({}) },
     placeholder: { type: TextBiSchema, default: () => ({}) },
-    type: {
-      type: String,
-      enum: ["text", "number", "tel"],
-      default: "text",
-    },
+    type: { type: String, enum: ["text", "number", "tel"], default: "text" },
     required: { type: Boolean, default: true },
     minLength: { type: Number, default: 0 },
     maxLength: { type: Number, default: 0 },
@@ -28,22 +24,35 @@ const DepositInputSchema = new mongoose.Schema(
 
 const ChannelSchema = new mongoose.Schema(
   {
-    id: { type: String, required: true }, // "zappay", "dpay"
-    name: { type: TextBiSchema, default: () => ({}) }, // bn/en
-    tagText: { type: String, default: "+0%" }, // "+3%"
-    bonusTitle: { type: TextBiSchema, default: () => ({}) }, // bn/en
-    bonusPercent: { type: Number, default: 0 }, // 3
+    id: { type: String, required: true },
+    name: { type: TextBiSchema, default: () => ({}) },
+    tagText: { type: String, default: "+0%" },
+    bonusTitle: { type: TextBiSchema, default: () => ({}) },
+    bonusPercent: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
+  },
+  { _id: false },
+);
+
+// ✅ NEW: Promotions per Method
+const PromotionSchema = new mongoose.Schema(
+  {
+    id: { type: String, required: true, trim: true, lowercase: true }, // e.g. "welcome", "reload", "special"
+    name: { type: TextBiSchema, default: () => ({}) }, // BN/EN display name
+    bonusType: { type: String, enum: ["percent", "fixed"], default: "fixed" }, // percent or fixed
+    bonusValue: { type: Number, default: 0 }, // percent (e.g 5) OR fixed amount (e.g 200)
+    isActive: { type: Boolean, default: true },
+    sort: { type: Number, default: 0 },
   },
   { _id: false },
 );
 
 const MethodDetailsSchema = new mongoose.Schema(
   {
-    agentNumber: { type: String, default: "" }, // agent number
-    personalNumber: { type: String, default: "" }, // personal/merchant
-    instructions: { type: TextBiSchema, default: () => ({}) }, // bn/en
-    inputs: { type: [DepositInputSchema], default: [] }, // dynamic fields
+    agentNumber: { type: String, default: "" },
+    personalNumber: { type: String, default: "" },
+    instructions: { type: TextBiSchema, default: () => ({}) },
+    inputs: { type: [DepositInputSchema], default: [] },
   },
   { _id: false },
 );
@@ -55,17 +64,21 @@ const DepositMethodsSchema = new mongoose.Schema(
       required: true,
       unique: true,
       trim: true,
-      lowercase: true, // "bkash", "nagad"
+      lowercase: true,
     },
-    methodName: { type: TextBiSchema, default: () => ({}) }, // bn/en
-    logoUrl: { type: String, default: "" }, // "/uploads/.."
+    methodName: { type: TextBiSchema, default: () => ({}) },
+    logoUrl: { type: String, default: "" },
     isActive: { type: Boolean, default: true },
 
-    turnoverMultiplier: { type: Number, default: 1 }, // e.g. 1x
-    baseBonusTitle: { type: TextBiSchema, default: () => ({}) }, // bn/en (optional)
-    baseBonusPercent: { type: Number, default: 0 }, // optional
+    turnoverMultiplier: { type: Number, default: 1 },
+    baseBonusTitle: { type: TextBiSchema, default: () => ({}) },
+    baseBonusPercent: { type: Number, default: 0 },
 
     channels: { type: [ChannelSchema], default: [] },
+
+    // ✅ NEW FIELD
+    promotions: { type: [PromotionSchema], default: [] },
+
     details: { type: MethodDetailsSchema, default: () => ({}) },
   },
   { timestamps: true },

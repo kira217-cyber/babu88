@@ -61,12 +61,31 @@ const parsePercentFromTag = (tagText) => {
   return Number.isFinite(p) ? p : 0;
 };
 
-const calcBonus = (amountNum, promoId, channelTagText) => {
-  const promoBonus =
-    promoId === "welcome" ? 200 : promoId === "reload" ? 100 : 0;
-
+// ✅ Updated calcBonus: promo comes from selectedMethod.promotions
+const calcBonus = (
+  amountNum,
+  promoId,
+  channelTagText,
+  methodPromotions = [],
+) => {
   const percent = parsePercentFromTag(channelTagText);
   const percentBonus = (amountNum * percent) / 100;
+
+  // promo from DB
+  const promoDoc = (methodPromotions || []).find(
+    (p) =>
+      String(p?.id || "").toLowerCase() === String(promoId || "").toLowerCase(),
+  );
+
+  let promoBonus = 0;
+  if (promoDoc && promoId !== "none" && promoDoc?.isActive !== false) {
+    const bonusValue = Number(promoDoc?.bonusValue ?? 0) || 0;
+    if (promoDoc?.bonusType === "percent") {
+      promoBonus = (amountNum * bonusValue) / 100;
+    } else {
+      promoBonus = bonusValue;
+    }
+  }
 
   return {
     promoBonus,
@@ -162,7 +181,6 @@ const Deposit = () => {
     queryKey: ["deposit-methods-public"],
     queryFn: async () => {
       const res = await api.get("/api/deposit-methods");
-      // client side: show only active methods/channels
       return (res.data || []).filter((m) => m?.isActive !== false);
     },
     staleTime: 30_000,
@@ -180,16 +198,6 @@ const Deposit = () => {
       { v: 30000, tag: "+3%" },
     ],
     [],
-  );
-
-  // promotions (still local UI; you can also make it API later)
-  const promotions = useMemo(
-    () => [
-      { id: "none", name: t("No Bonus Selected", "No Bonus Selected") },
-      { id: "welcome", name: t("Welcome Bonus", "Welcome Bonus") },
-      { id: "reload", name: t("Reload Bonus", "Reload Bonus") },
-    ],
-    [isBangla],
   );
 
   const notices = useMemo(
@@ -271,12 +279,38 @@ const Deposit = () => {
     return ch.filter((c) => c?.isActive !== false);
   }, [selectedMethod]);
 
-  // keep selectedChannel valid when method changes
+  // ✅ promotions from DB (per method)
+  const promotions = useMemo(() => {
+    const list = Array.isArray(selectedMethod?.promotions)
+      ? selectedMethod.promotions
+      : [];
+    const active = list
+      .filter((p) => p?.isActive !== false)
+      .sort((a, b) => Number(a?.sort ?? 0) - Number(b?.sort ?? 0));
+
+    return [
+      { id: "none", name: t("No Bonus Selected", "No Bonus Selected") },
+      ...active.map((p) => ({
+        id: p.id,
+        name: isBangla ? p?.name?.bn || p.id : p?.name?.en || p.id,
+        bonusType: p?.bonusType,
+        bonusValue: p?.bonusValue,
+      })),
+    ];
+  }, [selectedMethod, isBangla]);
+
+  // ✅ keep selectedChannel valid when method changes
   useEffect(() => {
     if (!selectedMethod) return;
     const exists = channels.some((c) => c.id === selectedChannel);
     if (!exists) setSelectedChannel(channels?.[0]?.id || "");
   }, [selectedMethod, channels, selectedChannel]);
+
+  // ✅ keep promo valid when method changes (if promo not exists -> none)
+  useEffect(() => {
+    const exists = promotions.some((p) => p.id === promo);
+    if (!exists) setPromo("none");
+  }, [promotions, promo]);
 
   const onPickAmount = (v) => setAmount(String(v));
 
@@ -284,10 +318,17 @@ const Deposit = () => {
     channels.find((c) => c.id === selectedChannel)?.tagText || "+0%";
 
   const amountNum = Number(amount || 0) || 0;
+
+  // raw method promotions (full docs) for calc
+  const methodPromotionsRaw = Array.isArray(selectedMethod?.promotions)
+    ? selectedMethod.promotions
+    : [];
+
   const { promoBonus, percentBonus, percent } = calcBonus(
     amountNum,
     promo,
     channelTagText,
+    methodPromotionsRaw,
   );
 
   const turnoverMultiplier = Number(selectedMethod?.turnoverMultiplier ?? 13);
@@ -478,7 +519,7 @@ const Deposit = () => {
             </div>
           </div>
 
-          {/* Promotion (local) + Base Bonus Title display */}
+          {/* Promotion (DB-driven) + Base Bonus Title display */}
           <div className="mt-6">
             <div className="flex items-center gap-2">
               <label className="text-[14px] font-semibold text-black">
@@ -504,7 +545,6 @@ const Deposit = () => {
                     {promotions.find((x) => x.id === promo)?.name}
                   </span>
 
-                  {/* ← Base Bonus Title shown here */}
                   {baseBonusTitle && (
                     <span className="text-[12px] text-gray-600 mt-0.5">
                       {baseBonusTitle}
@@ -554,6 +594,19 @@ const Deposit = () => {
                 </div>
               )}
             </div>
+
+            {/* Optional tiny hint */}
+            {promo !== "none" ? (
+              <div className="mt-2 text-[12px] text-black/55">
+                {(() => {
+                  const doc = methodPromotionsRaw.find((x) => x?.id === promo);
+                  if (!doc) return null;
+                  if (doc.bonusType === "percent")
+                    return `Promo Bonus: +${Number(doc.bonusValue ?? 0)}%`;
+                  return `Promo Bonus: +${money(Number(doc.bonusValue ?? 0))}`;
+                })()}
+              </div>
+            ) : null}
           </div>
 
           {/* Deposit Button */}
@@ -577,7 +630,6 @@ const Deposit = () => {
               {t("ডিপোজিট", "Deposit")}
             </button>
 
-            {/* tiny note */}
             <div className="mt-2 text-[12px] text-black/55">
               {selectedMethod
                 ? `${t("টার্নওভার:", "Turnover:")} ${turnoverMultiplier}x`
@@ -613,7 +665,7 @@ const Deposit = () => {
         t={t}
       />
 
-      {/* ✅ Payment window modal (API-driven) */}
+      {/* ✅ Payment window modal */}
       <DepositModal
         open={payOpen}
         onClose={() => setPayOpen(false)}
