@@ -140,7 +140,7 @@ const AddWithdraw = () => {
   ]);
 
   const [logoFile, setLogoFile] = useState(null);
-  const [logoPreview, setLogoPreview] = useState(null); // ← new: preview state
+  const [logoPreview, setLogoPreview] = useState(null);
 
   const [saving, setSaving] = useState(false);
 
@@ -150,6 +150,10 @@ const AddWithdraw = () => {
       name_bn: "",
       name_en: "",
       isActive: true,
+
+      // ✅ NEW
+      minimumWithdrawAmount: 0,
+      maximumWithdrawAmount: 0,
     },
   });
 
@@ -169,6 +173,13 @@ const AddWithdraw = () => {
             required: true,
           },
         ]);
+
+        // ✅ NEW
+        reset((prev) => ({
+          ...prev,
+          minimumWithdrawAmount: 0,
+          maximumWithdrawAmount: 0,
+        }));
       }
       return;
     }
@@ -179,6 +190,10 @@ const AddWithdraw = () => {
       name_bn: selected.name?.bn || "",
       name_en: selected.name?.en || "",
       isActive: selected.isActive ?? true,
+
+      // ✅ NEW
+      minimumWithdrawAmount: selected.minimumWithdrawAmount ?? 0,
+      maximumWithdrawAmount: selected.maximumWithdrawAmount ?? 0,
     });
 
     setFields(
@@ -200,6 +215,10 @@ const AddWithdraw = () => {
       name_bn: "",
       name_en: "",
       isActive: true,
+
+      // ✅ NEW
+      minimumWithdrawAmount: 0,
+      maximumWithdrawAmount: 0,
     });
     setFields([
       {
@@ -256,6 +275,14 @@ const AddWithdraw = () => {
     if (!values.name_bn?.trim() || !values.name_en?.trim())
       return "Both BN & EN method names are required";
 
+    // ✅ NEW (safe sanity)
+    const minW = Number(values.minimumWithdrawAmount ?? 0);
+    const maxW = Number(values.maximumWithdrawAmount ?? 0);
+    if (Number.isNaN(minW) || minW < 0) return "Minimum withdraw must be >= 0";
+    if (Number.isNaN(maxW) || maxW < 0) return "Maximum withdraw must be >= 0";
+    if (maxW > 0 && minW > maxW)
+      return "Minimum withdraw cannot be greater than Maximum withdraw";
+
     for (const f of fields) {
       if (!String(f.key || "").trim()) return "Field key cannot be empty";
       if (!f.label?.bn?.trim() || !f.label?.en?.trim())
@@ -291,6 +318,16 @@ const AddWithdraw = () => {
       );
 
       payload.append("isActive", String(!!values.isActive));
+
+      // ✅ NEW
+      payload.append(
+        "minimumWithdrawAmount",
+        String(values.minimumWithdrawAmount ?? 0),
+      );
+      payload.append(
+        "maximumWithdrawAmount",
+        String(values.maximumWithdrawAmount ?? 0),
+      );
 
       payload.append("fields", JSON.stringify(fields));
 
@@ -431,6 +468,27 @@ const AddWithdraw = () => {
               />
             </div>
 
+            {/* ✅ NEW: Min/Max Withdraw Amount */}
+            <div>
+              <label className={labelCls}>Minimum Withdraw Amount (৳)</label>
+              <input
+                type="number"
+                step="0.01"
+                className={inputBase}
+                {...register("minimumWithdrawAmount", { valueAsNumber: true })}
+              />
+            </div>
+
+            <div>
+              <label className={labelCls}>Maximum Withdraw Amount (৳)</label>
+              <input
+                type="number"
+                step="0.01"
+                className={inputBase}
+                {...register("maximumWithdrawAmount", { valueAsNumber: true })}
+              />
+            </div>
+
             {/* Logo Upload + Preview */}
             <div className="lg:col-span-2">
               <label className={labelCls}>
@@ -460,7 +518,6 @@ const AddWithdraw = () => {
                     </div>
                   )}
 
-                  {/* Overlay on hover */}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-60 transition-opacity flex items-center justify-center">
                     <span className="text-yellow-300 text-sm font-medium">
                       Change logo
@@ -664,6 +721,13 @@ const AddWithdraw = () => {
                           ID: {m.methodId} •{" "}
                           {m.isActive ? "Active" : "Inactive"}
                         </div>
+
+                        {/* (Optional) show min/max count, does not affect functionality */}
+                        <div className="text-[11px] text-yellow-400/70 mt-1">
+                          Min: {Number(m.minimumWithdrawAmount ?? 0)} • Max:{" "}
+                          {Number(m.maximumWithdrawAmount ?? 0)}
+                        </div>
+
                         <div className="text-[11px] text-yellow-400/70 mt-1">
                           Fields:{" "}
                           {Array.isArray(m.fields) ? m.fields.length : 0}

@@ -1,12 +1,14 @@
 // src/pages/Profile/Profile.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import { api } from "../../api/axios";
 import { selectToken, selectUser } from "../../features/auth/authSelectors";
 import { useLanguage } from "../../Context/LanguageProvider";
-// import { setAuth } from "../../features/auth/authSlice";
+import Loading from "../Loading/Loading";
+
+
 
 const Profile = () => {
   const { isBangla } = useLanguage();
@@ -14,7 +16,6 @@ const Profile = () => {
 
   const token = useSelector(selectToken);
   const authUser = useSelector(selectUser);
-  const dispatch = useDispatch();
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -101,9 +102,7 @@ const Profile = () => {
         res?.data?.message || t("প্রোফাইল আপডেট হয়েছে", "Profile updated"),
       );
 
-      // optional redux update
-      // dispatch(setAuth({ user: res.data.data, token }));
-
+      // keep password empty after save
       reset({ ...values, password: "" });
     } catch (e) {
       toast.error(
@@ -114,8 +113,20 @@ const Profile = () => {
     }
   };
 
+  const showOverlayLoading = loading || saving;
+
   return (
-    <div className="w-full">
+    <div className="w-full relative">
+      {/* ✅ FULL SCREEN LOADING OVERLAY */}
+      <Loading
+        open={showOverlayLoading}
+        text={
+          loading
+            ? t("প্রোফাইল লোড হচ্ছে…", "Loading profile…")
+            : t("সেভ হচ্ছে…", "Saving…")
+        }
+      />
+
       <div className="bg-white rounded-xl border border-black/10 p-5 sm:p-6 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
         <div className="flex items-center justify-between gap-3">
           <div>
@@ -155,6 +166,7 @@ const Profile = () => {
               <input
                 className="mt-2 w-full h-[44px] rounded-lg border border-black/20 px-4 text-[14px] outline-none focus:ring-2 focus:ring-black/10"
                 placeholder={t("ইউজারনেম লিখুন", "Enter username")}
+                disabled={loading || saving}
                 {...register("username", {
                   required: t("ইউজারনেম আবশ্যক", "Username is required"),
                 })}
@@ -174,6 +186,7 @@ const Profile = () => {
               <input
                 className="mt-2 w-full h-[44px] rounded-lg border border-black/20 px-4 text-[14px] outline-none focus:ring-2 focus:ring-black/10"
                 placeholder={t("01XXXXXXXXX", "01XXXXXXXXX")}
+                disabled={loading || saving}
                 {...register("phone", {
                   required: t("ফোন নম্বর আবশ্যক", "Phone is required"),
                   pattern: {
@@ -201,6 +214,7 @@ const Profile = () => {
                 type="email"
                 className="mt-2 w-full h-[44px] rounded-lg border border-black/20 px-4 text-[14px] outline-none focus:ring-2 focus:ring-black/10"
                 placeholder={t("example@mail.com", "example@mail.com")}
+                disabled={loading || saving}
                 {...register("email")}
               />
             </div>
@@ -213,6 +227,7 @@ const Profile = () => {
               </label>
               <select
                 className="mt-2 w-full h-[44px] rounded-lg border border-black/20 px-4 text-[14px] outline-none focus:ring-2 focus:ring-black/10 bg-white"
+                disabled={loading || saving}
                 {...register("currency", { required: true })}
               >
                 <option value="BDT">{t("BDT", "BDT")}</option>
@@ -233,6 +248,7 @@ const Profile = () => {
               <input
                 className="mt-2 w-full h-[44px] rounded-lg border border-black/20 px-4 text-[14px] outline-none focus:ring-2 focus:ring-black/10"
                 placeholder={t("First name", "First name")}
+                disabled={loading || saving}
                 {...register("firstName")}
               />
             </div>
@@ -245,6 +261,7 @@ const Profile = () => {
               <input
                 className="mt-2 w-full h-[44px] rounded-lg border border-black/20 px-4 text-[14px] outline-none focus:ring-2 focus:ring-black/10"
                 placeholder={t("Last name", "Last name")}
+                disabled={loading || saving}
                 {...register("lastName")}
               />
             </div>
@@ -261,6 +278,7 @@ const Profile = () => {
                   "পাসওয়ার্ড পরিবর্তন না করলে খালি রাখুন",
                   "Leave blank to keep current password",
                 )}
+                disabled={loading || saving}
                 {...register("password", {
                   minLength: {
                     value: 6,
@@ -285,7 +303,7 @@ const Profile = () => {
               type="submit"
               disabled={saving || loading}
               className={`
-                h-[46px] px-6 cursor-pointer rounded-full font-extrabold text-[14px]
+                h-[46px] px-6 rounded-full font-extrabold text-[14px]
                 transition shadow-[0_10px_22px_rgba(0,136,255,0.25)]
                 ${
                   saving || loading

@@ -607,7 +607,7 @@ const SidebarContent = ({
         ))}
 
         {/* Games Dropdown */}
-        {showGames && (
+        {/* {showGames && (
           <div className="mt-4">
             <button
               onClick={() => setGamesOpen(!gamesOpen)}
@@ -647,7 +647,7 @@ const SidebarContent = ({
               </div>
             )}
           </div>
-        )}
+        )} */}
 
         {/* Users Dropdown */}
         {showUsers && (

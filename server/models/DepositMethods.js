@@ -34,13 +34,13 @@ const ChannelSchema = new mongoose.Schema(
   { _id: false },
 );
 
-// ✅ NEW: Promotions per Method
+// ✅ Promotions per Method
 const PromotionSchema = new mongoose.Schema(
   {
-    id: { type: String, required: true, trim: true, lowercase: true }, // e.g. "welcome", "reload", "special"
-    name: { type: TextBiSchema, default: () => ({}) }, // BN/EN display name
-    bonusType: { type: String, enum: ["percent", "fixed"], default: "fixed" }, // percent or fixed
-    bonusValue: { type: Number, default: 0 }, // percent (e.g 5) OR fixed amount (e.g 200)
+    id: { type: String, required: true, trim: true, lowercase: true },
+    name: { type: TextBiSchema, default: () => ({}) },
+    bonusType: { type: String, enum: ["percent", "fixed"], default: "fixed" },
+    bonusValue: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
     sort: { type: Number, default: 0 },
   },
@@ -70,13 +70,15 @@ const DepositMethodsSchema = new mongoose.Schema(
     logoUrl: { type: String, default: "" },
     isActive: { type: Boolean, default: true },
 
+    // ✅ NEW: Min/Max deposit amount
+    minDepositAmount: { type: Number, default: 0 },
+    maxDepositAmount: { type: Number, default: 0 },
+
     turnoverMultiplier: { type: Number, default: 1 },
     baseBonusTitle: { type: TextBiSchema, default: () => ({}) },
     baseBonusPercent: { type: Number, default: 0 },
 
     channels: { type: [ChannelSchema], default: [] },
-
-    // ✅ NEW FIELD
     promotions: { type: [PromotionSchema], default: [] },
 
     details: { type: MethodDetailsSchema, default: () => ({}) },

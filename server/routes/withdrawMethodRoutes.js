@@ -80,15 +80,23 @@ router.post("/withdraw-methods", upload.single("logo"), async (req, res) => {
       .trim()
       .toUpperCase();
 
-    // Deposit style: JSON string parse
     const name = safeJson(body.name, { bn: "", en: "" });
     const fieldsRaw = safeJson(body.fields, []);
     const fields = normalizeFields(fieldsRaw);
 
     const isActive = body.isActive === "true" || body.isActive === true;
 
+    // ✅ NEW
+    let minimumWithdrawAmount = Number(body.minimumWithdrawAmount ?? 0);
+    let maximumWithdrawAmount = Number(body.maximumWithdrawAmount ?? 0);
+    if (Number.isNaN(minimumWithdrawAmount) || minimumWithdrawAmount < 0)
+      minimumWithdrawAmount = 0;
+    if (Number.isNaN(maximumWithdrawAmount) || maximumWithdrawAmount < 0)
+      maximumWithdrawAmount = 0;
+
     if (!methodId)
       return res.status(400).json({ message: "methodId is required" });
+
     if (!String(name?.bn || "").trim() || !String(name?.en || "").trim()) {
       return res
         .status(400)
@@ -103,6 +111,10 @@ router.post("/withdraw-methods", upload.single("logo"), async (req, res) => {
       fields,
       isActive,
       logoUrl,
+
+      // ✅ NEW
+      minimumWithdrawAmount,
+      maximumWithdrawAmount,
     });
 
     res.status(201).json(created);
@@ -147,6 +159,17 @@ router.put("/withdraw-methods/:id", upload.single("logo"), async (req, res) => {
     if (body.fields != null) {
       const fieldsRaw = safeJson(body.fields, []);
       patch.fields = normalizeFields(fieldsRaw);
+    }
+
+    // ✅ NEW
+    if (body.minimumWithdrawAmount != null) {
+      const v = Number(body.minimumWithdrawAmount);
+      patch.minimumWithdrawAmount = Number.isNaN(v) || v < 0 ? 0 : v;
+    }
+
+    if (body.maximumWithdrawAmount != null) {
+      const v = Number(body.maximumWithdrawAmount);
+      patch.maximumWithdrawAmount = Number.isNaN(v) || v < 0 ? 0 : v;
     }
 
     if (req.file) patch.logoUrl = toPublicUrl(req.file);

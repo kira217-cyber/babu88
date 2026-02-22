@@ -92,7 +92,7 @@ const Balance = ({
     () => ({
       withdraw: isBangla ? "উইথড্র" : "Withdraw",
       deposit: isBangla ? "ডিপোজিট" : "Deposit",
-      account: isBangla ? "আমারত" : "Account",
+      account: isBangla ? "ইতিহাস" : "History",
       refresh: isBangla ? "রিফ্রেশ" : "Refresh",
     }),
     [isBangla],

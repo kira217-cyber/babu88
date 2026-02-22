@@ -5,6 +5,7 @@ import { FaExclamationCircle, FaQuestionCircle, FaTimes } from "react-icons/fa";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/axios";
 import DepositModal from "./DepositModal";
+import DepositWithdrawTabs from "../../components/DepositWithdrawTabs/DepositWithdrawTabs";
 
 // ✅ fallback logo placeholders (when no image)
 const OptionLogo = ({ type }) => {
@@ -269,6 +270,52 @@ const Deposit = () => {
   const channelTagText = selectedChannelDoc?.tagText || "+0%";
   const amountNum = Number(amount || 0) || 0;
 
+  // ✅ NEW: min/max from method
+  const minDeposit = Number(selectedMethod?.minDepositAmount ?? 0) || 0;
+  const maxDeposit = Number(selectedMethod?.maxDepositAmount ?? 0) || 0;
+
+  const inMin = amountNum >= (minDeposit > 0 ? minDeposit : 0);
+  const inMax = maxDeposit > 0 ? amountNum <= maxDeposit : true;
+
+  const amountHasValue = amountNum > 0;
+  const amountValid = amountHasValue && inMin && inMax;
+
+  const amountHint = useMemo(() => {
+    if (!selectedMethod) return "";
+    const minTxt = minDeposit > 0 ? money(minDeposit) : null;
+    const maxTxt = maxDeposit > 0 ? money(maxDeposit) : null;
+
+    if (minTxt && maxTxt)
+      return `${t("Minimum", "Minimum")} ${minTxt} — ${t("Maximum", "Maximum")} ${maxTxt}`;
+    if (minTxt) return `${t("Minimum deposit", "Minimum deposit")}: ${minTxt}`;
+    if (maxTxt) return `${t("Maximum deposit", "Maximum deposit")}: ${maxTxt}`;
+    return ""; // no limits
+  }, [selectedMethod, minDeposit, maxDeposit, isBangla]);
+
+  const amountErrorText = useMemo(() => {
+    if (!selectedMethod) return "";
+    if (!amountHasValue) return "";
+    if (!inMin)
+      return t(
+        `ন্যূনতম ডিপোজিট ${money(minDeposit)} হতে হবে`,
+        `Minimum deposit must be ${money(minDeposit)}`,
+      );
+    if (!inMax)
+      return t(
+        `সর্বোচ্চ ডিপোজিট ${money(maxDeposit)} পর্যন্ত`,
+        `Maximum deposit is ${money(maxDeposit)}`,
+      );
+    return "";
+  }, [
+    selectedMethod,
+    amountHasValue,
+    inMin,
+    inMax,
+    minDeposit,
+    maxDeposit,
+    isBangla,
+  ]);
+
   const methodPromotionsRaw = Array.isArray(selectedMethod?.promotions)
     ? selectedMethod.promotions
     : [];
@@ -297,38 +344,45 @@ const Deposit = () => {
 
   const apiBase = import.meta.env.VITE_API_URL || "";
 
+  // ✅ NEW: deposit button enable condition
+  const canDeposit = !!selectedMethod && !!selectedChannel && amountValid;
+
   return (
-    <div className="w-full">
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4">
-        {/* LEFT */}
-        <div className="bg-white rounded-xl border border-black/10 p-5 sm:p-6 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
-          <div className="text-[18px] font-extrabold text-black">
-            {t("ডিপোজিট", "Deposit")}
-          </div>
+    <>
+      <DepositWithdrawTabs />
+      <div className="w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4">
+          {/* LEFT */}
+          <div className="bg-white rounded-xl border border-black/10 p-5 sm:p-6 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
+            <div className="text-[18px] font-extrabold text-black">
+              {t("ডিপোজিট", "Deposit")}
+            </div>
 
-          {/* Deposit Options */}
-          <div className="mt-4">
-            <label className="text-[14px] font-semibold text-black">
-              {t("Deposit Options", "Deposit Options")}{" "}
-              <span className="text-red-500">*</span>
-            </label>
+            {/* Deposit Options */}
+            <div className="mt-4">
+              <label className="text-[14px] font-semibold text-black">
+                {t("Deposit Options", "Deposit Options")}{" "}
+                <span className="text-red-500">*</span>
+              </label>
 
-            {isLoading ? (
-              <div className="mt-3 text-[13px] text-black/60">
-                {t("লোড হচ্ছে...", "Loading...")}
-              </div>
-            ) : methods.length ? (
-              <div className="mt-3 flex flex-wrap gap-3">
-                {methods.map((m) => {
-                  const active = selectedOption === m.methodId;
-                  const name = isBangla ? m?.methodName?.bn : m?.methodName?.en;
+              {isLoading ? (
+                <div className="mt-3 text-[13px] text-black/60">
+                  {t("লোড হচ্ছে...", "Loading...")}
+                </div>
+              ) : methods.length ? (
+                <div className="mt-3 flex flex-wrap gap-3">
+                  {methods.map((m) => {
+                    const active = selectedOption === m.methodId;
+                    const name = isBangla
+                      ? m?.methodName?.bn
+                      : m?.methodName?.en;
 
-                  return (
-                    <button
-                      key={m._id || m.methodId}
-                      type="button"
-                      onClick={() => setSelectedOption(m.methodId)}
-                      className={`
+                    return (
+                      <button
+                        key={m._id || m.methodId}
+                        type="button"
+                        onClick={() => setSelectedOption(m.methodId)}
+                        className={`
                         h-[56px] w-[92px] cursor-pointer sm:w-[110px]
                         rounded-md border-2 bg-white
                         flex items-center justify-center
@@ -339,52 +393,52 @@ const Deposit = () => {
                             : "border-black/20 hover:border-black/35"
                         }
                       `}
-                      title={name || m.methodId}
-                    >
-                      {m.logoUrl ? (
-                        <img
-                          src={`${apiBase}${m.logoUrl}`}
-                          alt={m.methodId}
-                          className="max-h-[32px] max-w-[80px] object-contain"
-                          onError={(e) => {
-                            e.currentTarget.style.display = "none";
-                          }}
-                        />
-                      ) : (
-                        <OptionLogo type={m.methodId} />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="mt-3 text-[13px] text-black/60">
-                {t(
-                  "কোনো ডিপোজিট মেথড পাওয়া যায়নি।",
-                  "No deposit methods found.",
-                )}
-              </div>
-            )}
-          </div>
+                        title={name || m.methodId}
+                      >
+                        {m.logoUrl ? (
+                          <img
+                            src={`${apiBase}${m.logoUrl}`}
+                            alt={m.methodId}
+                            className="max-h-[32px] max-w-[80px] object-contain"
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                            }}
+                          />
+                        ) : (
+                          <OptionLogo type={m.methodId} />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="mt-3 text-[13px] text-black/60">
+                  {t(
+                    "কোনো ডিপোজিট মেথড পাওয়া যায়নি।",
+                    "No deposit methods found.",
+                  )}
+                </div>
+              )}
+            </div>
 
-          {/* Deposit Channel */}
-          <div className="mt-6">
-            <label className="text-[14px] font-semibold text-black">
-              {t("Deposit Channel", "Deposit Channel")}{" "}
-              <span className="text-red-500">*</span>
-            </label>
+            {/* Deposit Channel */}
+            <div className="mt-6">
+              <label className="text-[14px] font-semibold text-black">
+                {t("Deposit Channel", "Deposit Channel")}{" "}
+                <span className="text-red-500">*</span>
+              </label>
 
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              {channels.map((c) => {
-                const active = selectedChannel === c.id;
-                const name = isBangla ? c?.name?.bn : c?.name?.en;
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                {channels.map((c) => {
+                  const active = selectedChannel === c.id;
+                  const name = isBangla ? c?.name?.bn : c?.name?.en;
 
-                return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => setSelectedChannel(c.id)}
-                    className={`
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setSelectedChannel(c.id)}
+                      className={`
                       relative px-5 py-2 cursor-pointer rounded-lg text-[14px] font-extrabold transition bg-white border
                       ${
                         active
@@ -392,48 +446,66 @@ const Deposit = () => {
                           : "border-black/30 hover:border-black/45"
                       }
                     `}
-                  >
-                    <Tag text={c.tagText || "+0%"} />
-                    {name || c.id}
-                  </button>
-                );
-              })}
+                    >
+                      <Tag text={c.tagText || "+0%"} />
+                      {name || c.id}
+                    </button>
+                  );
+                })}
 
-              {!channels.length ? (
-                <div className="text-[13px] text-black/60">
-                  {t("কোনো চ্যানেল নেই", "No channels")}
+                {!channels.length ? (
+                  <div className="text-[13px] text-black/60">
+                    {t("কোনো চ্যানেল নেই", "No channels")}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            {/* Deposit Amount */}
+            <div className="mt-6">
+              <div className="flex items-center justify-between gap-3">
+                <label className="text-[14px] font-semibold text-black">
+                  {t("Deposit Amount", "Deposit Amount")}{" "}
+                  <span className="text-red-500">*</span>
+                </label>
+                <FaQuestionCircle className="text-black/70" />
+              </div>
+
+              <div className="mt-3">
+                <input
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className={`w-full max-w-[520px] bg-white border rounded-xl px-4 py-3 text-[14px] outline-none focus:ring-2 focus:ring-black/10 ${
+                    amountHasValue && !amountValid
+                      ? "border-red-400"
+                      : "border-black/20"
+                  }`}
+                />
+              </div>
+
+              {/* ✅ NEW: min/max hint */}
+              {amountHint ? (
+                <div className="mt-2 text-[12px] text-black/55">
+                  {amountHint}
                 </div>
               ) : null}
-            </div>
-          </div>
 
-          {/* Deposit Amount */}
-          <div className="mt-6">
-            <div className="flex items-center justify-between gap-3">
-              <label className="text-[14px] font-semibold text-black">
-                {t("Deposit Amount", "Deposit Amount")}{" "}
-                <span className="text-red-500">*</span>
-              </label>
-              <FaQuestionCircle className="text-black/70" />
-            </div>
+              {/* ✅ NEW: validation message */}
+              {amountErrorText ? (
+                <div className="mt-2 text-[12px] font-semibold text-red-500">
+                  {amountErrorText}
+                </div>
+              ) : null}
 
-            <div className="mt-3">
-              <input
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="w-full max-w-[520px] bg-white border border-black/20 rounded-xl px-4 py-3 text-[14px] outline-none focus:ring-2 focus:ring-black/10"
-              />
-            </div>
-
-            <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-[720px]">
-              {quickAmounts.map((a) => {
-                const active = String(a.v) === String(amount);
-                return (
-                  <button
-                    key={a.v}
-                    type="button"
-                    onClick={() => onPickAmount(a.v)}
-                    className={`
+              <div className="mt-5 grid grid-cols-3 sm:grid-cols-3 gap-4 max-w-[720px]">
+                {quickAmounts.map((a) => {
+                  const active = String(a.v) === String(amount);
+                  return (
+                    <button
+                      key={a.v}
+                      type="button"
+                      onClick={() => onPickAmount(a.v)}
+                      className={`
                       relative h-[44px] cursor-pointer rounded-lg font-extrabold text-[15px] transition
                       ${
                         active
@@ -441,162 +513,164 @@ const Deposit = () => {
                           : "bg-[#f2f3f5] text-black/50 hover:text-black/70 hover:bg-[#e9eaee]"
                       }
                     `}
-                  >
-                    {a.tag ? (
-                      <span className="absolute -top-2 right-3 bg-[#f5c400] text-black text-[11px] font-extrabold px-2 py-[2px] rounded-md shadow-[0_6px_14px_rgba(0,0,0,0.14)]">
-                        {a.tag}
+                    >
+                      {a.tag ? (
+                        <span className="absolute -top-2 right-3 bg-[#f5c400] text-black text-[11px] font-extrabold px-2 py-[2px] rounded-md shadow-[0_6px_14px_rgba(0,0,0,0.14)]">
+                          {a.tag}
+                        </span>
+                      ) : null}
+                      {a.v}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Promotion */}
+            <div className="mt-6">
+              <div className="flex items-center gap-2">
+                <label className="text-[14px] font-semibold text-black">
+                  {t("Promotion", "Promotion")}{" "}
+                  <span className="text-red-500">*</span>
+                </label>
+                <FaExclamationCircle className="text-[#ff8a00]" />
+              </div>
+
+              <div className="mt-3 relative max-w-[520px]">
+                <button
+                  type="button"
+                  onClick={() => setPromoOpen((p) => !p)}
+                  className="w-full flex items-center justify-between bg-white border border-black/20 rounded-xl px-4 py-3 text-[14px] hover:border-black/35 transition"
+                >
+                  <div className="flex flex-col items-start">
+                    <span className="text-black/80 font-semibold">
+                      {promotions.find((x) => x.id === promo)?.name}
+                    </span>
+                    {baseBonusTitle && (
+                      <span className="text-[12px] text-gray-600 mt-0.5">
+                        {baseBonusTitle}
                       </span>
-                    ) : null}
-                    {a.v}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+                    )}
+                  </div>
 
-          {/* Promotion */}
-          <div className="mt-6">
-            <div className="flex items-center gap-2">
-              <label className="text-[14px] font-semibold text-black">
-                {t("Promotion", "Promotion")}{" "}
-                <span className="text-red-500">*</span>
-              </label>
-              <FaExclamationCircle className="text-[#ff8a00]" />
+                  <div className="flex items-center gap-3">
+                    {promo !== "none" && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPromo("none");
+                        }}
+                        className="p-1 cursor-pointer rounded-md hover:bg-black/5"
+                        title="Clear"
+                      >
+                        <FaTimes className="text-black/40" />
+                      </button>
+                    )}
+                    <span className="text-black/40 text-[14px] font-extrabold">
+                      ▾
+                    </span>
+                  </div>
+                </button>
+
+                {promoOpen && (
+                  <div className="absolute z-20 mt-2 w-full bg-white rounded-xl border border-black/10 shadow-[0_18px_45px_rgba(0,0,0,0.15)] overflow-hidden">
+                    {promotions.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => {
+                          setPromo(p.id);
+                          setPromoOpen(false);
+                        }}
+                        className={`w-full text-left cursor-pointer px-4 py-3 text-[14px] font-semibold transition hover:bg-black/5 ${
+                          promo === p.id ? "bg-[#fff3bf]" : "bg-white"
+                        }`}
+                      >
+                        {p.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="mt-3 relative max-w-[520px]">
+            {/* Deposit Button */}
+            <div className="mt-6 max-w-[520px]">
               <button
                 type="button"
-                onClick={() => setPromoOpen((p) => !p)}
-                className="w-full flex items-center justify-between bg-white border border-black/20 rounded-xl px-4 py-3 text-[14px] hover:border-black/35 transition"
-              >
-                <div className="flex flex-col items-start">
-                  <span className="text-black/80 font-semibold">
-                    {promotions.find((x) => x.id === promo)?.name}
-                  </span>
-                  {baseBonusTitle && (
-                    <span className="text-[12px] text-gray-600 mt-0.5">
-                      {baseBonusTitle}
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-3">
-                  {promo !== "none" && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPromo("none");
-                      }}
-                      className="p-1 cursor-pointer rounded-md hover:bg-black/5"
-                      title="Clear"
-                    >
-                      <FaTimes className="text-black/40" />
-                    </button>
-                  )}
-                  <span className="text-black/40 text-[14px] font-extrabold">
-                    ▾
-                  </span>
-                </div>
-              </button>
-
-              {promoOpen && (
-                <div className="absolute z-20 mt-2 w-full bg-white rounded-xl border border-black/10 shadow-[0_18px_45px_rgba(0,0,0,0.15)] overflow-hidden">
-                  {promotions.map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => {
-                        setPromo(p.id);
-                        setPromoOpen(false);
-                      }}
-                      className={`w-full text-left cursor-pointer px-4 py-3 text-[14px] font-semibold transition hover:bg-black/5 ${
-                        promo === p.id ? "bg-[#fff3bf]" : "bg-white"
-                      }`}
-                    >
-                      {p.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Deposit Button */}
-          <div className="mt-6 max-w-[520px]">
-            <button
-              type="button"
-              onClick={() => {
-                if (!amountNum || amountNum <= 0) return;
-                setDetailsOpen(true);
-              }}
-              disabled={!selectedMethod || !selectedChannel}
-              className={`
-                w-full h-[46px] cursor-pointer rounded-full
+                onClick={() => {
+                  // ✅ keep existing behavior, but block when invalid
+                  if (!canDeposit) return;
+                  setDetailsOpen(true);
+                }}
+                disabled={!canDeposit}
+                className={`
+                w-full h-[46px] rounded-full
                 font-extrabold text-[14px]
                 shadow-[0_10px_22px_rgba(0,136,255,0.25)]
                 transition
                 ${
-                  selectedMethod && selectedChannel
-                    ? "bg-[#0088ff] text-white hover:brightness-95 active:scale-[0.99]"
+                  canDeposit
+                    ? "bg-[#0088ff] text-white hover:brightness-95 active:scale-[0.99] cursor-pointer"
                     : "bg-[#bcdcff] text-white/90 cursor-not-allowed"
                 }
               `}
-            >
-              {t("ডিপোজিট", "Deposit")}
-            </button>
+              >
+                {t("ডিপোজিট", "Deposit")}
+              </button>
 
-            <div className="mt-2 text-[12px] text-black/55">
-              {selectedMethod
-                ? `${t("টার্নওভার:", "Turnover:")} ${turnoverMultiplier}x`
-                : t("ডিপোজিট মেথড লোড হচ্ছে…", "Loading methods…")}
+              <div className="mt-2 text-[12px] text-black/55">
+                {selectedMethod
+                  ? `${t("টার্নওভার:", "Turnover:")} ${turnoverMultiplier}x`
+                  : t("ডিপোজিট মেথড লোড হচ্ছে…", "Loading methods…")}
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT */}
+          <div className="bg-white rounded-xl border border-black/10 p-4 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
+            <div className="text-[14px] font-extrabold text-black">
+              {t("Important Notice", "Important Notice")}
+            </div>
+            <div className="mt-3 text-[12px] leading-relaxed text-black/70">
+              {t(
+                "ডিপোজিট সাবমিট করলে তা এডমিন রিভিউ করবে।",
+                "After submitting, admin will review your deposit request.",
+              )}
             </div>
           </div>
         </div>
 
-        {/* RIGHT – (আপনার Notice UI এখানে রাখতে পারেন) */}
-        <div className="bg-white rounded-xl border border-black/10 p-4 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
-          <div className="text-[14px] font-extrabold text-black">
-            {t("Important Notice", "Important Notice")}
-          </div>
-          <div className="mt-3 text-[12px] leading-relaxed text-black/70">
-            {t(
-              "ডিপোজিট সাবমিট করলে তা এডমিন রিভিউ করবে।",
-              "After submitting, admin will review your deposit request.",
-            )}
-          </div>
-        </div>
+        {/* Details modal */}
+        <DepositDetailsModal
+          open={detailsOpen}
+          onClose={() => setDetailsOpen(false)}
+          onConfirm={() => {
+            setDetailsOpen(false);
+            setPayOpen(true);
+          }}
+          details={modalDetails}
+          t={t}
+        />
+
+        {/* Payment window modal */}
+        <DepositModal
+          open={payOpen}
+          onClose={() => setPayOpen(false)}
+          data={{
+            amount: amountNum,
+            methodId: selectedOption,
+            channelId: selectedChannel,
+            customerCode: "6538651",
+            promoId: promo,
+          }}
+          details={modalDetails}
+          methodDoc={selectedMethod}
+          channelDoc={selectedChannelDoc}
+        />
       </div>
-
-      {/* Details modal */}
-      <DepositDetailsModal
-        open={detailsOpen}
-        onClose={() => setDetailsOpen(false)}
-        onConfirm={() => {
-          setDetailsOpen(false);
-          setPayOpen(true);
-        }}
-        details={modalDetails}
-        t={t}
-      />
-
-      {/* Payment window modal */}
-      <DepositModal
-        open={payOpen}
-        onClose={() => setPayOpen(false)}
-        data={{
-          amount: amountNum,
-          methodId: selectedOption,
-          channelId: selectedChannel,
-          customerCode: "6538651",
-          promoId: promo,
-        }}
-        details={modalDetails}
-        methodDoc={selectedMethod}
-        channelDoc={selectedChannelDoc}
-      />
-    </div>
+    </>
   );
 };
 

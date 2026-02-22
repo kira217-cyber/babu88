@@ -42,13 +42,18 @@ router.post("/deposit-methods", upload.single("logo"), async (req, res) => {
         ? JSON.parse(body.methodName)
         : { bn: "", en: "" },
       isActive: body.isActive === "true" || body.isActive === true,
-      turnoverMultiplier: Number(body.turnoverMultiplier ?? 13),
+
+      // ✅ NEW
+      minDepositAmount: Number(body.minDepositAmount ?? 0),
+      maxDepositAmount: Number(body.maxDepositAmount ?? 0),
+
+      turnoverMultiplier: Number(body.turnoverMultiplier ?? 1),
       baseBonusTitle: body.baseBonusTitle
         ? JSON.parse(body.baseBonusTitle)
         : { bn: "", en: "" },
       baseBonusPercent: Number(body.baseBonusPercent ?? 0),
       channels: body.channels ? JSON.parse(body.channels) : [],
-      promotions: body.promotions ? JSON.parse(body.promotions) : [], // ✅ NEW
+      promotions: body.promotions ? JSON.parse(body.promotions) : [],
       details: body.details ? JSON.parse(body.details) : {},
     };
 
@@ -56,7 +61,16 @@ router.post("/deposit-methods", upload.single("logo"), async (req, res) => {
       return res.status(400).json({ message: "methodId is required" });
     }
 
-    // ✅ sanitize promotions (optional but recommended)
+    // ✅ sanitize min/max (optional safe-guard)
+    if (Number.isNaN(parsed.minDepositAmount) || parsed.minDepositAmount < 0) {
+      parsed.minDepositAmount = 0;
+    }
+    if (Number.isNaN(parsed.maxDepositAmount) || parsed.maxDepositAmount < 0) {
+      parsed.maxDepositAmount = 0;
+    }
+    // (No hard validation required; but you can add if you want later)
+
+    // ✅ sanitize promotions
     if (Array.isArray(parsed.promotions)) {
       parsed.promotions = parsed.promotions
         .map((p) => ({
@@ -105,6 +119,17 @@ router.put("/deposit-methods/:id", upload.single("logo"), async (req, res) => {
     if (body.methodName != null) patch.methodName = JSON.parse(body.methodName);
     if (body.isActive != null)
       patch.isActive = body.isActive === "true" || body.isActive === true;
+
+    // ✅ NEW
+    if (body.minDepositAmount != null) {
+      const v = Number(body.minDepositAmount);
+      patch.minDepositAmount = Number.isNaN(v) ? 0 : v;
+    }
+    if (body.maxDepositAmount != null) {
+      const v = Number(body.maxDepositAmount);
+      patch.maxDepositAmount = Number.isNaN(v) ? 0 : v;
+    }
+
     if (body.turnoverMultiplier != null)
       patch.turnoverMultiplier = Number(body.turnoverMultiplier);
     if (body.baseBonusTitle != null)
@@ -113,7 +138,7 @@ router.put("/deposit-methods/:id", upload.single("logo"), async (req, res) => {
       patch.baseBonusPercent = Number(body.baseBonusPercent);
     if (body.channels != null) patch.channels = JSON.parse(body.channels);
 
-    // ✅ NEW: promotions
+    // ✅ promotions
     if (body.promotions != null) {
       let promotions = JSON.parse(body.promotions);
       if (!Array.isArray(promotions)) promotions = [];

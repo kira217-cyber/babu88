@@ -6,6 +6,8 @@ import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import "swiper/css";
 import "swiper/css/navigation";
 import { api } from "../../api/axios";
+import Loading from "../Loading/Loading";
+
 
 const fetchSliders = async () => {
   const { data } = await api.get("/api/sliders");
@@ -19,11 +21,15 @@ const Slider = () => {
     staleTime: 1000 * 60,
   });
 
+  // ✅ keep your skeleton loading (unchanged), but also call Loading overlay
   if (isLoading) {
     return (
-      <div className="w-full mt-4 px-2 md:px-0">
-        <div className="w-full h-[160px] sm:h-[200px] md:h-[260px] lg:h-[400px] bg-white/10 rounded-2xl animate-pulse" />
-      </div>
+      <>
+        <Loading open text="Loading..." />
+        <div className="w-full mt-4 px-2 md:px-0">
+          <div className="w-full h-[160px] sm:h-[200px] md:h-[260px] lg:h-[400px] bg-white/10 rounded-2xl animate-pulse" />
+        </div>
+      </>
     );
   }
 

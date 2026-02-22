@@ -17,10 +17,10 @@ const defaultChannel = () => ({
 });
 
 const defaultPromotion = () => ({
-  id: "", // "welcome"
-  name: { ...emptyBi }, // BN/EN
-  bonusType: "fixed", // fixed | percent
-  bonusValue: 0, // fixed amount OR percent
+  id: "",
+  name: { ...emptyBi },
+  bonusType: "fixed",
+  bonusValue: 0,
   sort: 0,
   isActive: true,
 });
@@ -133,7 +133,7 @@ const AddDeposit = () => {
   );
 
   const [channels, setChannels] = useState([defaultChannel()]);
-  const [promotions, setPromotions] = useState([defaultPromotion()]); // ✅ NEW
+  const [promotions, setPromotions] = useState([defaultPromotion()]);
   const [inputs, setInputs] = useState([
     {
       key: "amount",
@@ -185,7 +185,12 @@ const AddDeposit = () => {
       methodName_bn: "",
       methodName_en: "",
       isActive: true,
-      turnoverMultiplier: 13,
+
+      // ✅ NEW
+      minDepositAmount: 0,
+      maxDepositAmount: 0,
+
+      turnoverMultiplier: 1,
       baseBonusTitle_bn: "",
       baseBonusTitle_en: "",
       baseBonusPercent: 0,
@@ -201,7 +206,7 @@ const AddDeposit = () => {
     if (!selected) {
       if (isCreateMode) {
         setChannels([defaultChannel()]);
-        setPromotions([defaultPromotion()]); // ✅ NEW
+        setPromotions([defaultPromotion()]);
         setInputs([
           {
             key: "amount",
@@ -224,7 +229,12 @@ const AddDeposit = () => {
       methodName_bn: selected.methodName?.bn || "",
       methodName_en: selected.methodName?.en || "",
       isActive: selected.isActive ?? true,
-      turnoverMultiplier: selected.turnoverMultiplier ?? 13,
+
+      // ✅ NEW
+      minDepositAmount: selected.minDepositAmount ?? 0,
+      maxDepositAmount: selected.maxDepositAmount ?? 0,
+
+      turnoverMultiplier: selected.turnoverMultiplier ?? 1,
       baseBonusTitle_bn: selected.baseBonusTitle?.bn || "",
       baseBonusTitle_en: selected.baseBonusTitle?.en || "",
       baseBonusPercent: selected.baseBonusPercent ?? 0,
@@ -240,7 +250,6 @@ const AddDeposit = () => {
         : [defaultChannel()],
     );
 
-    // ✅ NEW: promotions load
     setPromotions(
       Array.isArray(selected.promotions) && selected.promotions.length
         ? selected.promotions
@@ -273,6 +282,11 @@ const AddDeposit = () => {
       methodName_bn: "",
       methodName_en: "",
       isActive: true,
+
+      // ✅ NEW
+      minDepositAmount: 0,
+      maxDepositAmount: 0,
+
       turnoverMultiplier: 13,
       baseBonusTitle_bn: "",
       baseBonusTitle_en: "",
@@ -283,7 +297,7 @@ const AddDeposit = () => {
       instructions_en: "",
     });
     setChannels([defaultChannel()]);
-    setPromotions([defaultPromotion()]); // ✅ NEW
+    setPromotions([defaultPromotion()]);
     setInputs([
       {
         key: "amount",
@@ -313,7 +327,7 @@ const AddDeposit = () => {
       ),
     );
 
-  // ─── Promotion Handlers (NEW) ───
+  // ─── Promotion Handlers ───
   const addPromotion = () => setPromotions((p) => [...p, defaultPromotion()]);
   const removePromotion = (idx) =>
     setPromotions((p) => p.filter((_, i) => i !== idx));
@@ -352,13 +366,20 @@ const AddDeposit = () => {
     if (!values.methodName_bn?.trim() || !values.methodName_en?.trim())
       return "Both BN & EN method names are required";
 
+    // ✅ NEW basic sanity (no breaking changes)
+    const minA = Number(values.minDepositAmount ?? 0);
+    const maxA = Number(values.maxDepositAmount ?? 0);
+    if (Number.isNaN(minA) || minA < 0) return "Min deposit must be >= 0";
+    if (Number.isNaN(maxA) || maxA < 0) return "Max deposit must be >= 0";
+    if (maxA > 0 && minA > maxA)
+      return "Min deposit cannot be greater than Max deposit";
+
     for (const c of channels) {
       if (!String(c.id || "").trim()) return "Channel ID cannot be empty";
       if (!c.name?.bn?.trim() || !c.name?.en?.trim())
         return "Channel name (BN/EN) both required";
     }
 
-    // ✅ Promotions required (you can relax this if you want)
     for (const p of promotions) {
       if (!String(p.id || "").trim()) return "Promotion ID cannot be empty";
       if (!p.name?.bn?.trim() || !p.name?.en?.trim())
@@ -400,6 +421,11 @@ const AddDeposit = () => {
         }),
       );
       payload.append("isActive", String(!!values.isActive));
+
+      // ✅ NEW
+      payload.append("minDepositAmount", String(values.minDepositAmount ?? 0));
+      payload.append("maxDepositAmount", String(values.maxDepositAmount ?? 0));
+
       payload.append(
         "turnoverMultiplier",
         String(values.turnoverMultiplier ?? 13),
@@ -413,8 +439,6 @@ const AddDeposit = () => {
       );
       payload.append("baseBonusPercent", String(values.baseBonusPercent ?? 0));
       payload.append("channels", JSON.stringify(channels));
-
-      // ✅ NEW
       payload.append("promotions", JSON.stringify(promotions));
 
       payload.append(
@@ -588,6 +612,26 @@ const AddDeposit = () => {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* ✅ NEW: Min/Max Deposit Amount */}
+            <div>
+              <label className={labelCls}>Minimum Deposit Amount (৳)</label>
+              <input
+                type="number"
+                step="0.01"
+                className={inputBase}
+                {...register("minDepositAmount", { valueAsNumber: true })}
+              />
+            </div>
+            <div>
+              <label className={labelCls}>Maximum Deposit Amount (৳)</label>
+              <input
+                type="number"
+                step="0.01"
+                className={inputBase}
+                {...register("maxDepositAmount", { valueAsNumber: true })}
+              />
             </div>
 
             <div>
@@ -795,7 +839,7 @@ const AddDeposit = () => {
             </div>
           </div>
 
-          {/* ✅ Promotions Section (NEW) */}
+          {/* Promotions Section */}
           <div className="mb-10">
             <div className="flex items-center justify-between mb-4">
               <h3 className={subheadCls}>Promotions (Client Bonus Options)</h3>

@@ -45,20 +45,18 @@ const ProfileNavbar = () => {
   const items = useMemo(
     () => [
       { label: t("ডিপোজিট", "Deposit"), to: "/profile/deposit" },
+      { label: t("ভাউচার", "Auto Deposit"), to: "/profile/auto-deposit" },
       { label: t("উত্তোলন", "Withdrawal"), to: "/profile/withdraw" },
-      { label: t("ভাউচার", "Voucher"), to: "/profile/voucher" },
       { label: t("ইতিহাস", "History"), to: "/profile/history" },
       { label: t("আমার প্রোফাইল", "My Profile"), to: "/profile/me" },
-      { label: t("ব্যাংকের তথ্য", "Bank Details"), to: "/profile/bank" },
-      { label: t("পাসওয়ার্ড", "Password"), to: "/profile/password" },
       { label: t("ইনবক্স", "Inbox"), to: "/profile/inbox" },
       { label: t("রেফারেল", "Referral"), to: "/profile/referral" },
       { label: t("ভিআইপি", "VIP"), to: "/profile/vip" },
-      {
-        label: t("হুইল অফ ফরচুন", "Wheel Of Fortune"),
-        to: "/profile/wheel-of-fortune",
-      },
-      { label: t("রিওয়ার্ডস", "Rewards"), to: "/profile/rewards" },
+      // {
+      //   label: t("হুইল অফ ফরচুন", "Wheel Of Fortune"),
+      //   to: "/profile/wheel-of-fortune",
+      // },
+      { label: t("রিওয়ার্ডস", "Rewards"), to: "/profile/reward" },
     ],
     [isBangla],
   );

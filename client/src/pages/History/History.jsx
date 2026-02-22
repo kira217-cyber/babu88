@@ -1,7 +1,7 @@
 // src/pages/Profile/History/History.jsx
 import React, { useMemo, useState } from "react";
 import { useLanguage } from "../../Context/LanguageProvider";
-import BetHistory from "../../components/BetHistory/BetHistory";
+// import BetHistory from "../../components/BetHistory/BetHistory";
 import DepositHistory from "../../components/DepositHistory/DepositHistory";
 import TurnOverHistory from "../../components/TurnOverHistory/TurnOverHistory";
 import WithdrawHistory from "../../components/WithdrawHistory/WithdrawHistory";
@@ -47,13 +47,13 @@ const BonusHistory = () => (
   </div>
 );
 
-const TurnoverHistory = () => (
+const BetHistory = () => (
   <div className="bg-white rounded-xl border border-black/10 p-4 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
     <div className="text-[14px] font-extrabold text-black">
-      Turnover History
+      Bet History
     </div>
     <p className="mt-2 text-[13px] text-black/65">
-      Here will show your turnover history (API data).
+      Here will show your bet history (API data).
     </p>
   </div>
 );

@@ -16,6 +16,10 @@ import GameCategory from "../pages/GameCategory/GameCategory";
 import GameCategoryMobile from "../pages/GameCategory/GameCategoryMobile";
 import PlayGame from "../pages/PlayGame/PlayGame";
 import Profile from "../components/Profile/Profile";
+import AutoDeposit from "../pages/AutoDeposit/AutoDeposit";
+import Reward from "../pages/Reward/Reward";
+import VIP from "../pages/VIP/VIP";
+import Inbox from "../pages/Inbox/Inbox";
 
 export const routes = createBrowserRouter([
   {
@@ -65,6 +69,22 @@ export const routes = createBrowserRouter([
           {
             path: "deposit",
             element: <Deposit />,
+          },
+           {
+            path: "auto-deposit",
+            element: <AutoDeposit />,
+          },
+           {
+            path: "reward",
+            element: <Reward />,
+          },
+          {
+            path: "vip",
+            element: <VIP />,
+          },
+          {
+            path: "inbox",
+            element: <Inbox />,
           },
           {
             path: "withdraw",

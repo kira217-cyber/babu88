@@ -29,9 +29,9 @@ const Home = () => {
       {/* ✅ Mobile + Logged In only Balance bar */}
       {isAuthenticated && (
         <Balance
-          onDeposit={() => navigate("/deposit")}
-          onWithdraw={() => navigate("/withdraw")}
-          onAccount={() => navigate("/profile")}
+          onDeposit={() => navigate("/profile/deposit")}
+          onWithdraw={() => navigate("/profile/withdraw")}
+          onAccount={() => navigate("/profile/history")}
         />
       )}
 

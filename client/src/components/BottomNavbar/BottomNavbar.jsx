@@ -15,6 +15,8 @@ const fetchBottomNavbarColor = async () => {
   return data;
 };
 
+const PARTNET_URL = import.meta.env.VITE_PARTNER_URL;
+
 const hexToRgba = (hex, alpha = 1) => {
   if (!hex || typeof hex !== "string") return `rgba(0,0,0,${alpha})`;
   const h = hex.replace("#", "").trim();
@@ -76,10 +78,10 @@ const BottomNavbar = () => {
       login: isBangla ? "লগইন" : "Login",
       register: isBangla ? "রেজিস্টার" : "Register",
 
-      affiliates: isBangla ? "সুপার" : "Super",
+      affiliates: isBangla ? "রেফার" : "Referral",
       promotions: isBangla ? "প্রমোশন" : "Promotions",
-      home: isBangla ? "বাড়ি" : "Home",
-      bettingPass: isBangla ? "বেটিং" : "Betting",
+      home: isBangla ? "বাড়ি" : "Home",
+      bettingPass: isBangla ? "আফিলিয়েট" : "Affiliate",
       rewards: isBangla ? "পুরস্কার" : "Rewards",
     };
   }, [isBangla]);
@@ -93,6 +95,15 @@ const BottomNavbar = () => {
   // 🔥 Active / Inactive icon wrapper (design same)
   const iconClass = (isActive) =>
     `h-8 w-8 rounded-full flex items-center justify-center shadow-md transition`;
+
+  // ✅ NEW: external open safe handler
+  const onOpenPartner = (e) => {
+    if (!PARTNET_URL) {
+      e.preventDefault();
+      return;
+    }
+    // let the <a> default open new tab
+  };
 
   return (
     <div className="fixed bottom-0 left-0 w-full z-50 md:hidden">
@@ -135,7 +146,7 @@ const BottomNavbar = () => {
           >
             <div className="flex items-center justify-between">
               {/* Super */}
-              <NavLink to="/super-affiliate" className={itemBase}>
+              <NavLink to="/profile/referral" className={itemBase}>
                 {({ isActive }) => (
                   <>
                     <span
@@ -239,43 +250,43 @@ const BottomNavbar = () => {
                 )}
               </NavLink>
 
-              {/* Betting */}
-              <NavLink to="/betting-pass" className={itemBase}>
-                {({ isActive }) => (
-                  <>
-                    <span
-                      className={iconClass(isActive)}
+              {/* ✅ affiliate -> open PARTNET_URL in blank page */}
+              <a
+                href={PARTNET_URL || "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={onOpenPartner}
+                className={itemBase}
+              >
+                <>
+                  <span
+                    className={iconClass(false)}
+                    style={{
+                      backgroundColor: c.iconInactiveBg,
+                    }}
+                  >
+                    <FaChartBar
                       style={{
-                        backgroundColor: isActive
-                          ? c.iconActiveBg
-                          : c.iconInactiveBg,
+                        color: c.iconInactiveText,
+                        fontSize: `${c.iconSize}px`,
                       }}
-                    >
-                      <FaChartBar
-                        style={{
-                          color: isActive
-                            ? c.iconActiveText
-                            : c.iconInactiveText,
-                          fontSize: `${c.iconSize}px`,
-                        }}
-                      />
-                    </span>
-                    <span
-                      className="font-extrabold"
-                      style={{
-                        color: c.labelText,
-                        opacity: c.labelOpacity,
-                        fontSize: `${c.labelTextSize}px`,
-                      }}
-                    >
-                      {t.bettingPass}
-                    </span>
-                  </>
-                )}
-              </NavLink>
+                    />
+                  </span>
+                  <span
+                    className="font-extrabold"
+                    style={{
+                      color: c.labelText,
+                      opacity: c.labelOpacity,
+                      fontSize: `${c.labelTextSize}px`,
+                    }}
+                  >
+                    {t.bettingPass}
+                  </span>
+                </>
+              </a>
 
               {/* Rewards */}
-              <NavLink to="/rewards" className={itemBase}>
+              <NavLink to="/profile/reward" className={itemBase}>
                 {({ isActive }) => (
                   <>
                     <span

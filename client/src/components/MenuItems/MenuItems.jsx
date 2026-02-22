@@ -12,6 +12,8 @@ const fetchMenuItemsColor = async () => {
   return data;
 };
 
+const PARTNET_URL = import.meta.env.VITE_PARTNER_URL;
+
 // ✅ menu data from DB
 const fetchGameMenu = async () => {
   const { data } = await api.get("/api/public/game-menu");
@@ -130,7 +132,13 @@ const MenuItems = () => {
         to: "/promotions",
         badge: "none",
       },
-      { key: "vip", label: "VIP", type: "nav", to: "/vip", badge: "new" },
+      {
+        key: "vip",
+        label: "VIP",
+        type: "nav",
+        to: "/profile/vip",
+        badge: "new",
+      },
       {
         key: "affiliate",
         label: isBangla ? "অ্যাফিলিয়েট" : "Affiliate",
@@ -142,7 +150,7 @@ const MenuItems = () => {
         key: "rewards",
         label: isBangla ? "পুরস্কার" : "Rewards",
         type: "nav",
-        to: "/rewards",
+        to: "/profile/reward",
         badge: "new",
       },
       {
@@ -197,6 +205,15 @@ const MenuItems = () => {
     return dropdownMenus.find((x) => x.key === openKey) || null;
   }, [dropdownMenus, openKey]);
 
+  // ✅ NEW: external open safe (affiliate)
+  const onOpenPartner = (e) => {
+    if (!PARTNET_URL) {
+      e.preventDefault();
+      return;
+    }
+    // let <a> open new tab by default
+  };
+
   return (
     <div className="hidden lg:block relative" ref={wrapRef}>
       <div
@@ -241,6 +258,32 @@ const MenuItems = () => {
                       {m.label}
                       <Badge type={m.badge} colors={colors} />
                     </button>
+                  </div>
+                );
+              }
+
+              // ✅ NEW: affiliate opens PARTNET_URL in new tab (keep styling same)
+              if (m.key === "affiliate") {
+                return (
+                  <div key={m.key} className="relative">
+                    <a
+                      href={PARTNET_URL || "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={onOpenPartner}
+                      className="relative inline-flex items-center h-[56px] px-4 font-bold"
+                      style={{
+                        fontSize: `${colors.itemTextSize}px`,
+                        backgroundColor: "transparent",
+                        color: colors.itemText,
+                        opacity: colors.itemTextOpacity,
+                      }}
+                      onMouseEnter={onHoverIn}
+                      onMouseLeave={onHoverOut}
+                    >
+                      {m.label}
+                      <Badge type={m.badge} colors={colors} />
+                    </a>
                   </div>
                 );
               }
@@ -305,7 +348,10 @@ const MenuItems = () => {
                       colors.megaPanelBg,
                       colors.megaPanelBgOpacity,
                     ),
-                    border: `1px solid ${hexToRgba(colors.megaPanelBorder, colors.megaPanelBorderOpacity)}`,
+                    border: `1px solid ${hexToRgba(
+                      colors.megaPanelBorder,
+                      colors.megaPanelBorderOpacity,
+                    )}`,
                   }}
                 >
                   <div className="p-5 max-w-6xl mx-auto">
@@ -329,21 +375,30 @@ const MenuItems = () => {
                               colors.cardBg,
                               colors.cardBgOpacity,
                             ),
-                            border: `1px solid ${hexToRgba(colors.cardBorder, colors.cardBorderOpacity)}`,
+                            border: `1px solid ${hexToRgba(
+                              colors.cardBorder,
+                              colors.cardBorderOpacity,
+                            )}`,
                           }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.backgroundColor = hexToRgba(
                               colors.cardHoverBg,
                               colors.cardHoverBgOpacity,
                             );
-                            e.currentTarget.style.border = `1px solid ${hexToRgba(colors.cardHoverBorder, colors.cardHoverBorderOpacity)}`;
+                            e.currentTarget.style.border = `1px solid ${hexToRgba(
+                              colors.cardHoverBorder,
+                              colors.cardHoverBorderOpacity,
+                            )}`;
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.backgroundColor = hexToRgba(
                               colors.cardBg,
                               colors.cardBgOpacity,
                             );
-                            e.currentTarget.style.border = `1px solid ${hexToRgba(colors.cardBorder, colors.cardBorderOpacity)}`;
+                            e.currentTarget.style.border = `1px solid ${hexToRgba(
+                              colors.cardBorder,
+                              colors.cardBorderOpacity,
+                            )}`;
                           }}
                           title={p.providerName}
                         >

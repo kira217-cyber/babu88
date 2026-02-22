@@ -13,9 +13,6 @@ import {
   FaChevronDown,
   FaTimes,
   FaGlobe,
-  FaQuestionCircle,
-  FaHeadset,
-  FaDownload,
   FaUserAlt,
   FaBell,
   FaPlus,
@@ -25,16 +22,9 @@ import {
   FaTag,
   FaGift,
   FaUsers,
-  FaChartBar,
+  FaRocket,
   FaCrown,
   FaGamepad,
-  FaDice,
-  FaRocket,
-  FaBaseballBall,
-  FaTable,
-  FaBolt,
-  FaFish,
-  FaFutbol,
 } from "react-icons/fa";
 import { useLanguage } from "../../Context/LanguageProvider";
 
@@ -59,6 +49,8 @@ const fetchNavbarColor = async () => {
   const { data } = await api.get("/api/navbar-color");
   return data;
 };
+
+const PARTNET_URL = import.meta.env.VITE_PARTNER_URL;
 
 // ✅ balance fetch (direct API)
 const fetchMyBalance = async (token) => {
@@ -109,7 +101,7 @@ const Badge = ({ variant = "hot", children }) => {
   );
 };
 
-// ✅ NavItem updated: design same, only iconImg support (fallback icon unchanged)
+// ✅ NavItem updated: only affiliate supports external new tab, others unchanged
 const NavItem = ({
   to,
   icon: Icon,
@@ -118,12 +110,58 @@ const NavItem = ({
   badge,
   onClick,
   colors,
+  // ✅ NEW
+  externalUrl,
 }) => {
+  const baseCls =
+    "w-full flex items-center gap-3 px-3 py-3 rounded-xl transition font-semibold cursor-pointer";
+
+  // ✅ NEW: external link (Affiliate) -> new tab
+  if (externalUrl) {
+    return (
+      <a
+        href={externalUrl || "#"}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={() => {
+          // close sidebar etc. (same behavior)
+          if (typeof onClick === "function") onClick();
+        }}
+        className={baseCls}
+        style={{
+          backgroundColor: colors.sidebarLinkBg,
+          color: colors.sidebarLinkText,
+          fontSize: `${colors.sidebarLinkTextSize}px`,
+        }}
+      >
+        <span className="w-10 h-10 rounded-lg flex items-center justify-center">
+          {iconImg ? (
+            <img
+              src={iconImg}
+              alt={label}
+              className="w-7 h-7 object-contain"
+              loading="lazy"
+              onError={(e) => (e.currentTarget.style.display = "none")}
+            />
+          ) : (
+            <Icon
+              className="text-2xl"
+              style={{ color: "currentColor", opacity: 0.9 }}
+            />
+          )}
+        </span>
+        <span className="truncate">{label}</span>
+        {badge?.type ? <Badge variant={badge.type}>{badge.text}</Badge> : null}
+      </a>
+    );
+  }
+
+  // ✅ original NavLink (unchanged)
   return (
     <NavLink
       to={to}
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition font-semibold cursor-pointer"
+      className={baseCls}
       style={({ isActive }) => ({
         backgroundColor: isActive
           ? colors.sidebarActiveBg
@@ -275,10 +313,6 @@ const Navber = () => {
       affiliates: isBangla ? "অ্যাফিলিয়েট" : "Affiliate",
       vip: isBangla ? "বেটিং: ভিআইপি" : "Betting: VIP",
 
-      faq: isBangla ? "FAQ / সাহায্য" : "FAQ / Help",
-      liveChat: isBangla ? "লাইভ চ্যাট" : "Live Chat",
-      download: isBangla ? "ডাউনলোড করুন" : "Download App",
-
       balanceReloadFail: isBangla
         ? "ব্যালেন্স রিফ্রেশ ব্যর্থ"
         : "Balance refresh failed",
@@ -356,29 +390,30 @@ const Navber = () => {
     }
   }, [token, t.balanceReloadFail]);
 
+  // ✅ ONLY CHANGE NEEDED: affiliate item opens partner url in new tab
   const promoItems = [
     { to: "/promotions", icon: FaTag, label: t.promotions },
     {
-      to: "/rewards",
+      to: "/profile/reward",
       icon: FaGift,
       label: t.rewards,
       badge: { type: "new", text: "new" },
     },
     {
-      to: "/referral",
+      to: "/profile/referral",
       icon: FaUsers,
       label: t.referral,
       badge: { type: "hot", text: "HOT" },
     },
     {
-      to: "/betting-pass",
-      icon: FaChartBar,
-      label: t.bettingPass,
-      badge: { type: "hot", text: "HOT" },
+      to: "/affiliate",
+      icon: FaRocket,
+      label: t.affiliates,
+      // ✅ NEW
+      externalUrl: PARTNET_URL,
     },
-    { to: "/affiliate", icon: FaRocket, label: t.affiliates },
     {
-      to: "/vip",
+      to: "/profile/vip",
       icon: FaCrown,
       label: t.vip,
       badge: { type: "hot", text: "HOT" },
@@ -400,23 +435,7 @@ const Navber = () => {
     });
   }, [dbCategories, isBangla, API_URL]);
 
-  const otherItems = [
-    { icon: FaQuestionCircle, label: t.faq, to: "/faq" },
-    { icon: FaHeadset, label: t.liveChat, to: "/live-chat" },
-    { icon: FaDownload, label: t.download, to: "/download" },
-  ];
-
-  const sidebarVariants = {
-    hidden: { x: "-100%" },
-    visible: {
-      x: 0,
-      transition: { type: "spring", damping: 22, stiffness: 180 },
-    },
-    exit: {
-      x: "-100%",
-      transition: { duration: 0.28, ease: [0.4, 0, 0.2, 1] },
-    },
-  };
+  const otherItems = [];
 
   return (
     <>
@@ -536,7 +555,7 @@ const Navber = () => {
                     </span>
 
                     <Link
-                      to="/profile"
+                      to="/profile/me"
                       style={{ backgroundColor: colors.iconBg }}
                       className="h-10 w-10 rounded-full flex items-center justify-center shadow-sm hover:brightness-95 active:scale-[0.99] transition cursor-pointer"
                       aria-label="Profile"
@@ -549,7 +568,7 @@ const Navber = () => {
                     </Link>
 
                     <Link
-                      to="/notifications"
+                      to="/profile/inbox"
                       style={{ backgroundColor: colors.iconBg }}
                       className="relative h-10 w-10 rounded-full flex items-center justify-center shadow-sm hover:brightness-95 active:scale-[0.99] transition cursor-pointer"
                       aria-label="Notifications"
@@ -728,6 +747,8 @@ const Navber = () => {
                       badge={it.badge}
                       colors={colors}
                       onClick={() => setSidebarOpen(false)}
+                      // ✅ NEW: only affiliate has externalUrl
+                      externalUrl={it.externalUrl}
                     />
                   ))}
                 </div>

@@ -6,7 +6,7 @@ const I18nSchema = new mongoose.Schema(
     bn: { type: String, default: "" },
     en: { type: String, default: "" },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const FieldSchema = new mongoose.Schema(
@@ -31,7 +31,7 @@ const FieldSchema = new mongoose.Schema(
 
     required: { type: Boolean, default: true },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const WithdrawMethodSchema = new mongoose.Schema(
@@ -51,11 +51,15 @@ const WithdrawMethodSchema = new mongoose.Schema(
 
     logoUrl: { type: String, default: "" },
 
+    // ✅ NEW: Min/Max withdraw amount
+    minimumWithdrawAmount: { type: Number, default: 0 },
+    maximumWithdrawAmount: { type: Number, default: 0 },
+
     fields: { type: [FieldSchema], default: [] },
 
     isActive: { type: Boolean, default: true },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const WithdrawMethod =

@@ -12,10 +12,13 @@ import {
   selectIsAuthenticated,
   selectIsActiveUser,
 } from "../../features/auth/authSelectors";
+import DepositWithdrawTabs from "../../components/DepositWithdrawTabs/DepositWithdrawTabs";
+import { useNavigate } from "react-router";
 
 const Withdraw = () => {
   const { isBangla } = useLanguage();
   const t = (bn, en) => (isBangla ? bn : en);
+  const navigate = useNavigate();
 
   // ✅ auth
   const user = useSelector(selectUser);
@@ -23,8 +26,6 @@ const Withdraw = () => {
   const isActiveUser = useSelector(selectIsActiveUser);
 
   // ✅ derive phoneVerified from user (fallback safe)
-  // আপনার user schema তে যেটা আছে সেটার সাথে মিলিয়ে নিতে পারবেন:
-  // e.g. user.phoneVerified / user.isPhoneVerified / user.verified?.phone
   const phoneVerified =
     user?.phoneVerified === true ||
     user?.isPhoneVerified === true ||
@@ -180,12 +181,50 @@ const Withdraw = () => {
 
   // amount states
   const [amount, setAmount] = useState("");
-  const min = 500;
-  const max = 30000;
+
+  // ✅ NEW: dynamic min/max from selected method (fallback to previous 500/30000)
+  const min = useMemo(() => {
+    const v = Number(selectedMethod?.minimumWithdrawAmount ?? 500);
+    return Number.isFinite(v) && v >= 0 ? v : 500;
+  }, [selectedMethod]);
+
+  const max = useMemo(() => {
+    const v = Number(selectedMethod?.maximumWithdrawAmount ?? 30000);
+    return Number.isFinite(v) && v >= 0 ? v : 30000;
+  }, [selectedMethod]);
 
   const amountNum = Number(amount || 0);
-  const validAmount =
-    Number.isFinite(amountNum) && amountNum >= min && amountNum <= max;
+
+  // ✅ NEW: if max=0 => no upper limit (same pattern you used in deposit note)
+  const hasMax = Number(max) > 0;
+
+  const validAmount = useMemo(() => {
+    if (!Number.isFinite(amountNum)) return false;
+    if (amountNum < Number(min)) return false;
+    if (hasMax && amountNum > Number(max)) return false;
+    return true;
+  }, [amountNum, min, max, hasMax]);
+
+  // ✅ NEW: amount range message
+  const amountErrorText = useMemo(() => {
+    if (!amount) return "";
+    if (!Number.isFinite(amountNum) || amountNum <= 0) {
+      return t("সঠিক পরিমাণ লিখুন।", "Enter a valid amount.");
+    }
+    if (amountNum < Number(min)) {
+      return t(
+        `সর্বনিম্ন উইথড্র পরিমাণ ৳ ${Number(min).toLocaleString()}।`,
+        `Minimum withdraw amount is ৳ ${Number(min).toLocaleString()}.`,
+      );
+    }
+    if (hasMax && amountNum > Number(max)) {
+      return t(
+        `সর্বোচ্চ উইথড্র পরিমাণ ৳ ${Number(max).toLocaleString()}।`,
+        `Maximum withdraw amount is ৳ ${Number(max).toLocaleString()}.`,
+      );
+    }
+    return "";
+  }, [amount, amountNum, min, max, hasMax, isBangla]);
 
   // basic validation for dynamic fields
   const fieldErrors = useMemo(() => {
@@ -270,6 +309,7 @@ const Withdraw = () => {
           ? "উইথড্র রিকোয়েস্ট সাবমিট হয়েছে!"
           : "Withdraw request submitted!",
       );
+      navigate("/profile/history");
 
       // reset inputs
       setAmount("");
@@ -293,98 +333,100 @@ const Withdraw = () => {
   };
 
   return (
-    <div className="w-full">
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4">
-        {/* LEFT */}
-        <div className="bg-white rounded-xl border border-black/10 shadow-[0_1px_0_rgba(0,0,0,0.06)] p-4 sm:p-6">
-          {/* Title */}
-          <div className="text-[20px] font-extrabold text-black">
-            {t("উইথড্র", "Withdrawal")}
-          </div>
-
-          {/* ✅ Auth / Active warnings */}
-          {!isAuthed && (
-            <div className="mt-4 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
-              <div className="text-[14px] font-extrabold text-yellow-800">
-                {t("লগইন প্রয়োজন", "Login Required")}
-              </div>
-              <div className="mt-1 text-[13px] text-yellow-800/90">
-                {t(
-                  "উইথড্র করার জন্য অনুগ্রহ করে লগইন করুন।",
-                  "Please login to submit a withdraw request.",
-                )}
-              </div>
+    <>
+      <DepositWithdrawTabs />
+      <div className="w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4">
+          {/* LEFT */}
+          <div className="bg-white rounded-xl border border-black/10 shadow-[0_1px_0_rgba(0,0,0,0.06)] p-4 sm:p-6">
+            {/* Title */}
+            <div className="text-[20px] font-extrabold text-black">
+              {t("উইথড্র", "Withdrawal")}
             </div>
-          )}
 
-          {isAuthed && !isActiveUser && (
-            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4">
-              <div className="text-[14px] font-extrabold text-red-700">
-                {t("একাউন্ট নিষ্ক্রিয়", "Account Inactive")}
-              </div>
-              <div className="mt-1 text-[13px] text-red-700/90">
-                {t(
-                  "আপনার একাউন্ট বর্তমানে নিষ্ক্রিয়। সাপোর্টে যোগাযোগ করুন।",
-                  "Your account is inactive. Please contact support.",
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* ✅ Turnover warning */}
-          {isAuthed && !eligLoading && !elig.eligible && (
-            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4">
-              <div className="text-[14px] font-extrabold text-red-700">
-                {t("উইথড্র করা যাবে না", "Withdrawal Not Allowed")}
-              </div>
-              <div className="mt-1 text-[13px] text-red-700/90">
-                {elig.message ||
-                  t(
-                    "আপনার টার্নওভার চলমান আছে। উইথড্র করার আগে টার্নওভার পূরণ করুন।",
-                    "You have an active turnover. Complete it before withdrawing.",
+            {/* ✅ Auth / Active warnings */}
+            {!isAuthed && (
+              <div className="mt-4 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+                <div className="text-[14px] font-extrabold text-yellow-800">
+                  {t("লগইন প্রয়োজন", "Login Required")}
+                </div>
+                <div className="mt-1 text-[13px] text-yellow-800/90">
+                  {t(
+                    "উইথড্র করার জন্য অনুগ্রহ করে লগইন করুন।",
+                    "Please login to submit a withdraw request.",
                   )}
+                </div>
               </div>
-              {elig.remaining > 0 && (
-                <div className="mt-2 text-[13px] font-bold text-red-700">
-                  {t("বাকি টার্নওভার:", "Remaining turnover:")} ৳{" "}
-                  {elig.remaining.toLocaleString()}
+            )}
+
+            {isAuthed && !isActiveUser && (
+              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4">
+                <div className="text-[14px] font-extrabold text-red-700">
+                  {t("একাউন্ট নিষ্ক্রিয়", "Account Inactive")}
                 </div>
-              )}
-            </div>
-          )}
-
-          {isAuthed && eligLoading && (
-            <div className="mt-4 text-[12px] text-black/50">
-              {t("টার্নওভার চেক করা হচ্ছে…", "Checking turnover…")}
-            </div>
-          )}
-
-          {/* Withdrawal Options */}
-          <div className="mt-5">
-            <label className="text-[14px] font-semibold text-black">
-              {t("Withdrawal Options", "Withdrawal Options")}{" "}
-              <span className="text-red-500">*</span>
-            </label>
-
-            <div className="mt-3 flex flex-wrap gap-3">
-              {loadingMethods ? (
-                <div className="text-[13px] text-black/60">
-                  {t("লোড হচ্ছে...", "Loading...")}
+                <div className="mt-1 text-[13px] text-red-700/90">
+                  {t(
+                    "আপনার একাউন্ট বর্তমানে নিষ্ক্রিয়। সাপোর্টে যোগাযোগ করুন।",
+                    "Your account is inactive. Please contact support.",
+                  )}
                 </div>
-              ) : methods.length ? (
-                methods.map((m) => {
-                  const active = String(selectedId) === String(m.methodId);
-                  const logo = m.logoUrl
-                    ? `${import.meta.env.VITE_API_URL}${m.logoUrl}`
-                    : "";
+              </div>
+            )}
 
-                  return (
-                    <button
-                      key={m._id || m.methodId}
-                      type="button"
-                      onClick={() => setSelectedId(m.methodId)}
-                      disabled={!accountOk}
-                      className={`
+            {/* ✅ Turnover warning */}
+            {isAuthed && !eligLoading && !elig.eligible && (
+              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4">
+                <div className="text-[14px] font-extrabold text-red-700">
+                  {t("উইথড্র করা যাবে না", "Withdrawal Not Allowed")}
+                </div>
+                <div className="mt-1 text-[13px] text-red-700/90">
+                  {elig.message ||
+                    t(
+                      "আপনার টার্নওভার চলমান আছে। উইথড্র করার আগে টার্নওভার পূরণ করুন।",
+                      "You have an active turnover. Complete it before withdrawing.",
+                    )}
+                </div>
+                {elig.remaining > 0 && (
+                  <div className="mt-2 text-[13px] font-bold text-red-700">
+                    {t("বাকি টার্নওভার:", "Remaining turnover:")} ৳{" "}
+                    {elig.remaining.toLocaleString()}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {isAuthed && eligLoading && (
+              <div className="mt-4 text-[12px] text-black/50">
+                {t("টার্নওভার চেক করা হচ্ছে…", "Checking turnover…")}
+              </div>
+            )}
+
+            {/* Withdrawal Options */}
+            <div className="mt-5">
+              <label className="text-[14px] font-semibold text-black">
+                {t("Withdrawal Options", "Withdrawal Options")}{" "}
+                <span className="text-red-500">*</span>
+              </label>
+
+              <div className="mt-3 flex flex-wrap gap-3">
+                {loadingMethods ? (
+                  <div className="text-[13px] text-black/60">
+                    {t("লোড হচ্ছে...", "Loading...")}
+                  </div>
+                ) : methods.length ? (
+                  methods.map((m) => {
+                    const active = String(selectedId) === String(m.methodId);
+                    const logo = m.logoUrl
+                      ? `${import.meta.env.VITE_API_URL}${m.logoUrl}`
+                      : "";
+
+                    return (
+                      <button
+                        key={m._id || m.methodId}
+                        type="button"
+                        onClick={() => setSelectedId(m.methodId)}
+                        disabled={!accountOk}
+                        className={`
                         h-[56px] w-[92px] sm:w-[110px]
                         rounded-md border-2 bg-white
                         flex items-center justify-center
@@ -396,150 +438,154 @@ const Withdraw = () => {
                         }
                         ${!accountOk ? "opacity-60 cursor-not-allowed" : ""}
                       `}
-                      title={m?.name?.en || m?.methodId}
-                    >
-                      {logo ? (
-                        <img
-                          src={logo}
-                          alt={m?.name?.en || m?.methodId}
-                          className="max-h-[32px] max-w-[80px] object-contain"
-                        />
-                      ) : (
-                        <div className="text-[11px] font-extrabold text-black/50">
-                          {m?.name?.en || m?.methodId}
-                        </div>
-                      )}
-                    </button>
-                  );
-                })
-              ) : (
-                <div className="text-[13px] text-black/60">
-                  {t(
-                    "কোনো উইথড্র মেথড পাওয়া যায়নি।",
-                    "No withdraw methods found.",
-                  )}
+                        title={m?.name?.en || m?.methodId}
+                      >
+                        {logo ? (
+                          <img
+                            src={logo}
+                            alt={m?.name?.en || m?.methodId}
+                            className="max-h-[32px] max-w-[80px] object-contain"
+                          />
+                        ) : (
+                          <div className="text-[11px] font-extrabold text-black/50">
+                            {m?.name?.en || m?.methodId}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })
+                ) : (
+                  <div className="text-[13px] text-black/60">
+                    {t(
+                      "কোনো উইথড্র মেথড পাওয়া যায়নি।",
+                      "No withdraw methods found.",
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {!!selectedMethod && (
+                <div className="mt-3 text-[12px] text-black/60">
+                  {t("Selected:", "Selected:")}{" "}
+                  <span className="font-bold text-black">
+                    {isBangla
+                      ? selectedMethod?.name?.bn
+                      : selectedMethod?.name?.en}
+                  </span>
                 </div>
               )}
             </div>
 
-            {!!selectedMethod && (
-              <div className="mt-3 text-[12px] text-black/60">
-                {t("Selected:", "Selected:")}{" "}
-                <span className="font-bold text-black">
-                  {isBangla
-                    ? selectedMethod?.name?.bn
-                    : selectedMethod?.name?.en}
-                </span>
-              </div>
-            )}
-          </div>
+            {/* Dynamic Fields */}
+            {!!selectedMethod?.fields?.length && (
+              <div className="mt-6">
+                <div className="text-[14px] font-semibold text-black">
+                  {t("Account Information", "Account Information")}{" "}
+                  <span className="text-red-500">*</span>
+                </div>
 
-          {/* Dynamic Fields */}
-          {!!selectedMethod?.fields?.length && (
-            <div className="mt-6">
-              <div className="text-[14px] font-semibold text-black">
-                {t("Account Information", "Account Information")}{" "}
-                <span className="text-red-500">*</span>
-              </div>
+                <div className="mt-3 max-w-[520px] space-y-4">
+                  {selectedMethod.fields.map((f) => {
+                    const label = isBangla ? f?.label?.bn : f?.label?.en;
+                    const placeholder = isBangla
+                      ? f?.placeholder?.bn
+                      : f?.placeholder?.en;
 
-              <div className="mt-3 max-w-[520px] space-y-4">
-                {selectedMethod.fields.map((f) => {
-                  const label = isBangla ? f?.label?.bn : f?.label?.en;
-                  const placeholder = isBangla
-                    ? f?.placeholder?.bn
-                    : f?.placeholder?.en;
+                    const err = fieldErrors?.[f.key];
 
-                  const err = fieldErrors?.[f.key];
+                    return (
+                      <div key={f.key}>
+                        <label className="text-[14px] font-semibold text-black">
+                          {label || f.key}{" "}
+                          {f.required !== false && (
+                            <span className="text-red-500">*</span>
+                          )}
+                        </label>
 
-                  return (
-                    <div key={f.key}>
-                      <label className="text-[14px] font-semibold text-black">
-                        {label || f.key}{" "}
-                        {f.required !== false && (
-                          <span className="text-red-500">*</span>
-                        )}
-                      </label>
-
-                      <input
-                        disabled={!accountOk}
-                        type={f.type === "number" ? "text" : f.type}
-                        value={formValues?.[f.key] ?? ""}
-                        onChange={(e) => setVal(f.key, e.target.value)}
-                        placeholder={placeholder || ""}
-                        className={`
+                        <input
+                          disabled={!accountOk}
+                          type={f.type === "number" ? "text" : f.type}
+                          value={formValues?.[f.key] ?? ""}
+                          onChange={(e) => setVal(f.key, e.target.value)}
+                          placeholder={placeholder || ""}
+                          className={`
                           mt-3 w-full h-[44px]
                           rounded-lg border border-black/20 bg-white
                           px-4 text-[14px] outline-none
                           focus:ring-2 focus:ring-black/10
                           ${!accountOk ? "opacity-60 cursor-not-allowed" : ""}
                         `}
-                        inputMode={f.type === "number" ? "numeric" : undefined}
-                      />
+                          inputMode={
+                            f.type === "number" ? "numeric" : undefined
+                          }
+                        />
 
-                      {!!err && (
-                        <div className="mt-2 text-[12px] text-red-600">
-                          {err}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                        {!!err && (
+                          <div className="mt-2 text-[12px] text-red-600">
+                            {err}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {!phoneVerified && (
+                  <div className="mt-3 max-w-[520px] text-[12px] text-black/55">
+                    {t(
+                      "দয়া করে আপনার ভেরিফাইড তথ্য/নাম্বার ব্যবহার করুন।",
+                      "Please use your verified info/number.",
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Withdrawable Amount */}
+            <div className="mt-6">
+              <div className="flex items-center justify-between gap-3 max-w-[520px]">
+                <label className="text-[14px] font-semibold text-black">
+                  {t("Withdrawable Amount", "Withdrawable Amount")}{" "}
+                  <span className="text-red-500">*</span>
+                </label>
+                <FaQuestionCircle className="text-black/70" />
               </div>
 
-              {!phoneVerified && (
-                <div className="mt-3 max-w-[520px] text-[12px] text-black/55">
-                  {t(
-                    "দয়া করে আপনার ভেরিফাইড তথ্য/নাম্বার ব্যবহার করুন।",
-                    "Please use your verified info/number.",
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Withdrawable Amount */}
-          <div className="mt-6">
-            <div className="flex items-center justify-between gap-3 max-w-[520px]">
-              <label className="text-[14px] font-semibold text-black">
-                {t("Withdrawable Amount", "Withdrawable Amount")}{" "}
-                <span className="text-red-500">*</span>
-              </label>
-              <FaQuestionCircle className="text-black/70" />
-            </div>
-
-            <div className="mt-3 max-w-[520px]">
-              <input
-                disabled={!accountOk}
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder={`${t("Min", "Min")} ৳ ${min.toLocaleString()} - ${t("Max", "Max")} ৳ ${max.toLocaleString()}`}
-                className={`
+              <div className="mt-3 max-w-[520px]">
+                <input
+                  disabled={!accountOk}
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder={
+                    hasMax
+                      ? `${t("Min", "Min")} ৳ ${Number(min).toLocaleString()} - ${t("Max", "Max")} ৳ ${Number(max).toLocaleString()}`
+                      : `${t("Min", "Min")} ৳ ${Number(min).toLocaleString()}`
+                  }
+                  className={`
                   w-full h-[44px]
                   rounded-lg border border-black/20 bg-white
                   px-4 text-[14px] outline-none
                   focus:ring-2 focus:ring-black/10
                   ${!accountOk ? "opacity-60 cursor-not-allowed" : ""}
                 `}
-                inputMode="numeric"
-              />
+                  inputMode="numeric"
+                />
 
-              {amount && !validAmount && (
-                <div className="mt-2 text-[12px] text-red-600">
-                  {t(
-                    `পরিমাণ অবশ্যই ৳ ${min.toLocaleString()} থেকে ৳ ${max.toLocaleString()} এর মধ্যে হতে হবে।`,
-                    `Amount must be between ৳ ${min.toLocaleString()} and ৳ ${max.toLocaleString()}.`,
-                  )}
-                </div>
-              )}
+                {/* ✅ NEW: dynamic range validation message */}
+                {!!amountErrorText && (
+                  <div className="mt-2 text-[12px] text-red-600">
+                    {amountErrorText}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
 
-          {/* Withdraw Button */}
-          <div className="mt-7 max-w-[520px]">
-            <button
-              type="button"
-              disabled={!canSubmit || submitting}
-              className={`
+            {/* Withdraw Button */}
+            <div className="mt-7 max-w-[520px]">
+              <button
+                type="button"
+                disabled={!canSubmit || submitting}
+                className={`
                 w-full h-[48px] rounded-full
                 font-extrabold text-[14px]
                 transition
@@ -549,66 +595,67 @@ const Withdraw = () => {
                     : "bg-[#e5e5e5] text-black/30 cursor-not-allowed"
                 }
               `}
-              onClick={onSubmit}
-            >
-              {submitting
-                ? t("Submitting…", "Submitting…")
-                : t("WITHDRAWAL", "WITHDRAWAL")}
-            </button>
+                onClick={onSubmit}
+              >
+                {submitting
+                  ? t("Submitting…", "Submitting…")
+                  : t("WITHDRAWAL", "WITHDRAWAL")}
+              </button>
 
-            <div className="mt-2 text-[12px] text-black/55">
-              {t(
-                "দয়া করে ভেরিফাইড নাম্বার ব্যবহার করুন।",
-                "Please use verified number.",
+              <div className="mt-2 text-[12px] text-black/55">
+                {t(
+                  "দয়া করে ভেরিফাইড নাম্বার ব্যবহার করুন।",
+                  "Please use verified number.",
+                )}
+              </div>
+
+              {!canSubmit && !submitting && (
+                <div className="mt-2 text-[12px] text-black/45">
+                  {!isAuthed
+                    ? t("লগইন করুন।", "Please login.")
+                    : !isActiveUser
+                      ? t("একাউন্ট নিষ্ক্রিয়।", "Account inactive.")
+                      : !elig.eligible
+                        ? t("টার্নওভার পূরণ করুন।", "Complete turnover first.")
+                        : !selectedMethod
+                          ? t("একটি মেথড সিলেক্ট করুন।", "Select a method.")
+                          : !allRequiredOk
+                            ? t(
+                                "সব আবশ্যক ঘর পূরণ করুন।",
+                                "Fill all required fields.",
+                              )
+                            : !noTypeErrors
+                              ? t(
+                                  "কিছু ইনপুট ভুল আছে।",
+                                  "Some inputs are invalid.",
+                                )
+                              : !validAmount
+                                ? t("Amount সঠিক নয়।", "Amount is invalid.")
+                                : null}
+                </div>
               )}
             </div>
-
-            {!canSubmit && !submitting && (
-              <div className="mt-2 text-[12px] text-black/45">
-                {!isAuthed
-                  ? t("লগইন করুন।", "Please login.")
-                  : !isActiveUser
-                    ? t("একাউন্ট নিষ্ক্রিয়।", "Account inactive.")
-                    : !elig.eligible
-                      ? t("টার্নওভার পূরণ করুন।", "Complete turnover first.")
-                      : !selectedMethod
-                        ? t("একটি মেথড সিলেক্ট করুন।", "Select a method.")
-                        : !allRequiredOk
-                          ? t(
-                              "সব আবশ্যক ঘর পূরণ করুন।",
-                              "Fill all required fields.",
-                            )
-                          : !noTypeErrors
-                            ? t(
-                                "কিছু ইনপুট ভুল আছে।",
-                                "Some inputs are invalid.",
-                              )
-                            : !validAmount
-                              ? t("Amount সঠিক নয়।", "Amount is invalid.")
-                              : null}
-              </div>
-            )}
           </div>
-        </div>
 
-        {/* RIGHT – Notices */}
-        <div className="bg-white rounded-xl border border-black/10 p-4 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
-          <div className="text-[14px] font-extrabold text-black">
-            {t("Important Notice", "Important Notice")}
-          </div>
-          <div className="mt-3 space-y-4 text-[12px] leading-relaxed text-black/70">
-            {notices.map((n, idx) => (
-              <div key={idx}>
-                <div className="font-extrabold text-black/90">
-                  {idx + 1}. {n.title}
+          {/* RIGHT – Notices */}
+          <div className="bg-white rounded-xl border border-black/10 p-4 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
+            <div className="text-[14px] font-extrabold text-black">
+              {t("Important Notice", "Important Notice")}
+            </div>
+            <div className="mt-3 space-y-4 text-[12px] leading-relaxed text-black/70">
+              {notices.map((n, idx) => (
+                <div key={idx}>
+                  <div className="font-extrabold text-black/90">
+                    {idx + 1}. {n.title}
+                  </div>
+                  <p className="mt-1">{n.body}</p>
                 </div>
-                <p className="mt-1">{n.body}</p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
