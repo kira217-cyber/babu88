@@ -62,7 +62,7 @@ const parsePercentFromTag = (tagText) => {
   return Number.isFinite(p) ? p : 0;
 };
 
-// ✅ Updated calcBonus: promo comes from selectedMethod.promotions
+// ✅ promo comes from selectedMethod.promotions (UI calc only; server will verify again)
 const calcBonus = (
   amountNum,
   promoId,
@@ -96,6 +96,13 @@ const calcBonus = (
 // ✅ Modal (deposit details)
 const DepositDetailsModal = ({ open, onClose, onConfirm, details, t }) => {
   if (!open) return null;
+
+  const Row = ({ k, v }) => (
+    <div className="flex items-center justify-between">
+      <div className="text-[14px] font-semibold text-black/35">{k}</div>
+      <div className="text-[14px] font-extrabold text-black/80">{v}</div>
+    </div>
+  );
 
   return (
     <div
@@ -131,11 +138,11 @@ const DepositDetailsModal = ({ open, onClose, onConfirm, details, t }) => {
               v={money(details.depositAmount)}
             />
             <Row
-              k={t("Bonus Amount", "Bonus Amount")}
+              k={t("Promo Bonus", "Promo Bonus")}
               v={money(details.promoBonus)}
             />
             <Row
-              k={`+${details.percent}% ${t("Bonus Amount", "Bonus Amount")}`}
+              k={`+${details.percent}% ${t("Channel Bonus", "Channel Bonus")}`}
               v={money(details.percentBonus)}
             />
             <Row
@@ -148,12 +155,8 @@ const DepositDetailsModal = ({ open, onClose, onConfirm, details, t }) => {
             <button
               type="button"
               onClick={onConfirm}
-              className="
-                w-full max-w-[260px] h-[44px] rounded-lg
-                bg-black text-[#f5c400] font-extrabold text-[14px]
-                shadow-[0_10px_22px_rgba(0,0,0,0.25)]
-                hover:brightness-95 active:scale-[0.99] transition
-              "
+              className="w-full cursor-pointer max-w-[260px] h-[44px] rounded-lg bg-black text-[#f5c400] font-extrabold text-[14px]
+                         shadow-[0_10px_22px_rgba(0,0,0,0.25)] hover:brightness-95 active:scale-[0.99] transition"
             >
               {t("Confirm", "Confirm")}
             </button>
@@ -163,13 +166,6 @@ const DepositDetailsModal = ({ open, onClose, onConfirm, details, t }) => {
     </div>
   );
 };
-
-const Row = ({ k, v }) => (
-  <div className="flex items-center justify-between">
-    <div className="text-[14px] font-semibold text-black/35">{k}</div>
-    <div className="text-[14px] font-extrabold text-black/80">{v}</div>
-  </div>
-);
 
 const Deposit = () => {
   const { isBangla } = useLanguage();
@@ -195,52 +191,6 @@ const Deposit = () => {
       { v: 30000, tag: "+3%" },
     ],
     [],
-  );
-
-  const notices = useMemo(
-    () => [
-      {
-        title: t(
-          "Use Official Deposit & Withdrawal Channels Only:",
-          "Use Official Deposit & Withdrawal Channels Only:",
-        ),
-        body: t(
-          "দয়া করে শুধু অফিসিয়াল ডিপোজিট/উইথড্র চ্যানেল ব্যবহার করুন। কোনো থার্ড-পার্টি/অনঅফিসিয়াল মাধ্যম ব্যবহার করবেন না।",
-          "Kindly, deposit or withdraw funds through the designated official channels available on our website. Avoid any unofficial or third-party platforms.",
-        ),
-      },
-      {
-        title: t(
-          "Live Chat Support for Pending Transactions:",
-          "Live Chat Support for Pending Transactions:",
-        ),
-        body: t(
-          "আপনার ট্রান্সাকশন ১৫ মিনিটের বেশি পেন্ডিং থাকলে ২৪/৭ লাইভ চ্যাটে যোগাযোগ করুন।",
-          "If your transaction remains pending for more than 15 minutes, please contact our 24/7 live chat support for real-time updates.",
-        ),
-      },
-      {
-        title: t(
-          "Caution Regarding Cash-Outs:",
-          "Caution Regarding Cash-Outs:",
-        ),
-        body: t(
-          "যে নাম্বার আগে ট্রান্সফারের জন্য ব্যবহার করেছেন সেখানে সরাসরি ক্যাশ-আউট করবেন না।",
-          "Do not cash-out directly to any previously used e-wallet. Always follow our procedures to ensure security and accuracy.",
-        ),
-      },
-      {
-        title: t(
-          "Use Provided E-Wallet Numbers:",
-          "Use Provided E-Wallet Numbers:",
-        ),
-        body: t(
-          "শুধু প্ল্যাটফর্ম থেকে দেওয়া ই-ওয়ালেট নাম্বার ব্যবহার করুন। এতে ভুল কমবে এবং প্রসেস দ্রুত হবে।",
-          "Use only the e-wallet number provided by our platform. This helps process efficiently and minimizes errors.",
-        ),
-      },
-    ],
-    [isBangla],
   );
 
   // selections
@@ -277,6 +227,11 @@ const Deposit = () => {
     return ch.filter((c) => c?.isActive !== false);
   }, [selectedMethod]);
 
+  const selectedChannelDoc = useMemo(
+    () => channels.find((c) => c.id === selectedChannel) || null,
+    [channels, selectedChannel],
+  );
+
   const promotions = useMemo(() => {
     const list = Array.isArray(selectedMethod?.promotions)
       ? selectedMethod.promotions
@@ -311,8 +266,7 @@ const Deposit = () => {
 
   const onPickAmount = (v) => setAmount(String(v));
 
-  const channelTagText =
-    channels.find((c) => c.id === selectedChannel)?.tagText || "+0%";
+  const channelTagText = selectedChannelDoc?.tagText || "+0%";
   const amountNum = Number(amount || 0) || 0;
 
   const methodPromotionsRaw = Array.isArray(selectedMethod?.promotions)
@@ -340,16 +294,6 @@ const Deposit = () => {
   const baseBonusTitle = isBangla
     ? selectedMethod?.baseBonusTitle?.bn
     : selectedMethod?.baseBonusTitle?.en;
-
-  const handleDepositClick = () => {
-    if (!amountNum || amountNum <= 0) return;
-    setDetailsOpen(true);
-  };
-
-  const handleConfirm = () => {
-    setDetailsOpen(false);
-    setPayOpen(true);
-  };
 
   const apiBase = import.meta.env.VITE_API_URL || "";
 
@@ -477,12 +421,7 @@ const Deposit = () => {
               <input
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="
-                  w-full max-w-[520px]
-                  bg-white border border-black/20 rounded-xl
-                  px-4 py-3 text-[14px] outline-none
-                  focus:ring-2 focus:ring-black/10
-                "
+                className="w-full max-w-[520px] bg-white border border-black/20 rounded-xl px-4 py-3 text-[14px] outline-none focus:ring-2 focus:ring-black/10"
               />
             </div>
 
@@ -529,12 +468,7 @@ const Deposit = () => {
               <button
                 type="button"
                 onClick={() => setPromoOpen((p) => !p)}
-                className="
-                  w-full flex items-center justify-between
-                  bg-white border border-black/20 rounded-xl
-                  px-4 py-3 text-[14px]
-                  hover:border-black/35 transition
-                "
+                className="w-full flex items-center justify-between bg-white border border-black/20 rounded-xl px-4 py-3 text-[14px] hover:border-black/35 transition"
               >
                 <div className="flex flex-col items-start">
                   <span className="text-black/80 font-semibold">
@@ -577,11 +511,9 @@ const Deposit = () => {
                         setPromo(p.id);
                         setPromoOpen(false);
                       }}
-                      className={`
-                        w-full text-left cursor-pointer px-4 py-3 text-[14px] font-semibold transition
-                        hover:bg-black/5
-                        ${promo === p.id ? "bg-[#fff3bf]" : "bg-white"}
-                      `}
+                      className={`w-full text-left cursor-pointer px-4 py-3 text-[14px] font-semibold transition hover:bg-black/5 ${
+                        promo === p.id ? "bg-[#fff3bf]" : "bg-white"
+                      }`}
                     >
                       {p.name}
                     </button>
@@ -589,18 +521,6 @@ const Deposit = () => {
                 </div>
               )}
             </div>
-
-            {promo !== "none" ? (
-              <div className="mt-2 text-[12px] text-black/55">
-                {(() => {
-                  const doc = methodPromotionsRaw.find((x) => x?.id === promo);
-                  if (!doc) return null;
-                  if (doc.bonusType === "percent")
-                    return `Promo Bonus: +${Number(doc.bonusValue ?? 0)}%`;
-                  return `Promo Bonus: +${money(Number(doc.bonusValue ?? 0))}`;
-                })()}
-              </div>
-            ) : null}
           </div>
 
           {/* Deposit Button */}
@@ -635,20 +555,16 @@ const Deposit = () => {
           </div>
         </div>
 
-        {/* RIGHT – Notices */}
+        {/* RIGHT – (আপনার Notice UI এখানে রাখতে পারেন) */}
         <div className="bg-white rounded-xl border border-black/10 p-4 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
           <div className="text-[14px] font-extrabold text-black">
             {t("Important Notice", "Important Notice")}
           </div>
-          <div className="mt-3 space-y-4 text-[12px] leading-relaxed text-black/70">
-            {notices.map((n, idx) => (
-              <div key={idx}>
-                <div className="font-extrabold text-black/90">
-                  {idx + 1}. {n.title}
-                </div>
-                <p className="mt-1">{n.body}</p>
-              </div>
-            ))}
+          <div className="mt-3 text-[12px] leading-relaxed text-black/70">
+            {t(
+              "ডিপোজিট সাবমিট করলে তা এডমিন রিভিউ করবে।",
+              "After submitting, admin will review your deposit request.",
+            )}
           </div>
         </div>
       </div>
@@ -676,7 +592,9 @@ const Deposit = () => {
           customerCode: "6538651",
           promoId: promo,
         }}
+        details={modalDetails}
         methodDoc={selectedMethod}
+        channelDoc={selectedChannelDoc}
       />
     </div>
   );

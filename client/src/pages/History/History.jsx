@@ -2,16 +2,19 @@
 import React, { useMemo, useState } from "react";
 import { useLanguage } from "../../Context/LanguageProvider";
 import BetHistory from "../../components/BetHistory/BetHistory";
+import DepositHistory from "../../components/DepositHistory/DepositHistory";
+import TurnOverHistory from "../../components/TurnOverHistory/TurnOverHistory";
+import WithdrawHistory from "../../components/WithdrawHistory/WithdrawHistory";
 
 // ✅ Placeholder sections (replace with your real components later)
-const DepositHistory = () => (
-  <div className="bg-white rounded-xl border border-black/10 p-4 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
-    <div className="text-[14px] font-extrabold text-black">Deposit History</div>
-    <p className="mt-2 text-[13px] text-black/65">
-      Here will show your deposit history (API data).
-    </p>
-  </div>
-);
+// const DepositHistory = () => (
+//   <div className="bg-white rounded-xl border border-black/10 p-4 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
+//     <div className="text-[14px] font-extrabold text-black">Deposit History</div>
+//     <p className="mt-2 text-[13px] text-black/65">
+//       Here will show your deposit history (API data).
+//     </p>
+//   </div>
+// );
 
 const WithdrawalHistory = () => (
   <div className="bg-white rounded-xl border border-black/10 p-4 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
@@ -79,7 +82,7 @@ const History = () => {
       {
         id: "withdraw",
         name: t("উইথড্রল হিস্ট্রি", "Withdrawal History"),
-        component: <WithdrawalHistory />,
+        component: <WithdrawHistory />,
       },
       {
         id: "transfer",
@@ -94,7 +97,7 @@ const History = () => {
       {
         id: "turnover",
         name: t("টার্নওভার হিস্ট্রি", "Turnover History"),
-        component: <TurnoverHistory />,
+        component: <TurnOverHistory />,
       },
       {
         id: "bet",

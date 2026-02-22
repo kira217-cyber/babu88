@@ -2,8 +2,57 @@
 import express from "express";
 import mongoose from "mongoose";
 import User from "../models/User.js";
+import TurnOver from "../models/TurnOver.js";
 
 const router = express.Router();
+
+/**
+ * ✅ Apply wager amount to running turnover(s)
+ * - adds progress to oldest running turnovers first
+ * - marks completed when progress reaches required
+ * - all inside same mongoose session/transaction
+ */
+const applyTurnoverProgress = async ({ session, userId, wagerAmount }) => {
+  const amt = Number(wagerAmount || 0);
+  if (!Number.isFinite(amt) || amt <= 0) return;
+
+  const running = await TurnOver.find({
+    user: userId,
+    status: "running",
+  })
+    .sort({ createdAt: 1 })
+    .session(session);
+
+  if (!running.length) return;
+
+  let remaining = amt;
+
+  for (const t of running) {
+    if (remaining <= 0) break;
+
+    const required = Number(t.required || 0);
+    const progress = Number(t.progress || 0);
+
+    const left = Math.max(0, required - progress);
+    if (left <= 0) continue;
+
+    const add = Math.min(left, remaining);
+    const newProgress = progress + add;
+    const completed = newProgress >= required;
+
+    await TurnOver.updateOne(
+      { _id: t._id },
+      {
+        $inc: { progress: add },
+        ...(completed
+          ? { $set: { status: "completed", completedAt: new Date() } }
+          : {}),
+      },
+    ).session(session);
+
+    remaining -= add;
+  }
+};
 
 router.post("/", async (req, res) => {
   const session = await mongoose.startSession();
@@ -49,7 +98,7 @@ router.post("/", async (req, res) => {
         .json({ success: false, message: "Invalid amount" });
     }
 
-    // ✅ Balance change based on bet_type
+    // ✅ Balance change based on bet_type (KEEP ORIGINAL LOGIC)
     let balanceChange = 0;
     if (bet_type === "BET") {
       balanceChange = -amountFloat;
@@ -85,7 +134,6 @@ router.post("/", async (req, res) => {
         }).session(session);
 
         if (already) {
-          // Already processed, return current balance
           throw Object.assign(new Error("DUPLICATE_TX"), {
             statusCode: 200,
             duplicate: true,
@@ -97,7 +145,7 @@ router.post("/", async (req, res) => {
       const currentBalance = Number(player.balance || 0);
       const newBalance = currentBalance + balanceChange;
 
-      // ✅ Game history record
+      // ✅ Game history record (KEEP SAME STRUCTURE)
       const gameRecord = {
         provider_code,
         game_code,
@@ -122,7 +170,19 @@ router.post("/", async (req, res) => {
       ).session(session);
 
       // =========================================================
-      // ✅ Affiliate commission logic (only if referredBy exists)
+      // ✅ Turnover progress logic (UPDATED)
+      // Now: BET + SETTLE দুইটাই turnover progress করবে amount অনুযায়ী
+      // =========================================================
+      if ((bet_type === "BET" || bet_type === "SETTLE") && amountFloat > 0) {
+        await applyTurnoverProgress({
+          session,
+          userId: player._id,
+          wagerAmount: amountFloat,
+        });
+      }
+
+      // =========================================================
+      // ✅ Affiliate commission logic (KEEP SAME)
       // =========================================================
       let affiliateInfo = null;
 
@@ -131,21 +191,17 @@ router.post("/", async (req, res) => {
           session,
         );
 
-        // only apply if valid aff-user & active
         if (
           affiliator &&
           affiliator.role === "aff-user" &&
           affiliator.isActive
         ) {
-          const lossPct = Number(affiliator.gameLossCommission || 0); // percent
-          const winPct = Number(affiliator.gameWinCommission || 0); // percent
+          const lossPct = Number(affiliator.gameLossCommission || 0);
+          const winPct = Number(affiliator.gameWinCommission || 0);
 
           let commissionAmount = 0;
           let commissionField = null;
 
-          // তোমার requirement অনুযায়ী:
-          // BET = user lost (loss commission)
-          // SETTLE = user won (win commission)
           if (bet_type === "BET" && lossPct > 0) {
             commissionAmount = (amountFloat * lossPct) / 100;
             commissionField = "gameLossCommissionBalance";
@@ -156,13 +212,10 @@ router.post("/", async (req, res) => {
             commissionField = "gameWinCommissionBalance";
           }
 
-          // Only update if commission > 0
           if (commissionAmount > 0 && commissionField) {
             await User.updateOne(
               { _id: affiliator._id },
-              {
-                $inc: { [commissionField]: commissionAmount },
-              },
+              { $inc: { [commissionField]: commissionAmount } },
             ).session(session);
 
             affiliateInfo = {
@@ -177,7 +230,6 @@ router.post("/", async (req, res) => {
         }
       }
 
-      // attach on session object via closure return
       res.locals.__result = {
         playerUsername: player.username,
         newBalance,
@@ -187,14 +239,12 @@ router.post("/", async (req, res) => {
       };
     });
 
-    // ✅ success response
     return res.json({
       success: true,
       message: "Processed successfully",
       data: res.locals.__result,
     });
   } catch (err) {
-    // ✅ Duplicate TX special return
     if (err?.message === "DUPLICATE_TX" && err?.duplicate) {
       return res.json({
         success: true,

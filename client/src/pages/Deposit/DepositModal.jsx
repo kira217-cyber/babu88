@@ -1,8 +1,11 @@
+// src/pages/Profile/Deposit/DepositModal.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { FaRegCopy, FaChevronRight, FaLock } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { IoMdClose } from "react-icons/io";
 import { useLanguage } from "../../Context/LanguageProvider";
+import { api } from "../../api/axios";
+import { useNavigate } from "react-router";
 
 const formatTime = (s) => {
   const m = Math.floor(s / 60);
@@ -21,19 +24,17 @@ const safeCopy = async (text) => {
   }
 };
 
-const FallbackLogo = ({ methodId }) => {
-  return (
-    <div className="w-[64px] h-[64px] rounded-full bg-white flex items-center justify-center border border-[#0a8f62]">
-      <div className="w-[56px] h-[56px] rounded-full flex items-center justify-center border border-[#0a8f62]">
-        <div className="text-center leading-none">
-          <div className="text-[12px] font-extrabold text-[#e11d48]">
-            {(methodId || "PAY").toUpperCase()}
-          </div>
+const FallbackLogo = ({ methodId }) => (
+  <div className="w-[64px] h-[64px] rounded-full bg-white flex items-center justify-center border border-[#0a8f62]">
+    <div className="w-[56px] h-[56px] rounded-full flex items-center justify-center border border-[#0a8f62]">
+      <div className="text-center leading-none">
+        <div className="text-[12px] font-extrabold text-[#e11d48]">
+          {(methodId || "PAY").toUpperCase()}
         </div>
       </div>
     </div>
-  );
-};
+  </div>
+);
 
 const InputRow = ({
   label,
@@ -44,60 +45,64 @@ const InputRow = ({
   onCopy,
   disabled,
   type = "text",
-}) => {
-  return (
-    <div className="mt-3">
-      <div className="text-[13px] font-semibold text-black">{label}</div>
-      <div className="mt-1 relative">
-        <input
-          value={value}
-          onChange={onChange}
-          disabled={disabled}
-          type={type}
-          placeholder={placeholder}
-          className={`
-            w-full h-[40px] rounded-md border border-black/15 bg-white
-            px-3 pr-10 text-[14px] outline-none
-            focus:ring-2 focus:ring-black/10
-            ${disabled ? "text-black/70 bg-black/[0.03]" : "text-black"}
-          `}
-        />
-        {copyable ? (
-          <button
-            type="button"
-            onClick={onCopy}
-            className="
-              absolute right-2 top-1/2 -translate-y-1/2
-              w-[28px] h-[28px] rounded-md
-              bg-[#ffb000] text-white flex items-center justify-center
-              shadow-[0_6px_14px_rgba(0,0,0,0.14)]
-              hover:brightness-95 active:scale-[0.98] transition
-            "
-            title="Copy"
-          >
-            <FaRegCopy className="text-[14px]" />
-          </button>
-        ) : null}
-      </div>
+}) => (
+  <div className="mt-3">
+    <div className="text-[13px] font-semibold text-black">{label}</div>
+    <div className="mt-1 relative">
+      <input
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+        type={type}
+        placeholder={placeholder}
+        className={`
+          w-full h-[40px] rounded-md border border-black/15 bg-white
+          px-3 pr-10 text-[14px] outline-none
+          focus:ring-2 focus:ring-black/10
+          ${disabled ? "text-black/70 bg-black/[0.03]" : "text-black"}
+        `}
+      />
+      {copyable ? (
+        <button
+          type="button"
+          onClick={onCopy}
+          className="absolute right-2 top-1/2 -translate-y-1/2 w-[28px] h-[28px] rounded-md
+                     bg-[#ffb000] text-white flex items-center justify-center
+                     shadow-[0_6px_14px_rgba(0,0,0,0.14)] hover:brightness-95 active:scale-[0.98] transition"
+          title="Copy"
+        >
+          <FaRegCopy className="text-[14px]" />
+        </button>
+      ) : null}
     </div>
-  );
-};
+  </div>
+);
 
 /**
  * Props:
  * open: boolean
  * onClose: fn
  * data: { amount, methodId, channelId, customerCode, promoId }
+ * details: { depositAmount, promoBonus, percentBonus, percent, targetTurnover } (UI calculated)
  * methodDoc: selected method document from API
+ * channelDoc: selected channel document from API
  */
-const DepositModal = ({ open, onClose, data, methodDoc }) => {
-  // ✅ ALL HOOKS FIRST (fix for "Rendered more hooks...")
+const DepositModal = ({
+  open,
+  onClose,
+  data,
+  details,
+  methodDoc,
+  channelDoc,
+}) => {
+  // ✅ ALL HOOKS FIRST
   const { isBangla } = useLanguage();
   const t = (bn, en) => (isBangla ? bn : en);
 
   const apiBase = import.meta.env.VITE_API_URL || "";
 
   const methodId = data?.methodId || methodDoc?.methodId || "nagad";
+  const navigate = useNavigate();
 
   const logoUrl = useMemo(() => {
     const u = methodDoc?.logoUrl;
@@ -127,6 +132,7 @@ const DepositModal = ({ open, onClose, data, methodDoc }) => {
   const [values, setValues] = useState({});
   const [seconds, setSeconds] = useState(0);
   const [howOpen, setHowOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   // ✅ reset + timer on open
   useEffect(() => {
@@ -176,7 +182,6 @@ const DepositModal = ({ open, onClose, data, methodDoc }) => {
       for (const def of inputDefs) {
         if (!validateField(def, values[def.key])) return false;
       }
-      // amount > 0 if exists
       if ("amount" in values) {
         const amt = Number(values.amount || 0);
         if (!Number.isFinite(amt) || amt <= 0) return false;
@@ -200,13 +205,67 @@ const DepositModal = ({ open, onClose, data, methodDoc }) => {
     else toast.error(t("কপি হয়নি", "Copy failed"));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!canSubmit) return;
+  const buildPayload = () => {
+    // ✅ dynamic inputs as submitted fields
+    const submittedFields = {};
+    Object.keys(values || {}).forEach((k) => {
+      submittedFields[k] = String(values[k] ?? "");
+    });
 
-    // ✅ TODO: এখানে চাইলে backend API hit করতে পারো
-    toast.success(t("ডিপোজিট সাবমিট হয়েছে!", "Deposit submitted!"));
-    onClose?.();
+    return {
+      methodId: data?.methodId,
+      channelId: data?.channelId,
+      promoId: data?.promoId || "none",
+      amount: Number(values.amount ?? data?.amount ?? 0) || 0,
+
+      // optional UI calc (server will re-check using method config)
+      clientCalc: {
+        promoBonus: Number(details?.promoBonus ?? 0) || 0,
+        percentBonus: Number(details?.percentBonus ?? 0) || 0,
+        targetTurnover: Number(details?.targetTurnover ?? 0) || 0,
+      },
+
+      // store any fields user entered (sender number, trx id, etc.)
+      fields: submittedFields,
+
+      // optional: helpful for admin display
+      display: {
+        methodName: methodDoc?.methodName,
+        channelName: channelDoc?.name,
+        channelTagText: channelDoc?.tagText,
+      },
+    };
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!canSubmit || submitting) return;
+
+    try {
+      setSubmitting(true);
+      const payload = buildPayload();
+
+      // ✅ Create Deposit Request (user auth required)
+      const res = await api.post("/api/deposit-requests", payload);
+
+      toast.success(
+        t("ডিপোজিট রিকোয়েস্ট পাঠানো হয়েছে!", "Deposit request submitted!"),
+      );
+
+      // optional: you can show requestId
+      // toast.info(res?.data?.data?.requestId);
+      navigate("/profile/history");
+
+      onClose?.();
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        t("সমস্যা হয়েছে", "Something went wrong");
+      toast.error(msg);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // ✅ AFTER hooks, we can early-return safely
@@ -227,7 +286,7 @@ const DepositModal = ({ open, onClose, data, methodDoc }) => {
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-4">
                   {logoUrl ? (
-                    <div className="w-[120px] h-[60px] overflow-hidden border border-[#0a8f62] bg-white">
+                    <div className="w-full h-full overflow-hidden bg-white">
                       <img
                         src={logoUrl}
                         alt={methodId}
@@ -265,8 +324,8 @@ const DepositModal = ({ open, onClose, data, methodDoc }) => {
                     const placeholder = isBangla
                       ? def?.placeholder?.bn
                       : def?.placeholder?.en;
-
                     const isAmount = def.key === "amount";
+
                     return (
                       <InputRow
                         key={def.key}
@@ -310,7 +369,7 @@ const DepositModal = ({ open, onClose, data, methodDoc }) => {
                     />
 
                     <InputRow
-                      label={t("ট্রান্সাকশন নাম্বার:", "Transaction type:")}
+                      label={t("ট্রান্সাকশন টাইপ:", "Transaction type:")}
                       value={values.trxName || ""}
                       onChange={(e) => setField("trxName", e.target.value)}
                       placeholder="Agent / Merchant / Personal"
@@ -347,43 +406,27 @@ const DepositModal = ({ open, onClose, data, methodDoc }) => {
 
                 <button
                   type="submit"
-                  disabled={!canSubmit}
+                  disabled={!canSubmit || submitting}
                   className={`
-                    mt-4 w-full cursor-pointer h-[46px] rounded-md
-                    text-[15px] font-extrabold
-                    transition
-                    ${
-                      canSubmit
-                        ? "bg-[#8a8a8a] text-white hover:brightness-95"
-                        : "bg-[#bdbdbd] text-white/90 cursor-not-allowed"
-                    }
+                    mt-4 w-full cursor-pointer h-[46px] rounded-md text-[15px] font-extrabold transition
+                    ${canSubmit && !submitting ? "bg-[#8a8a8a] text-white hover:brightness-95" : "bg-[#bdbdbd] text-white/90 cursor-not-allowed"}
                   `}
                 >
-                  {t("জমা দিন", "Submit")}
+                  {submitting
+                    ? t("সাবমিট হচ্ছে...", "Submitting...")
+                    : t("জমা দিন", "Submit")}
                 </button>
 
                 {/* How to deposit accordion */}
                 <button
                   type="button"
                   onClick={() => setHowOpen((p) => !p)}
-                  className="
-                    mt-4 w-full h-[44px] rounded-md border border-black/15
-                    bg-black/[0.03] text-left px-3
-                    flex items-center justify-between
-                  "
+                  className="mt-4 w-full h-[44px] rounded-md border border-black/15 bg-black/[0.03] text-left px-3 flex items-center justify-between"
                 >
                   <div className="flex items-center gap-2 font-extrabold text-[14px] text-black">
-                    <span
-                      className="
-                        inline-flex items-center justify-center
-                        w-[18px] h-[18px] rounded
-                        border border-black/25
-                      "
-                    >
+                    <span className="inline-flex items-center justify-center w-[18px] h-[18px] rounded border border-black/25">
                       <FaChevronRight
-                        className={`text-[12px] transition ${
-                          howOpen ? "rotate-90" : ""
-                        }`}
+                        className={`text-[12px] transition ${howOpen ? "rotate-90" : ""}`}
                       />
                     </span>
                     {t("কিভাবে ডিপোজিট করবেন?", "How to deposit?")}

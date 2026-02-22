@@ -2,18 +2,34 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { FaQuestionCircle } from "react-icons/fa";
 import { useLanguage } from "../../Context/LanguageProvider";
-import { api } from "../../api/axios"; // ✅ your axios instance
+import { api } from "../../api/axios";
+import { toast } from "react-toastify";
 
-/**
- * ✅ Withdraw Page (Dynamic methods from API)
- * - Loads active withdraw methods from API
- * - When user selects a method, shows dynamic fields (from method.fields)
- * - Keeps Withdrawable Amount block EXACTLY as you requested ✅
- */
+// ✅ Redux selectors
+import { useSelector } from "react-redux";
+import {
+  selectUser,
+  selectIsAuthenticated,
+  selectIsActiveUser,
+} from "../../features/auth/authSelectors";
 
 const Withdraw = () => {
   const { isBangla } = useLanguage();
   const t = (bn, en) => (isBangla ? bn : en);
+
+  // ✅ auth
+  const user = useSelector(selectUser);
+  const isAuthed = useSelector(selectIsAuthenticated);
+  const isActiveUser = useSelector(selectIsActiveUser);
+
+  // ✅ derive phoneVerified from user (fallback safe)
+  // আপনার user schema তে যেটা আছে সেটার সাথে মিলিয়ে নিতে পারবেন:
+  // e.g. user.phoneVerified / user.isPhoneVerified / user.verified?.phone
+  const phoneVerified =
+    user?.phoneVerified === true ||
+    user?.isPhoneVerified === true ||
+    user?.verified?.phone === true ||
+    false;
 
   // notices (same)
   const notices = useMemo(
@@ -68,18 +84,11 @@ const Withdraw = () => {
   const loadMethods = async () => {
     try {
       setLoadingMethods(true);
-
-      // ✅ choose your public endpoint
-      // const res = await api.get("/api/withdraw-methods/public");
       const res = await api.get("/api/withdraw-methods");
-
-      // supports either: {success:true,data:[...]} OR direct array
       const rows = res?.data?.data || res?.data || [];
       setMethods(Array.isArray(rows) ? rows : []);
     } catch (e) {
       setMethods([]);
-      // optional toast if you want
-      // toast.error(e?.response?.data?.message || "Failed to load withdraw methods");
       console.error("Failed to load withdraw methods", e);
     } finally {
       setLoadingMethods(false);
@@ -90,13 +99,59 @@ const Withdraw = () => {
     loadMethods();
   }, []);
 
+  // ───────────────────────────────
+  // ✅ Eligibility: turnover পূরণ হয়েছে কিনা
+  // ───────────────────────────────
+  const [eligLoading, setEligLoading] = useState(false);
+  const [elig, setElig] = useState({
+    eligible: true,
+    hasRunningTurnover: false,
+    remaining: 0,
+    message: "",
+  });
+
+  const loadEligibility = async () => {
+    // ✅ not logged in -> don't call
+    if (!isAuthed) {
+      setElig({
+        eligible: false,
+        hasRunningTurnover: false,
+        remaining: 0,
+        message: t("উইথড্র করার জন্য লগইন করুন।", "Please login to withdraw."),
+      });
+      return;
+    }
+
+    try {
+      setEligLoading(true);
+      const { data } = await api.get("/api/withdraw-requests/eligibility");
+      const payload = data?.data || data || {};
+      setElig({
+        eligible: !!payload.eligible,
+        hasRunningTurnover: !!payload.hasRunningTurnover,
+        remaining: Number(payload.remaining || 0),
+        message: payload.message || "",
+      });
+    } catch (e) {
+      // eligibility call fail হলেও hard-block না
+      setElig((p) => ({ ...p, eligible: true }));
+    } finally {
+      setEligLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadEligibility();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthed]);
+
   // selected method
   const [selectedId, setSelectedId] = useState("");
   const selectedMethod = useMemo(() => {
     if (!methods.length) return null;
-    const found =
-      methods.find((m) => String(m.methodId) === String(selectedId)) || null;
-    return found;
+    return (
+      methods.find((m) => String(m.methodId) === String(selectedId)) || null
+    );
   }, [methods, selectedId]);
 
   // ensure default selected
@@ -117,16 +172,13 @@ const Withdraw = () => {
       next[f.key] = "";
     });
     setFormValues(next);
-  }, [selectedMethod?._id]); // use id to reset only when method changes
+  }, [selectedMethod?._id]);
 
   const setVal = (key, value) => {
     setFormValues((p) => ({ ...p, [key]: value }));
   };
 
-  // 🔒 Example state (later redux / api থেকে আনবে)
-  const phoneVerified = false;
-
-  // amount states (keep your UI block)
+  // amount states
   const [amount, setAmount] = useState("");
   const min = 500;
   const max = 30000;
@@ -148,17 +200,13 @@ const Withdraw = () => {
         return;
       }
 
-      // Optional simple validation by type
       if (v) {
         if (f.type === "email") {
           const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
           if (!ok) errs[f.key] = t("সঠিক ইমেইল দিন", "Enter a valid email");
         }
         if (f.type === "tel") {
-          // BD format check (only if looks like BD number)
-          // If you want strict BD-only, keep it. Otherwise relax.
           const bdOk = /^01[3-9]\d{8}$/.test(v);
-          // only enforce if user inputs 11 digits starting 01
           if (v.startsWith("01") && v.length >= 11 && !bdOk) {
             errs[f.key] = t(
               "সঠিক বাংলাদেশি ফোন নাম্বার দিন (01XXXXXXXXX)",
@@ -190,20 +238,58 @@ const Withdraw = () => {
 
   const noTypeErrors = Object.keys(fieldErrors).length === 0;
 
-  const canSubmit =
-    !!selectedMethod && validAmount && allRequiredOk && noTypeErrors;
+  // ✅ overall gate
+  const accountOk = isAuthed && isActiveUser;
 
-  const onSubmit = () => {
+  const canSubmit =
+    accountOk &&
+    !!selectedMethod &&
+    validAmount &&
+    allRequiredOk &&
+    noTypeErrors &&
+    elig.eligible;
+
+  const [submitting, setSubmitting] = useState(false);
+
+  const onSubmit = async () => {
+    if (!canSubmit || submitting) return;
+
     const payload = {
       methodId: selectedMethod?.methodId,
       amount: amountNum,
-      fields: { ...formValues }, // dynamic fields
+      fields: { ...formValues },
     };
 
-    console.log("withdraw payload:", payload);
+    try {
+      setSubmitting(true);
 
-    // TODO: call your withdraw request API
-    // await api.post("/api/withdraw", payload)
+      const { data } = await api.post("/api/withdraw-requests", payload);
+
+      toast.success(
+        isBangla
+          ? "উইথড্র রিকোয়েস্ট সাবমিট হয়েছে!"
+          : "Withdraw request submitted!",
+      );
+
+      // reset inputs
+      setAmount("");
+      const next = {};
+      (selectedMethod?.fields || []).forEach((f) => (next[f.key] = ""));
+      setFormValues(next);
+
+      // refresh eligibility
+      loadEligibility();
+
+      console.log("withdraw created:", data);
+    } catch (e) {
+      toast.error(
+        e?.response?.data?.message ||
+          t("উইথড্র রিকোয়েস্ট ব্যর্থ হয়েছে", "Withdraw request failed"),
+      );
+      loadEligibility();
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -215,6 +301,63 @@ const Withdraw = () => {
           <div className="text-[20px] font-extrabold text-black">
             {t("উইথড্র", "Withdrawal")}
           </div>
+
+          {/* ✅ Auth / Active warnings */}
+          {!isAuthed && (
+            <div className="mt-4 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+              <div className="text-[14px] font-extrabold text-yellow-800">
+                {t("লগইন প্রয়োজন", "Login Required")}
+              </div>
+              <div className="mt-1 text-[13px] text-yellow-800/90">
+                {t(
+                  "উইথড্র করার জন্য অনুগ্রহ করে লগইন করুন।",
+                  "Please login to submit a withdraw request.",
+                )}
+              </div>
+            </div>
+          )}
+
+          {isAuthed && !isActiveUser && (
+            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4">
+              <div className="text-[14px] font-extrabold text-red-700">
+                {t("একাউন্ট নিষ্ক্রিয়", "Account Inactive")}
+              </div>
+              <div className="mt-1 text-[13px] text-red-700/90">
+                {t(
+                  "আপনার একাউন্ট বর্তমানে নিষ্ক্রিয়। সাপোর্টে যোগাযোগ করুন।",
+                  "Your account is inactive. Please contact support.",
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ✅ Turnover warning */}
+          {isAuthed && !eligLoading && !elig.eligible && (
+            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4">
+              <div className="text-[14px] font-extrabold text-red-700">
+                {t("উইথড্র করা যাবে না", "Withdrawal Not Allowed")}
+              </div>
+              <div className="mt-1 text-[13px] text-red-700/90">
+                {elig.message ||
+                  t(
+                    "আপনার টার্নওভার চলমান আছে। উইথড্র করার আগে টার্নওভার পূরণ করুন।",
+                    "You have an active turnover. Complete it before withdrawing.",
+                  )}
+              </div>
+              {elig.remaining > 0 && (
+                <div className="mt-2 text-[13px] font-bold text-red-700">
+                  {t("বাকি টার্নওভার:", "Remaining turnover:")} ৳{" "}
+                  {elig.remaining.toLocaleString()}
+                </div>
+              )}
+            </div>
+          )}
+
+          {isAuthed && eligLoading && (
+            <div className="mt-4 text-[12px] text-black/50">
+              {t("টার্নওভার চেক করা হচ্ছে…", "Checking turnover…")}
+            </div>
+          )}
 
           {/* Withdrawal Options */}
           <div className="mt-5">
@@ -240,6 +383,7 @@ const Withdraw = () => {
                       key={m._id || m.methodId}
                       type="button"
                       onClick={() => setSelectedId(m.methodId)}
+                      disabled={!accountOk}
                       className={`
                         h-[56px] w-[92px] sm:w-[110px]
                         rounded-md border-2 bg-white
@@ -250,6 +394,7 @@ const Withdraw = () => {
                             ? "border-[#f5c400] shadow-[0_8px_18px_rgba(0,0,0,0.08)]"
                             : "border-black/20 hover:border-black/35"
                         }
+                        ${!accountOk ? "opacity-60 cursor-not-allowed" : ""}
                       `}
                       title={m?.name?.en || m?.methodId}
                     >
@@ -289,7 +434,7 @@ const Withdraw = () => {
             )}
           </div>
 
-          {/* Dynamic Fields (from selected method.fields) */}
+          {/* Dynamic Fields */}
           {!!selectedMethod?.fields?.length && (
             <div className="mt-6">
               <div className="text-[14px] font-semibold text-black">
@@ -316,16 +461,18 @@ const Withdraw = () => {
                       </label>
 
                       <input
-                        type={f.type === "number" ? "text" : f.type} // keep numeric typing stable on mobile
+                        disabled={!accountOk}
+                        type={f.type === "number" ? "text" : f.type}
                         value={formValues?.[f.key] ?? ""}
                         onChange={(e) => setVal(f.key, e.target.value)}
                         placeholder={placeholder || ""}
-                        className="
+                        className={`
                           mt-3 w-full h-[44px]
                           rounded-lg border border-black/20 bg-white
                           px-4 text-[14px] outline-none
                           focus:ring-2 focus:ring-black/10
-                        "
+                          ${!accountOk ? "opacity-60 cursor-not-allowed" : ""}
+                        `}
                         inputMode={f.type === "number" ? "numeric" : undefined}
                       />
 
@@ -339,7 +486,6 @@ const Withdraw = () => {
                 })}
               </div>
 
-              {/* optional verified note */}
               {!phoneVerified && (
                 <div className="mt-3 max-w-[520px] text-[12px] text-black/55">
                   {t(
@@ -351,7 +497,6 @@ const Withdraw = () => {
             </div>
           )}
 
-          {/* ✅ KEEP THIS BLOCK ALWAYS (UNCHANGED) */}
           {/* Withdrawable Amount */}
           <div className="mt-6">
             <div className="flex items-center justify-between gap-3 max-w-[520px]">
@@ -364,15 +509,17 @@ const Withdraw = () => {
 
             <div className="mt-3 max-w-[520px]">
               <input
+                disabled={!accountOk}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder={`${t("Min", "Min")} ৳ ${min.toLocaleString()} - ${t("Max", "Max")} ৳ ${max.toLocaleString()}`}
-                className="
+                className={`
                   w-full h-[44px]
                   rounded-lg border border-black/20 bg-white
                   px-4 text-[14px] outline-none
                   focus:ring-2 focus:ring-black/10
-                "
+                  ${!accountOk ? "opacity-60 cursor-not-allowed" : ""}
+                `}
                 inputMode="numeric"
               />
 
@@ -391,20 +538,22 @@ const Withdraw = () => {
           <div className="mt-7 max-w-[520px]">
             <button
               type="button"
-              disabled={!canSubmit}
+              disabled={!canSubmit || submitting}
               className={`
                 w-full h-[48px] rounded-full
                 font-extrabold text-[14px]
                 transition
                 ${
-                  canSubmit
+                  canSubmit && !submitting
                     ? "bg-black cursor-pointer text-white hover:brightness-95 active:scale-[0.99]"
                     : "bg-[#e5e5e5] text-black/30 cursor-not-allowed"
                 }
               `}
               onClick={onSubmit}
             >
-              {t("WITHDRAWAL", "WITHDRAWAL")}
+              {submitting
+                ? t("Submitting…", "Submitting…")
+                : t("WITHDRAWAL", "WITHDRAWAL")}
             </button>
 
             <div className="mt-2 text-[12px] text-black/55">
@@ -414,18 +563,29 @@ const Withdraw = () => {
               )}
             </div>
 
-            {/* Debug reason (optional helper) */}
-            {!canSubmit && (
+            {!canSubmit && !submitting && (
               <div className="mt-2 text-[12px] text-black/45">
-                {!selectedMethod
-                  ? t("একটি মেথড সিলেক্ট করুন।", "Select a method.")
-                  : !allRequiredOk
-                    ? t("সব আবশ্যক ঘর পূরণ করুন।", "Fill all required fields.")
-                    : !noTypeErrors
-                      ? t("কিছু ইনপুট ভুল আছে।", "Some inputs are invalid.")
-                      : !validAmount
-                        ? t("Amount সঠিক নয়।", "Amount is invalid.")
-                        : null}
+                {!isAuthed
+                  ? t("লগইন করুন।", "Please login.")
+                  : !isActiveUser
+                    ? t("একাউন্ট নিষ্ক্রিয়।", "Account inactive.")
+                    : !elig.eligible
+                      ? t("টার্নওভার পূরণ করুন।", "Complete turnover first.")
+                      : !selectedMethod
+                        ? t("একটি মেথড সিলেক্ট করুন।", "Select a method.")
+                        : !allRequiredOk
+                          ? t(
+                              "সব আবশ্যক ঘর পূরণ করুন।",
+                              "Fill all required fields.",
+                            )
+                          : !noTypeErrors
+                            ? t(
+                                "কিছু ইনপুট ভুল আছে।",
+                                "Some inputs are invalid.",
+                              )
+                            : !validAmount
+                              ? t("Amount সঠিক নয়।", "Amount is invalid.")
+                              : null}
               </div>
             )}
           </div>

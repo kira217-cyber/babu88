@@ -41,6 +41,10 @@ import AddGameCategory from "../pages/AddGameCategory/AddGameCategory";
 import AddProvider from "../pages/AddProvider/AddProvider";
 import AddGame from "../pages/AddGame/AddGame";
 import AddWithdraw from "../pages/AddWithdraw/AddWithdraw";
+import DepositRequestDetails from "../pages/DepositRequestDetails/DepositRequestDetails";
+import DepositRequest from "../pages/DepositRequest/DepositRequest";
+import WithdrawRequest from "../pages/WithdrawRequest/WithdrawRequest";
+import WithdrawRequestDetails from "../pages/WithdrawRequestDetails/WithdrawRequestDetails";
 
 export const routes = createBrowserRouter([
   {
@@ -214,6 +218,22 @@ export const routes = createBrowserRouter([
         ),
       },
       {
+        path: "deposit-request",
+        element: (
+          <PrivateRoute permKey="deposit-request">
+            <DepositRequest />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "/deposit-request/:id",
+        element: (
+          <PrivateRoute permKey="deposit-request-details">
+            <DepositRequestDetails />
+          </PrivateRoute>
+        ),
+      },
+      {
         path: "add-withdraw",
         element: (
           <PrivateRoute permKey="add-withdraw">
@@ -221,7 +241,23 @@ export const routes = createBrowserRouter([
           </PrivateRoute>
         ),
       },
-       {
+      {
+        path: "withdraw-request",
+        element: (
+          <PrivateRoute permKey="withdraw-request">
+            <WithdrawRequest />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "/withdraw-request/:id",
+        element: (
+          <PrivateRoute permKey="withdraw-request-details">
+            <WithdrawRequestDetails />
+          </PrivateRoute>
+        ),
+      },
+      {
         path: "add-game-category",
         element: (
           <PrivateRoute permKey="add-game-category">
@@ -237,7 +273,7 @@ export const routes = createBrowserRouter([
           </PrivateRoute>
         ),
       },
-       {
+      {
         path: "add-game",
         element: (
           <PrivateRoute permKey="add-game">

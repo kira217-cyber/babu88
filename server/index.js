@@ -63,7 +63,9 @@ import playGameRoutes from "./routes/playGameRoutes.js";
 import betHistoryRoutes from "./routes/betHistoryRoutes.js";
 import meRoutes from "./routes/meRoutes.js";
 import withdrawMethodRoutes from "./routes/withdrawMethodRoutes.js";
-
+import depositRequestsRoutes from "./routes/depositRequestsRoutes.js";
+import turnOverRoutes from "./routes/turnOverRoutes.js";
+import withdrawRequestRoutes from "./routes/WithdrawRequestsRoutes.js";
 
 
 
@@ -152,6 +154,9 @@ app.use("/api/play-game", playGameRoutes);
 app.use("/api", betHistoryRoutes);
 app.use("/api", meRoutes); 
 app.use("/api", withdrawMethodRoutes);
+app.use("/api", depositRequestsRoutes);
+app.use("/api", turnOverRoutes);
+app.use("/api/withdraw-requests", withdrawRequestRoutes);
 
 
 
