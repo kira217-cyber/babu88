@@ -217,6 +217,50 @@ router.get("/me/balance", async (req, res) => {
   }
 });
 
+router.get("/aff/me/balance", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization || "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+
+    if (!token) {
+      return res.status(401).json({ message: "Unauthorized (no token)" });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (e) {
+      return res.status(401).json({ message: "Invalid token" });
+    }
+
+    const userId = decoded.id;
+
+    const user = await User.findById(userId).select(
+      "balance currency role isActive",
+    );
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (user.role !== "aff-user") {
+      return res.status(403).json({ message: "Only affiliate user allowed" });
+    }
+
+    if (user.isActive !== true) {
+      return res.status(403).json({ message: "Account disabled" });
+    }
+
+    return res.json({
+      balance: user.balance || 0,
+      currency: user.currency || "BDT",
+    });
+  } catch (err) {
+    return res.status(500).json({
+      message: "Server error",
+      error: err.message,
+    });
+  }
+});
+
 /**
  * ============================
  * ✅ Affiliate Register (role: aff-user)

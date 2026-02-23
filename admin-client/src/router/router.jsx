@@ -45,6 +45,8 @@ import DepositRequestDetails from "../pages/DepositRequestDetails/DepositRequest
 import DepositRequest from "../pages/DepositRequest/DepositRequest";
 import WithdrawRequest from "../pages/WithdrawRequest/WithdrawRequest";
 import WithdrawRequestDetails from "../pages/WithdrawRequestDetails/WithdrawRequestDetails";
+import AddAutoDeposit from "../pages/AddAutoDeposit/AddAutoDeposit";
+import AutoDepositHistory from "../pages/AutoDepositHistory/AutoDepositHistory";
 
 export const routes = createBrowserRouter([
   {
@@ -214,6 +216,22 @@ export const routes = createBrowserRouter([
         element: (
           <PrivateRoute permKey="add-deposit">
             <AddDeposit />
+          </PrivateRoute>
+        ),
+      },
+       {
+        path: "add-auto-deposit",
+        element: (
+          <PrivateRoute permKey="add-auto-deposit">
+            <AddAutoDeposit />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "auto-deposit-history",
+        element: (
+          <PrivateRoute permKey="auto-deposit-history">
+            <AutoDepositHistory />
           </PrivateRoute>
         ),
       },

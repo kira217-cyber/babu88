@@ -25,6 +25,7 @@ import {
   FaLayerGroup,
   FaServer,
   FaStream,
+  FaHistory,
 } from "react-icons/fa";
 import { IoAppsSharp } from "react-icons/io5";
 import { GrAnnounce, GrUserAdmin } from "react-icons/gr";
@@ -172,6 +173,18 @@ const Sidebar = () => {
         icon: <FaCodePullRequest />,
         text: "Deposit Request",
       },
+      {
+        perm: "add-auto-deposit",
+        to: "/add-auto-deposit",
+        icon: <FaCog />,
+        text: "Auto Deposit Setting",
+      },
+      {
+        perm: "auto-deposit-history",
+        to: "/auto-deposit-history",
+        icon: <FaHistory className="text-amber-400" />,
+        text: "Auto Deposit History",
+      }
     ],
     [],
   );

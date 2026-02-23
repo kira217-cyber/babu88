@@ -5,6 +5,7 @@ import { useLanguage } from "../../Context/LanguageProvider";
 import DepositHistory from "../../components/DepositHistory/DepositHistory";
 import TurnOverHistory from "../../components/TurnOverHistory/TurnOverHistory";
 import WithdrawHistory from "../../components/WithdrawHistory/WithdrawHistory";
+import AutoDepositHistory from "../../components/AutoDepositHistory/AutoDepositHistory";
 
 // ✅ Placeholder sections (replace with your real components later)
 // const DepositHistory = () => (
@@ -80,15 +81,16 @@ const History = () => {
         component: <DepositHistory />,
       },
       {
+        id: "auto-deposit",
+        name: t("অটো ডিপোজিট হিস্ট্রি", "Auto Deposit History"),
+        component: <AutoDepositHistory />,
+      },
+      {
         id: "withdraw",
         name: t("উইথড্রল হিস্ট্রি", "Withdrawal History"),
         component: <WithdrawHistory />,
       },
-      {
-        id: "transfer",
-        name: t("ট্রান্সফার হিস্ট্রি", "Transfer History"),
-        component: <TransferHistory />,
-      },
+      
       {
         id: "bonus",
         name: t("বোনাস হিস্ট্রি", "Bonus History"),

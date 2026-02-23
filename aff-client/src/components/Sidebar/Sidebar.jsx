@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { NavLink, Link, Outlet } from "react-router";
 import {
   FaHome,
@@ -17,14 +17,79 @@ import {
 import { RxHamburgerMenu } from "react-icons/rx";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../features/auth/authSlice";
+
+// ✅ NEW: same as Navbar
+import { TfiReload } from "react-icons/tfi";
+import { api } from "../../api/axios";
+import { selectAuth } from "../../features/auth/authSelectors";
+
+// ✅ balance fetch (direct API)
+const fetchMyBalance = async (token) => {
+  const { data } = await api.get("/api/users/aff/me/balance", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return data; // { balance, currency }
+};
 
 const Sidebar = () => {
   const [open, setOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
 
   const dispatch = useDispatch();
+
+  // ✅ NEW: auth token (don't change other functionality)
+  const auth = useSelector(selectAuth);
+  const token = auth?.token;
+
+  // ✅ NEW: balance state (like Navbar)
+  const [balanceState, setBalanceState] = useState(0);
+  const [currencyState, setCurrencyState] = useState("BDT");
+  const [balReloading, setBalReloading] = useState(false);
+
+  const currencySymbol = useMemo(() => {
+    return currencyState === "USDT" ? "$" : "৳";
+  }, [currencyState]);
+
+  // ✅ initial balance fetch when token available
+  useEffect(() => {
+    let mounted = true;
+    const run = async () => {
+      if (!token) return;
+      try {
+        const d = await fetchMyBalance(token);
+        if (!mounted) return;
+        const b = Number(d?.balance) || 0;
+        const c = d?.currency || "BDT";
+        setBalanceState(b);
+        setCurrencyState(c);
+      } catch {
+        // silent (same behavior as navbar)
+      }
+    };
+    run();
+    return () => {
+      mounted = false;
+    };
+  }, [token]);
+
+  // ✅ reload balance
+  const reloadBalance = useCallback(async () => {
+    if (!token) return;
+    try {
+      setBalReloading(true);
+      const d = await fetchMyBalance(token);
+      const b = Number(d?.balance) || 0;
+      const c = d?.currency || "BDT";
+      setBalanceState(b);
+      setCurrencyState(c);
+    } catch (e) {
+      toast.error("Balance refresh failed", { autoClose: 1800 });
+    } finally {
+      setBalReloading(false);
+    }
+  }, [token]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -50,10 +115,17 @@ const Sidebar = () => {
     { to: "/dashboard", icon: <FaHome />, text: "Dashboard", end: true },
     { to: "/dashboard/my-refer", icon: <FaUsers />, text: "My Referrals" },
     { to: "/dashboard/commissions", icon: <FaWallet />, text: "Commissions" },
-    { to: "/dashboard/stats", icon: <FaChartLine />, text: "Statistics" },
-    { to: "/dashboard/promotions", icon: <FaBullhorn />, text: "Promotions" },
-    { to: "/dashboard/social-links", icon: <FaLink />, text: "Social Links" },
-    { to: "/dashboard/banner", icon: <FaImage />, text: "Banners" },
+    { to: "/dashboard/withdraw", icon: <FaChartLine />, text: "Withdraw" },
+    {
+      to: "/dashboard/withdraw-history",
+      icon: <FaBullhorn />,
+      text: "Withdraw-History",
+    },
+    {
+      to: "/dashboard/transfer-balance",
+      icon: <FaLink />,
+      text: "Transfer-Balance",
+    },
     { to: "/dashboard/settings", icon: <FaCog />, text: "Settings" },
   ];
 
@@ -69,10 +141,29 @@ const Sidebar = () => {
         </button>
 
         <div className="flex items-center gap-5">
-          <button className="relative p-1.5 cursor-pointer">
-            <FaBell className="text-xl text-white hover:text-cyan-200 transition-colors" />
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-red-400/70"></span>
-          </button>
+          {/* (mobile) unchanged */}
+          {/* ✅ UPDATED: Balance pill (replaces bell button) */}
+          <div className="h-11 rounded-xl bg-gray-900/60 border border-cyan-700/50 px-4 flex items-center gap-3 shadow-sm">
+            <div className="text-[12px] font-extrabold text-cyan-200/90">
+              Balance
+            </div>
+            <div className="text-[15px] font-extrabold text-white tabular-nums">
+              {currencySymbol} {Number(balanceState).toFixed(2)}
+            </div>
+
+            <button
+              type="button"
+              onClick={reloadBalance}
+              disabled={balReloading || !token}
+              className="ml-1 inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-cyan-900/40 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              title="Reload balance"
+              aria-label="Reload balance"
+            >
+              <span className={balReloading ? "animate-spin" : ""}>
+                <TfiReload className="text-cyan-200" />
+              </span>
+            </button>
+          </div>
           <Link to="/dashboard/profile" className="cursor-pointer">
             <FaUserCircle className="text-2xl text-white hover:text-cyan-200 transition-colors" />
           </Link>
@@ -185,10 +276,30 @@ const Sidebar = () => {
             </div>
 
             <div className="flex items-center gap-6">
-              <button className="relative p-2.5 hover:bg-cyan-900/50 rounded-xl transition-colors cursor-pointer">
-                <FaBell className="text-xl text-cyan-300 hover:text-white transition-colors" />
-                <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-red-400/60"></span>
-              </button>
+              {/* ✅ UPDATED: Balance pill (replaces bell button) */}
+              <div className="h-11 rounded-xl bg-gray-900/60 border border-cyan-700/50 px-4 flex items-center gap-3 shadow-sm">
+                <div className="text-[12px] font-extrabold text-cyan-200/90">
+                  Balance
+                </div>
+                <div className="text-[15px] font-extrabold text-white tabular-nums">
+                  {currencySymbol} {Number(balanceState).toFixed(2)}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={reloadBalance}
+                  disabled={balReloading || !token}
+                  className="ml-1 inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-cyan-900/40 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                  title="Reload balance"
+                  aria-label="Reload balance"
+                >
+                  <span className={balReloading ? "animate-spin" : ""}>
+                    <TfiReload className="text-cyan-200" />
+                  </span>
+                </button>
+              </div>
+
+              {/* Profile Icon (unchanged) */}
               <Link
                 to="/dashboard/profile"
                 className="p-1 hover:bg-cyan-900/50 rounded-full transition-colors cursor-pointer"
@@ -199,7 +310,7 @@ const Sidebar = () => {
           </div>
 
           {/* Page Content */}
-          <main className="flex-1 overflow-y-auto scrollbar-hide">
+          <main className="flex-1 overflow-y-auto [scrollbar-width:none]">
             <div className="h-full">
               <div className="mt-16 md:mt-0 p-4 lg:p-6">
                 <Outlet />

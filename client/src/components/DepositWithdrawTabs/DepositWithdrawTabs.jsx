@@ -8,7 +8,7 @@ const TabItem = ({ to, label }) => {
       end
       className={({ isActive }) =>
         `
-        relative px-6 py-3 text-[15px] font-extrabold tracking-wide
+        relative px-4 py-3 text-[15px] font-extrabold tracking-wide
         transition
         ${
           isActive
@@ -40,8 +40,9 @@ const TabItem = ({ to, label }) => {
 const DepositWithdrawTabs = () => {
   return (
     <div className="block md:hidden w-full bg-black border-b border-white/10">
-      <div className="flex items-center justify-between gap-2 px-8">
+      <div className="flex items-center justify-between gap-2">
         <TabItem to="/profile/deposit" label="Deposit" />
+        <TabItem to="/profile/auto-deposit" label="Auto Deposit" />
         <TabItem to="/profile/withdraw" label="Withdrawal" />
       </div>
     </div>

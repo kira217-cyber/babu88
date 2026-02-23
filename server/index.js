@@ -66,7 +66,8 @@ import withdrawMethodRoutes from "./routes/withdrawMethodRoutes.js";
 import depositRequestsRoutes from "./routes/depositRequestsRoutes.js";
 import turnOverRoutes from "./routes/turnOverRoutes.js";
 import withdrawRequestRoutes from "./routes/WithdrawRequestsRoutes.js";
-
+import autoDepositRoutes from "./routes/AutoDepositRoutes.js";
+import affiliateRoutes from "./routes/affiliateRoutes.js";
 
 
 
@@ -157,7 +158,8 @@ app.use("/api", withdrawMethodRoutes);
 app.use("/api", depositRequestsRoutes);
 app.use("/api", turnOverRoutes);
 app.use("/api/withdraw-requests", withdrawRequestRoutes);
-
+app.use("/api/auto-deposit", autoDepositRoutes);
+app.use("/api/affiliate", affiliateRoutes);
 
 
 // ✅ port
