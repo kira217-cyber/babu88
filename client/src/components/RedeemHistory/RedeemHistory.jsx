@@ -19,10 +19,12 @@ const money = (n, symbol = "৳") => {
 };
 
 const chipClass = (status) => {
-  const s = String(status || "running").toLowerCase();
-  if (s === "completed")
+  const s = String(status || "completed").toLowerCase();
+  if (s === "completed" || s === "success")
     return "bg-emerald-500/15 text-emerald-300 border-emerald-400/30";
-  return "bg-yellow-500/15 text-black border-yellow-400/30"; // running
+  if (s === "pending")
+    return "bg-yellow-500/15 text-yellow-300 border-yellow-400/30";
+  return "bg-red-500/15 text-red-300 border-red-400/30";
 };
 
 const FieldRow = ({ k, v }) => (
@@ -34,7 +36,7 @@ const FieldRow = ({ k, v }) => (
   </div>
 );
 
-const TurnOverHistory = () => {
+const RedeemHistory = () => {
   const { isBangla } = useLanguage();
   const t = (bn, en) => (isBangla ? bn : en);
 
@@ -42,7 +44,7 @@ const TurnOverHistory = () => {
   const [meta, setMeta] = useState({ page: 1, limit: 10, total: 0 });
   const [loading, setLoading] = useState(false);
 
-  const [status, setStatus] = useState("all"); // all|running|completed
+  const [status, setStatus] = useState("all"); // all|pending|completed|failed
   const [qInput, setQInput] = useState("");
   const [q, setQ] = useState("");
 
@@ -56,14 +58,9 @@ const TurnOverHistory = () => {
 
   const statusLabel = (s) => {
     const st = String(s || "").toLowerCase();
-    if (st === "completed") return t("সম্পন্ন", "Completed");
-    return t("চলমান", "Running");
-  };
-
-  const sourceLabel = (type) => {
-    const st = String(type || "").toLowerCase();
-    if (st === "redeem") return t("রিডিম", "Redeem");
-    return t("ডিপোজিট", "Deposit");
+    if (st === "pending") return t("পেন্ডিং", "Pending");
+    if (st === "failed" || st === "rejected") return t("ব্যর্থ", "Failed");
+    return t("সম্পন্ন", "Completed");
   };
 
   const fetchData = async (page = meta.page) => {
@@ -71,7 +68,7 @@ const TurnOverHistory = () => {
       setLoading(true);
 
       const params = { page, limit: meta.limit };
-      const { data } = await api.get("/api/turnovers/my", { params });
+      const { data } = await api.get("/api/redeem/my", { params });
 
       const items = data?.data || [];
       const total = data?.meta?.total ?? items.length;
@@ -86,10 +83,7 @@ const TurnOverHistory = () => {
     } catch (err) {
       toast.error(
         err?.response?.data?.message ||
-          t(
-            "টার্নওভার হিস্টরি লোড করা যায়নি",
-            "Failed to load turnover history",
-          ),
+          t("রিডিম হিস্টরি লোড করা যায়নি", "Failed to load redeem history"),
       );
     } finally {
       setLoading(false);
@@ -110,28 +104,28 @@ const TurnOverHistory = () => {
     let items = Array.isArray(list) ? list : [];
 
     if (status !== "all") {
-      items = items.filter(
-        (x) => String(x?.status || "running").toLowerCase() === status,
-      );
+      items = items.filter((x) => {
+        const st = String(x?.status || "completed").toLowerCase();
+        if (status === "completed")
+          return st === "completed" || st === "success";
+        if (status === "failed") return st === "failed" || st === "rejected";
+        return st === status;
+      });
     }
 
     if (q) {
       items = items.filter((x) => {
         const id = String(x?._id || "").toLowerCase();
         const st = String(x?.status || "").toLowerCase();
-        const srcType = String(x?.sourceType || "").toLowerCase();
-        const srcId = String(x?.sourceId || "").toLowerCase();
-        const required = String(x?.required ?? "").toLowerCase();
-        const progress = String(x?.progress ?? "").toLowerCase();
-        const credited = String(x?.creditedAmount ?? "").toLowerCase();
+        const amount = String(x?.amount ?? "").toLowerCase();
+        const currency = String(x?.currency || "").toLowerCase();
+        const note = String(x?.note || x?.adminNote || "").toLowerCase();
         return (
           id.includes(q) ||
           st.includes(q) ||
-          srcType.includes(q) ||
-          srcId.includes(q) ||
-          required.includes(q) ||
-          progress.includes(q) ||
-          credited.includes(q)
+          amount.includes(q) ||
+          currency.includes(q) ||
+          note.includes(q)
         );
       });
     }
@@ -146,12 +140,12 @@ const TurnOverHistory = () => {
         <div className="p-5 sm:p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
             <div className="text-[18px] font-extrabold text-black">
-              {t("টার্নওভার হিস্টরি", "Turnover History")}
+              {t("রিডিম হিস্টরি", "Redeem History")}
             </div>
             <div className="mt-1 text-[12px] text-black/55">
               {t(
-                "ডিপোজিট বা রিডিম থেকে তৈরি হওয়া আপনার টার্নওভার তালিকা।",
-                "Your turnover list created from deposit or redeem.",
+                "রেফারেল ওয়ালেট থেকে করা রিডিম লেনদেন (পেন্ডিং / সম্পন্ন / ব্যর্থ)।",
+                "Your redeem transactions (pending / completed / failed).",
               )}
             </div>
           </div>
@@ -174,8 +168,8 @@ const TurnOverHistory = () => {
                 value={qInput}
                 onChange={(e) => setQInput(e.target.value)}
                 placeholder={t(
-                  "সার্চ: source / required / progress / id...",
-                  "Search: source / required / progress / id...",
+                  "সার্চ: id / amount / status / note...",
+                  "Search: id / amount / status / note...",
                 )}
                 className="w-full pl-11 pr-4 py-3 rounded-xl bg-white border border-black/15 text-black placeholder-black/30 outline-none focus:ring-2 focus:ring-black/10"
               />
@@ -191,8 +185,9 @@ const TurnOverHistory = () => {
                 className="w-full py-3 px-3 rounded-xl bg-white border border-black/15 text-black outline-none focus:ring-2 focus:ring-black/10"
               >
                 <option value="all">{t("সবগুলো", "All")}</option>
-                <option value="running">{t("চলমান", "Running")}</option>
+                <option value="pending">{t("পেন্ডিং", "Pending")}</option>
                 <option value="completed">{t("সম্পন্ন", "Completed")}</option>
+                <option value="failed">{t("ব্যর্থ", "Failed")}</option>
               </select>
             </div>
 
@@ -223,13 +218,10 @@ const TurnOverHistory = () => {
                     ? new Date(r.createdAt).toLocaleString()
                     : "—";
 
-                  const st = String(r?.status || "running");
-                  const required = Number(r?.required || 0);
-                  const progress = Number(r?.progress || 0);
-                  const remaining = Math.max(0, required - progress);
-                  const credited = Number(r?.creditedAmount || 0);
-                  const srcType = String(r?.sourceType || "deposit");
-                  const srcId = String(r?.sourceId || "—");
+                  const statusText = String(r?.status || "completed");
+                  const amount = Number(r?.amount || 0);
+                  const currency = String(r?.currency || "BDT").toUpperCase();
+                  const sym = currency === "USDT" ? "$" : "৳";
 
                   return (
                     <div key={r._id} className="bg-white">
@@ -242,19 +234,19 @@ const TurnOverHistory = () => {
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-[14px] font-extrabold text-black">
-                                {t("সোর্স:", "Source:")} {sourceLabel(srcType)}
+                                {t("রিডিম", "Redeem")}
                               </span>
 
                               <span
                                 className={`inline-flex items-center px-3 py-1 rounded-full text-[11px] font-extrabold border ${chipClass(
-                                  st === "completed" ? "approved" : "pending",
+                                  statusText,
                                 )}`}
                               >
-                                {statusLabel(st)}
+                                {statusLabel(statusText)}
                               </span>
 
-                              <span className="text-[12px] text-black/45 break-all">
-                                {t("Source ID:", "Source ID:")} {srcId}
+                              <span className="text-[12px] text-black/45">
+                                {t("কারেন্সি:", "Currency:")} {currency}
                               </span>
                             </div>
 
@@ -266,19 +258,10 @@ const TurnOverHistory = () => {
                           <div className="flex items-center gap-4">
                             <div className="text-right">
                               <div className="text-[12px] text-black/45">
-                                {t("রিকোয়ার্ড", "Required")}
+                                {t("এমাউন্ট", "Amount")}
                               </div>
                               <div className="text-[14px] font-extrabold text-black">
-                                {money(required)}
-                              </div>
-                            </div>
-
-                            <div className="text-right">
-                              <div className="text-[12px] text-black/45">
-                                {t("প্রোগ্রেস", "Progress")}
-                              </div>
-                              <div className="text-[14px] font-extrabold text-black">
-                                {money(progress)}
+                                {money(amount, sym)}
                               </div>
                             </div>
 
@@ -301,45 +284,33 @@ const TurnOverHistory = () => {
                                 <div className="mt-3 space-y-2">
                                   <FieldRow
                                     k={t("স্ট্যাটাস", "Status")}
-                                    v={statusLabel(st)}
+                                    v={statusLabel(statusText)}
                                   />
                                   <FieldRow
-                                    k={t("সোর্স টাইপ", "Source Type")}
-                                    v={sourceLabel(srcType)}
+                                    k={t("এমাউন্ট", "Amount")}
+                                    v={money(amount, sym)}
                                   />
                                   <FieldRow
-                                    k={t("সোর্স আইডি", "Source ID")}
-                                    v={srcId}
+                                    k={t("ফ্রম", "From")}
+                                    v={t("রেফারেল ওয়ালেট", "Referral Wallet")}
                                   />
                                   <FieldRow
-                                    k={t("ক্রেডিটেড", "Credited")}
-                                    v={money(credited)}
+                                    k={t("টু", "To")}
+                                    v={t("মেইন ব্যালেন্স", "Main Balance")}
                                   />
                                   <FieldRow
-                                    k={t("রিকোয়ার্ড", "Required")}
-                                    v={money(required)}
-                                  />
-                                  <FieldRow
-                                    k={t("প্রোগ্রেস", "Progress")}
-                                    v={money(progress)}
-                                  />
-                                  <FieldRow
-                                    k={t("বাকি", "Remaining")}
-                                    v={money(remaining)}
-                                  />
-                                  <FieldRow
-                                    k={t("টার্নওভার আইডি", "Turnover ID")}
+                                    k={t("ID", "ID")}
                                     v={String(r?._id || "—")}
                                   />
                                 </div>
 
-                                {r?.completedAt ? (
+                                {r?.note || r?.adminNote ? (
                                   <div className="mt-4 rounded-xl border border-black/10 bg-white p-3">
                                     <div className="text-[12px] font-extrabold text-black/70">
-                                      {t("কমপ্লিটেড", "Completed")}
+                                      {t("নোট", "Note")}
                                     </div>
                                     <div className="mt-1 text-[13px] text-black/80">
-                                      {new Date(r.completedAt).toLocaleString()}
+                                      {String(r?.note || r?.adminNote || "")}
                                     </div>
                                   </div>
                                 ) : null}
@@ -347,13 +318,29 @@ const TurnOverHistory = () => {
 
                               <div className="rounded-xl border border-black/10 bg-white p-4">
                                 <div className="text-[13px] font-extrabold text-black">
-                                  {t("নোট", "Note")}
+                                  {t("টার্নওভার", "Turnover")}
                                 </div>
-                                <div className="mt-3 text-[13px] text-black/65 leading-relaxed">
-                                  {t(
-                                    "আপনি যত বেশি খেলবেন, progress বাড়বে। Required পূরণ হলে turnover completed হবে।",
-                                    "As you play, progress increases. When required is reached, turnover becomes completed.",
-                                  )}
+
+                                <div className="mt-3 rounded-xl border border-black/10 bg-white px-3 py-2">
+                                  <FieldRow
+                                    k={t("মাল্টিপ্লায়ার", "Multiplier")}
+                                    v={`x${r?.turnoverMultiplier ?? 1}`}
+                                  />
+                                  <FieldRow
+                                    k={t("টার্গেট", "Required")}
+                                    v={money(
+                                      r?.turnoverRequired ??
+                                        r?.requiredTurnover ??
+                                        amount,
+                                      sym,
+                                    )}
+                                  />
+                                  <div className="py-2 text-[12px] text-black/55">
+                                    {t(
+                                      "নোট: সার্ভার থেকে যদি turnover info না আসে, এখানে শুধু ধারণা দেখাবে।",
+                                      "Note: If server doesn’t send turnover info, this section shows estimate only.",
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -366,7 +353,10 @@ const TurnOverHistory = () => {
               </div>
             ) : (
               <div className="py-10 text-center text-[13px] text-black/60">
-                {t("কোনো টার্নওভার পাওয়া যায়নি।", "No turnover history found.")}
+                {t(
+                  "কোনো রিডিম হিস্টরি পাওয়া যায়নি।",
+                  "No redeem history found.",
+                )}
               </div>
             )}
           </div>
@@ -405,4 +395,4 @@ const TurnOverHistory = () => {
   );
 };
 
-export default TurnOverHistory;
+export default RedeemHistory;

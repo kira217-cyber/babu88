@@ -1,11 +1,12 @@
 // src/pages/Profile/History/History.jsx
 import React, { useMemo, useState } from "react";
 import { useLanguage } from "../../Context/LanguageProvider";
-// import BetHistory from "../../components/BetHistory/BetHistory";
+import BetHistory from "../../components/BetHistory/BetHistory";
 import DepositHistory from "../../components/DepositHistory/DepositHistory";
 import TurnOverHistory from "../../components/TurnOverHistory/TurnOverHistory";
 import WithdrawHistory from "../../components/WithdrawHistory/WithdrawHistory";
 import AutoDepositHistory from "../../components/AutoDepositHistory/AutoDepositHistory";
+import RedeemHistory from "../../components/RedeemHistory/RedeemHistory";
 
 // ✅ Placeholder sections (replace with your real components later)
 // const DepositHistory = () => (
@@ -48,26 +49,26 @@ const BonusHistory = () => (
   </div>
 );
 
-const BetHistory = () => (
-  <div className="bg-white rounded-xl border border-black/10 p-4 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
-    <div className="text-[14px] font-extrabold text-black">
-      Bet History
-    </div>
-    <p className="mt-2 text-[13px] text-black/65">
-      Here will show your bet history (API data).
-    </p>
-  </div>
-);
+// const BetHistory = () => (
+//   <div className="bg-white rounded-xl border border-black/10 p-4 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
+//     <div className="text-[14px] font-extrabold text-black">
+//       Bet History
+//     </div>
+//     <p className="mt-2 text-[13px] text-black/65">
+//       Here will show your bet history (API data).
+//     </p>
+//   </div>
+// );
 
 
-const RedeemHistory = () => (
-  <div className="bg-white rounded-xl border border-black/10 p-4 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
-    <div className="text-[14px] font-extrabold text-black">Redeem History</div>
-    <p className="mt-2 text-[13px] text-black/65">
-      Here will show your redeem history (API data).
-    </p>
-  </div>
-);
+// const RedeemHistory = () => (
+//   <div className="bg-white rounded-xl border border-black/10 p-4 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
+//     <div className="text-[14px] font-extrabold text-black">Redeem History</div>
+//     <p className="mt-2 text-[13px] text-black/65">
+//       Here will show your redeem history (API data).
+//     </p>
+//   </div>
+// );
 
 const History = () => {
   const { isBangla } = useLanguage();
@@ -91,11 +92,11 @@ const History = () => {
         component: <WithdrawHistory />,
       },
       
-      {
-        id: "bonus",
-        name: t("বোনাস হিস্ট্রি", "Bonus History"),
-        component: <BonusHistory />,
-      },
+      // {
+      //   id: "bonus",
+      //   name: t("বোনাস হিস্ট্রি", "Bonus History"),
+      //   component: <BonusHistory />,
+      // },
       {
         id: "turnover",
         name: t("টার্নওভার হিস্ট্রি", "Turnover History"),

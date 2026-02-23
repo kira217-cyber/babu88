@@ -12,6 +12,8 @@ import Dashboard from "../components/Dashboard/Dashboard";
 import MyRefer from "../pages/MyRefer/MyRefer";
 import Profile from "../pages/Profile/Profile";
 import Commissions from "../pages/Commissions/Commissions";
+import WithdrawHistory from "../pages/WithdrawHistory/WithdrawHistory";
+import WithdrawHistoryDetails from "../pages/WithdrawHistoryDetails/WithdrawHistoryDetails";
 
 export const routes = createBrowserRouter([
   {
@@ -22,23 +24,6 @@ export const routes = createBrowserRouter([
       {
         index: true,
         element: <Home />,
-      },
-      {
-        path: "withdraw",
-        element: (
-          <PrivateRoute>
-            {" "}
-            <Withdraw />
-          </PrivateRoute>
-        ),
-      },
-      {
-        path: "deposit",
-        element: (
-          <PrivateRoute>
-            <Deposit />
-          </PrivateRoute>
-        ),
       },
       {
         path: "login",
@@ -70,7 +55,34 @@ export const routes = createBrowserRouter([
           </PrivateRoute>
         ),
       },
-       {
+      {
+        path: "withdraw",
+        element: (
+          <PrivateRoute>
+            {" "}
+            <Withdraw />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "withdraw-history",
+        element: (
+          <PrivateRoute>
+            {" "}
+            <WithdrawHistory />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "/withdraw-history/:id",
+        element: (
+          <PrivateRoute>
+            {" "}
+            <WithdrawHistoryDetails />
+          </PrivateRoute>
+        ),
+      },
+      {
         path: "commissions",
         element: (
           <PrivateRoute>
@@ -78,7 +90,7 @@ export const routes = createBrowserRouter([
           </PrivateRoute>
         ),
       },
-       {
+      {
         path: "profile",
         element: (
           <PrivateRoute>

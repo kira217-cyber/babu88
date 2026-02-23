@@ -117,6 +117,8 @@ const ConfirmModal = ({
 
 const AffiliateBrige = () => {
   const auth = useSelector(selectAuth);
+
+  // ✅ admin auth state (token)
   const headers = useMemo(
     () => (auth?.token ? { Authorization: `Bearer ${auth.token}` } : {}),
     [auth?.token],
@@ -124,6 +126,7 @@ const AffiliateBrige = () => {
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
   const [rows, setRows] = useState([]);
   const [pagination, setPagination] = useState({
     page: 1,
@@ -134,14 +137,26 @@ const AffiliateBrige = () => {
 
   const [qInput, setQInput] = useState("");
   const [q, setQ] = useState("");
+
   const [expandedId, setExpandedId] = useState("");
   const [singleModal, setSingleModal] = useState({ open: false, user: null });
   const [allModal, setAllModal] = useState(false);
+
   const [bridging, setBridging] = useState(false);
 
   const page = pagination.page;
   const limit = pagination.limit;
   const totalPages = pagination.totalPages;
+
+  const computePreview = (u) => {
+    const gross =
+      n(u?.gameLossCommissionBalance) +
+      n(u?.depositCommissionBalance) +
+      n(u?.referCommissionBalance);
+
+    const net = gross - n(u?.gameWinCommissionBalance);
+    return { gross, net };
+  };
 
   const fetchData = async (
     { page: p = page, limit: l = limit, query = q } = {},
@@ -202,15 +217,6 @@ const AffiliateBrige = () => {
 
   const openSingleBridge = (user) => setSingleModal({ open: true, user });
   const closeSingleBridge = () => setSingleModal({ open: false, user: null });
-
-  const computePreview = (u) => {
-    const gross =
-      n(u?.gameLossCommissionBalance) +
-      n(u?.depositCommissionBalance) +
-      n(u?.referCommissionBalance);
-    const net = gross - n(u?.gameWinCommissionBalance);
-    return { gross, net };
-  };
 
   const doBridgeSingle = async () => {
     const user = singleModal.user;
@@ -291,9 +297,7 @@ const AffiliateBrige = () => {
                 </h1>
                 <p className="text-sm text-yellow-100/80 mt-0.5">
                   Move commissions →{" "}
-                  <span className="font-semibold text-amber-200">
-                    commissionBalance
-                  </span>
+                  <span className="font-semibold text-amber-200">balance</span>
                 </p>
               </div>
             </div>
@@ -412,7 +416,7 @@ const AffiliateBrige = () => {
                       Affiliate
                     </th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-amber-200">
-                      Commission Bal
+                      Wallet Balance
                     </th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-amber-200">
                       Gross
@@ -428,11 +432,13 @@ const AffiliateBrige = () => {
                     </th>
                   </tr>
                 </thead>
+
                 <tbody className="divide-y divide-yellow-700/20">
                   {rows.map((u) => {
                     const id = String(u?._id || "");
                     const isExpanded = expandedId === id;
                     const currency = u?.currency || "BDT";
+
                     const { gross, net } = computePreview(u);
                     const netType =
                       net > 0 ? "positive" : net < 0 ? "negative" : "zero";
@@ -440,7 +446,9 @@ const AffiliateBrige = () => {
                     return (
                       <React.Fragment key={id}>
                         <tr
-                          className={`hover:bg-yellow-950/20 transition-colors ${isExpanded ? "bg-yellow-950/10" : ""}`}
+                          className={`hover:bg-yellow-950/20 transition-colors ${
+                            isExpanded ? "bg-yellow-950/10" : ""
+                          }`}
                         >
                           <td className="px-6 py-5 whitespace-nowrap">
                             <div className="flex items-center gap-4">
@@ -460,31 +468,41 @@ const AffiliateBrige = () => {
                               </div>
                             </div>
                           </td>
+
+                          {/* ✅ wallet balance */}
                           <td className="px-6 py-5 font-bold text-white">
-                            {money(u?.commissionBalance ?? 0, currency)}
+                            {money(u?.balance ?? 0, currency)}
                           </td>
+
                           <td className="px-6 py-5 font-bold text-amber-300">
                             {money(gross, currency)}
                           </td>
+
                           <td className="px-6 py-5 font-bold text-amber-400">
                             {money(u?.gameWinCommissionBalance ?? 0, currency)}
                           </td>
+
                           <td className="px-6 py-5">
                             <span
-                              className={`inline-flex px-4 py-1.5 rounded-full text-sm font-bold border ${chipClass(netType)}`}
+                              className={`inline-flex px-4 py-1.5 rounded-full text-sm font-bold border ${chipClass(
+                                netType,
+                              )}`}
                             >
                               {money(net, currency)}
                             </span>
                           </td>
+
                           <td className="px-6 py-5 text-right">
                             <div className="flex items-center justify-end gap-3">
                               <button
                                 onClick={() => openSingleBridge(u)}
+                                disabled={bridging}
                                 className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 text-black text-sm font-semibold border border-amber-400/30 shadow-md transition disabled:opacity-60"
                               >
                                 <FaBolt />
                                 Bridge
                               </button>
+
                               <button
                                 onClick={() =>
                                   setExpandedId(isExpanded ? "" : id)
@@ -543,31 +561,31 @@ const AffiliateBrige = () => {
                                   <h3 className="text-base font-bold text-amber-200 mb-4">
                                     Bridge Preview
                                   </h3>
+
                                   <FieldRow
                                     k="Gross"
                                     v={money(gross, currency)}
                                   />
                                   <FieldRow k="Net" v={money(net, currency)} />
+
+                                  {/* ✅ show wallet balance */}
                                   <FieldRow
-                                    k="Current commissionBalance"
-                                    v={money(
-                                      u?.commissionBalance ?? 0,
-                                      currency,
-                                    )}
+                                    k="Current balance"
+                                    v={money(u?.balance ?? 0, currency)}
                                   />
+
                                   <FieldRow
-                                    k="Expected after bridge"
-                                    v={money(
-                                      n(u?.commissionBalance) + net,
-                                      currency,
-                                    )}
+                                    k="Expected balance after bridge"
+                                    v={money(n(u?.balance) + net, currency)}
                                   />
+
                                   <p className="mt-5 text-sm text-yellow-100/70">
-                                    All four source balances will be{" "}
+                                    After bridging,{" "}
                                     <strong className="text-white">
-                                      reset to 0
+                                      all four source balances
                                     </strong>{" "}
-                                    after bridging.
+                                    will reset to{" "}
+                                    <strong className="text-white">0</strong>.
                                   </p>
                                 </div>
                               </div>
@@ -589,7 +607,7 @@ const AffiliateBrige = () => {
                   <strong className="text-white">
                     {(page - 1) * limit + 1}
                   </strong>
-                  –
+                  –{" "}
                   <strong className="text-white">
                     {Math.min(page * limit, pagination.total)}
                   </strong>{" "}
@@ -604,9 +622,11 @@ const AffiliateBrige = () => {
                   >
                     Previous
                   </button>
+
                   <span className="px-5 py-2.5 font-semibold text-white">
                     Page {page} / {totalPages}
                   </span>
+
                   <button
                     onClick={() => onPageChange(page + 1)}
                     disabled={page === totalPages || refreshing}
@@ -627,7 +647,15 @@ const AffiliateBrige = () => {
         title={`Bridge: ${singleModal.user?.username || "User"}`}
         desc={
           singleModal.user
-            ? `Gross: ${money(computePreview(singleModal.user).gross)}, Net: ${money(computePreview(singleModal.user).net)}. Source balances will reset to 0.`
+            ? (() => {
+                const u = singleModal.user;
+                const currency = u?.currency || "BDT";
+                const { gross, net } = computePreview(u);
+                return `Gross: ${money(gross, currency)}, Net: ${money(
+                  net,
+                  currency,
+                )}. Amount will be added to user balance and source balances will reset to 0.`;
+              })()
             : ""
         }
         confirmText="Bridge Now"
@@ -641,8 +669,8 @@ const AffiliateBrige = () => {
         title="Bridge ALL Affiliates?"
         desc={
           q
-            ? `This will process all affiliates matching: "${q}"`
-            : "This action will bridge commissions for ALL affiliate users."
+            ? `This will process all affiliates matching: "${q}". Net amounts will be added to balance.`
+            : "This action will bridge commissions for ALL affiliate users and add net to balance."
         }
         confirmText="Confirm Bridge All"
         loading={bridging}

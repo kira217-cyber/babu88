@@ -261,18 +261,56 @@ router.post(
           session,
         );
         if (!doc) throw new Error("Not found");
+
+        // ✅ if already approved -> ensure turnover exists (idempotent)
+        if (doc.status === "approved") {
+          const exists = await TurnOver.findOne({
+            user: doc.user,
+            sourceType: "deposit",
+            sourceId: doc._id,
+          }).session(session);
+
+          if (!exists) {
+            const creditedAmount = Number(
+              doc?.calc?.creditedAmount || doc.amount || 0,
+            );
+            const targetTurnover = Number(doc?.calc?.targetTurnover || 0);
+
+            await TurnOver.create(
+              [
+                {
+                  user: doc.user,
+                  sourceType: "deposit",
+                  sourceId: doc._id,
+                  required: targetTurnover,
+                  progress: 0,
+                  status: targetTurnover <= 0 ? "completed" : "running",
+                  creditedAmount,
+                  completedAt: targetTurnover <= 0 ? new Date() : null,
+                },
+              ],
+              { session },
+            );
+          }
+
+          return;
+        }
+
         if (doc.status !== "pending") throw new Error("Already processed");
 
-        // re-check method config + recalc to prevent tampering
+        // ✅ re-check method config + recalc (prevent tampering)
         const methodDoc = await DepositMethod.findOne({
           methodId: String(doc.methodId),
         }).session(session);
-        if (!methodDoc || methodDoc?.isActive === false)
+
+        if (!methodDoc || methodDoc.isActive === false) {
           throw new Error("Invalid deposit method");
+        }
 
         const depositAmount = Number(doc.amount || 0);
-        if (!Number.isFinite(depositAmount) || depositAmount <= 0)
+        if (!Number.isFinite(depositAmount) || depositAmount <= 0) {
           throw new Error("Invalid amount");
+        }
 
         const calc = computeBonuses({
           amount: depositAmount,
@@ -283,7 +321,7 @@ router.post(
 
         const creditedAmount = depositAmount + Number(calc.totalBonus || 0);
 
-        // update user balance
+        // ✅ update user balance
         const user = await User.findById(doc.user).session(session);
         if (!user) throw new Error("User not found");
         if (user.isActive === false) throw new Error("User not active");
@@ -291,8 +329,7 @@ router.post(
         user.balance = Number(user.balance || 0) + creditedAmount;
         await user.save({ session });
 
-        // ✅ Affiliate deposit commission (NEW)
-        // Condition: user.referredBy exists AND referred user is aff-user & active
+        // ✅ Affiliate deposit commission (your logic)
         let affiliateCommissionInfo = null;
 
         if (user.referredBy) {
@@ -305,14 +342,9 @@ router.post(
             affiliator.role === "aff-user" &&
             affiliator.isActive
           ) {
-            const pct = Number(affiliator.depositCommission || 0); // percent
+            const pct = Number(affiliator.depositCommission || 0);
             if (Number.isFinite(pct) && pct > 0) {
-              // ✅ Commission base = depositAmount (without bonus)
-              const commissionBase = depositAmount;
-
-              // If you want commission on bonus-included creditedAmount instead:
-              // const commissionBase = creditedAmount;
-
+              const commissionBase = depositAmount; // bonus ছাড়া
               const commissionAmount = (commissionBase * pct) / 100;
 
               if (commissionAmount > 0) {
@@ -334,7 +366,7 @@ router.post(
           }
         }
 
-        // update request
+        // ✅ approve request
         doc.status = "approved";
         doc.adminNote = adminNote;
         doc.approvedBy = req.user.id;
@@ -348,33 +380,42 @@ router.post(
           turnoverMultiplier: calc.turnoverMultiplier,
           targetTurnover: calc.targetTurnover,
           creditedAmount,
-
-          // ✅ store affiliate commission info (optional but useful for audit)
           affiliateDepositCommission: affiliateCommissionInfo,
         };
 
         await doc.save({ session });
 
-        // create turnover
-        await TurnOver.create(
-          [
-            {
-              user: user._id,
-              depositRequest: doc._id,
-              required: calc.targetTurnover,
-              progress: 0,
-              status: calc.targetTurnover <= 0 ? "completed" : "running",
-              creditedAmount,
-              completedAt: calc.targetTurnover <= 0 ? new Date() : null,
-            },
-          ],
-          { session },
-        );
+        // ✅ create turnover (NEW schema) - safe against duplicate
+        const existingTo = await TurnOver.findOne({
+          user: user._id,
+          sourceType: "deposit",
+          sourceId: doc._id,
+        }).session(session);
+
+        if (!existingTo) {
+          const target = Number(calc.targetTurnover || 0);
+
+          await TurnOver.create(
+            [
+              {
+                user: user._id,
+                sourceType: "deposit",
+                sourceId: doc._id,
+                required: target,
+                progress: 0,
+                status: target <= 0 ? "completed" : "running",
+                creditedAmount,
+                completedAt: target <= 0 ? new Date() : null,
+              },
+            ],
+            { session },
+          );
+        }
       });
 
-      res.json({ success: true, message: "Approved" });
+      return res.json({ success: true, message: "Approved" });
     } catch (e) {
-      res
+      return res
         .status(400)
         .json({ success: false, message: e?.message || "Approve failed" });
     } finally {

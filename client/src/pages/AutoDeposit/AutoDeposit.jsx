@@ -8,8 +8,6 @@ import DepositWithdrawTabs from "../../components/DepositWithdrawTabs/DepositWit
 import Loading from "../../components/Loading/Loading";
 import { api } from "../../api/axios";
 
-
-
 const money = (n) => {
   const num = Number(n || 0);
   if (Number.isNaN(num)) return "৳ 0.00";
@@ -46,13 +44,13 @@ const DepositDetailsModal = ({ open, onClose, onConfirm, details, t }) => {
       <div className="relative w-[92vw] max-w-[420px] bg-white rounded-lg shadow-[0_22px_60px_rgba(0,0,0,0.35)] overflow-hidden">
         <div className="px-6 pt-5 pb-4 flex items-center justify-between">
           <div className="text-[18px] font-extrabold text-black">
-            {t("Deposit Details", "Deposit Details")}
+            {t("ডিপোজিট ডিটেইলস", "Deposit Details")}
           </div>
           <button
             type="button"
             onClick={onClose}
             className="p-2 rounded-md hover:bg-black/5"
-            aria-label="Close"
+            aria-label={t("বন্ধ করুন", "Close")}
           >
             <span className="text-[22px] leading-none text-black/60">×</span>
           </button>
@@ -65,15 +63,15 @@ const DepositDetailsModal = ({ open, onClose, onConfirm, details, t }) => {
         <div className="px-6 py-5 max-h-[55vh] overflow-auto">
           <div className="space-y-3">
             <Row
-              k={t("Deposit amount", "Deposit amount")}
+              k={t("ডিপোজিট এমাউন্ট", "Deposit amount")}
               v={money(details.amount)}
             />
-            <Row k={t("Fees", "Fees")} v={money(details.fee)} />
+            <Row k={t("ফি", "Fees")} v={money(details.fee)} />
             <Row
-              k={t("You will pay", "You will pay")}
+              k={t("আপনি পেমেন্ট করবেন", "You will pay")}
               v={money(details.total)}
             />
-            <Row k={t("Invoice", "Invoice")} v={details.invoiceNumber} />
+            <Row k={t("ইনভয়েস", "Invoice")} v={details.invoiceNumber} />
           </div>
 
           <div className="mt-6 flex justify-center">
@@ -83,7 +81,7 @@ const DepositDetailsModal = ({ open, onClose, onConfirm, details, t }) => {
               className="w-full cursor-pointer max-w-[260px] h-[44px] rounded-lg bg-black text-[#f5c400] font-extrabold text-[14px]
                          shadow-[0_10px_22px_rgba(0,0,0,0.25)] hover:brightness-95 active:scale-[0.99] transition"
             >
-              {t("Confirm", "Confirm")}
+              {t("কনফার্ম", "Confirm")}
             </button>
           </div>
         </div>
@@ -147,9 +145,10 @@ const AutoDeposit = () => {
     const maxTxt = maxAmount > 0 ? money(maxAmount) : null;
 
     if (minTxt && maxTxt)
-      return `${t("Minimum", "Minimum")} ${minTxt} — ${t("Maximum", "Maximum")} ${maxTxt}`;
-    if (minTxt) return `${t("Minimum deposit", "Minimum deposit")}: ${minTxt}`;
-    if (maxTxt) return `${t("Maximum deposit", "Maximum deposit")}: ${maxTxt}`;
+      return `${t("সর্বনিম্ন", "Minimum")} ${minTxt} — ${t("সর্বোচ্চ", "Maximum")} ${maxTxt}`;
+    if (minTxt)
+      return `${t("সর্বনিম্ন ডিপোজিট", "Minimum deposit")}: ${minTxt}`;
+    if (maxTxt) return `${t("সর্বোচ্চ ডিপোজিট", "Maximum deposit")}: ${maxTxt}`;
     return "";
   }, [minAmount, maxAmount, isBangla]);
 
@@ -177,14 +176,12 @@ const AutoDeposit = () => {
 
   const openConfirm = () => {
     if (!enabled) {
-      toast.error(
-        t("Auto Deposit এখন Available নেই", "Auto Deposit is disabled"),
-      );
+      toast.error(t("এখন Auto Deposit উপলব্ধ নেই", "Auto Deposit is disabled"));
       return;
     }
     if (!userId) {
       toast.error(
-        t("Please login again", "User not found. Please login again."),
+        t("অনুগ্রহ করে আবার লগইন করুন", "User not found. Please login again."),
       );
       return;
     }
@@ -218,9 +215,15 @@ const AutoDeposit = () => {
         return;
       }
 
-      toast.error(data?.message || "Payment link create failed");
+      toast.error(
+        data?.message ||
+          t("পেমেন্ট লিংক তৈরি করা যায়নি", "Payment link create failed"),
+      );
     } catch (e) {
-      toast.error(e?.response?.data?.message || "Payment link create failed");
+      toast.error(
+        e?.response?.data?.message ||
+          t("পেমেন্ট লিংক তৈরি করা যায়নি", "Payment link create failed"),
+      );
     } finally {
       setProcessing(false);
       setDetailsOpen(false);
@@ -239,11 +242,11 @@ const AutoDeposit = () => {
         <div className="p-3 md:p-6 min-h-screen md:min-h-0">
           <div className="bg-white border rounded-xl p-6 text-center">
             <h2 className="text-lg md:text-xl font-extrabold text-gray-900">
-              {t("Auto Deposit", "Auto Deposit")}
+              {t("অটো ডিপোজিট", "Auto Deposit")}
             </h2>
             <p className="mt-2 text-sm text-gray-600">
               {t(
-                "এই মুহূর্তে Auto Deposit বন্ধ আছে। পরে চেষ্টা করুন।",
+                "এই মুহূর্তে অটো ডিপোজিট বন্ধ আছে। পরে আবার চেষ্টা করুন।",
                 "Auto Deposit is currently disabled. Please try later.",
               )}
             </p>
@@ -263,15 +266,15 @@ const AutoDeposit = () => {
           <div className="bg-white rounded-xl border border-black/10 p-5 sm:p-6 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
             <div className="flex items-center justify-between gap-3">
               <div className="text-[18px] font-extrabold text-black">
-                {t("Auto Deposit", "Auto Deposit")}
+                {t("অটো ডিপোজিট", "Auto Deposit")}
               </div>
 
               <div className="text-right">
                 <div className="text-[11px] text-black/45 font-semibold">
-                  {t("User", "User")}
+                  {t("ইউজার", "User")}
                 </div>
                 <div className="text-[13px] font-extrabold text-black/80">
-                  {user?.username || "User"}
+                  {user?.username || t("ইউজার", "User")}
                 </div>
               </div>
             </div>
@@ -280,7 +283,7 @@ const AutoDeposit = () => {
             <div className="mt-6">
               <div className="flex items-center justify-between gap-3">
                 <label className="text-[14px] font-semibold text-black">
-                  {t("Deposit Amount", "Deposit Amount")}{" "}
+                  {t("ডিপোজিট এমাউন্ট", "Deposit Amount")}{" "}
                   <span className="text-red-500">*</span>
                 </label>
                 <span className="text-[12px] font-bold text-black/50">
@@ -359,7 +362,7 @@ const AutoDeposit = () => {
 
               <div className="mt-2 text-[12px] text-black/55">
                 {t(
-                  "Confirm করলে OraclePay payment page এ নিয়ে যাবে।",
+                  "কনফার্ম করলে OraclePay পেমেন্ট পেইজে নিয়ে যাবে।",
                   "After confirm, you’ll be redirected to OraclePay payment page.",
                 )}
               </div>
@@ -369,28 +372,35 @@ const AutoDeposit = () => {
           {/* RIGHT */}
           <div className="bg-white rounded-xl border border-black/10 p-4 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
             <div className="text-[14px] font-extrabold text-black">
-              {t("Important Notice", "Important Notice")}
+              {t("গুরুত্বপূর্ণ নোটিশ", "Important Notice")}
             </div>
             <div className="mt-3 text-[12px] leading-relaxed text-black/70 space-y-2">
               <div>
                 •{" "}
                 {t(
-                  "Auto Deposit শুধুমাত্র Active থাকলে কাজ করবে।",
+                  "অটো ডিপোজিট শুধু Active থাকলেই কাজ করবে।",
                   "Auto Deposit works only when enabled.",
                 )}
               </div>
               <div>
                 •{" "}
                 {t(
-                  "Min/Max limit মেনে amount দিন।",
+                  "Min/Max লিমিট মেনে এমাউন্ট দিন।",
                   "Please follow min/max deposit limits.",
                 )}
               </div>
               <div>
                 •{" "}
                 {t(
-                  "Payment complete হলে balance auto add হবে।",
+                  "পেমেন্ট সম্পন্ন হলে ব্যালেন্স অটো যোগ হবে।",
                   "After completion, balance will be added automatically.",
+                )}
+              </div>
+              <div>
+                •{" "}
+                {t(
+                  "সমস্যা হলে লাইভ সাপোর্টে যোগাযোগ করুন।",
+                  "If you face issues, contact live support.",
                 )}
               </div>
             </div>

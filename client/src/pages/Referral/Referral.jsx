@@ -3,10 +3,10 @@ import React, { useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import MyReferrals from "./MyReferrals";
 import ReferralReport from "./ReferralReport";
-import RedeemHistory from "./RedeemHistory";
 import DownlineReport from "./DownlineReport";
 import { selectIsAuthenticated, selectUser } from "../../features/auth/authSelectors";
 import { useLanguage } from "../../Context/LanguageProvider";
+import RedeemHistory from "../../components/RedeemHistory/RedeemHistory";
 
 const Referral = () => {
   const { isBangla } = useLanguage();

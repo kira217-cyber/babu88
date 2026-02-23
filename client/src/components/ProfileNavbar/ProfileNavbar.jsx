@@ -1,5 +1,5 @@
 // src/components/ProfileNavbar/ProfileNavbar.jsx
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { NavLink, Outlet } from "react-router";
 import { toast } from "react-toastify";
 import {
@@ -21,6 +21,7 @@ import { useLanguage } from "../../Context/LanguageProvider";
 // ✅ React Query + api
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/axios";
+import RedeemModal from "../RedeemModal/RedeemModal";
 
 // ✅ fetch referral wallet balance (referCommissionBalance)
 const fetchMyReferralWallet = async () => {
@@ -34,6 +35,7 @@ const ProfileNavbar = () => {
   const { isBangla } = useLanguage();
 
   const user = useSelector(selectUser);
+  const [redeemOpen, setRedeemOpen] = useState(false);
   const isAuthenticated = useSelector(selectIsAuthenticated);
 
   // Safe fallback if not logged in / user not loaded
@@ -45,17 +47,13 @@ const ProfileNavbar = () => {
   const items = useMemo(
     () => [
       { label: t("ডিপোজিট", "Deposit"), to: "/profile/deposit" },
-      { label: t("ভাউচার", "Auto Deposit"), to: "/profile/auto-deposit" },
+      { label: t("অটো ডিপোজিট", "Auto Deposit"), to: "/profile/auto-deposit" },
       { label: t("উত্তোলন", "Withdrawal"), to: "/profile/withdraw" },
       { label: t("ইতিহাস", "History"), to: "/profile/history" },
-      { label: t("আমার প্রোফাইল", "My Profile"), to: "/profile/me" },
+      { label: t("প্রোফাইল", "My Profile"), to: "/profile/me" },
       { label: t("ইনবক্স", "Inbox"), to: "/profile/inbox" },
       { label: t("রেফারেল", "Referral"), to: "/profile/referral" },
       { label: t("ভিআইপি", "VIP"), to: "/profile/vip" },
-      // {
-      //   label: t("হুইল অফ ফরচুন", "Wheel Of Fortune"),
-      //   to: "/profile/wheel-of-fortune",
-      // },
       { label: t("রিওয়ার্ডস", "Rewards"), to: "/profile/reward" },
     ],
     [isBangla],
@@ -259,7 +257,11 @@ const ProfileNavbar = () => {
                   {currencySymbol} {referralWallet.toFixed(2)}
                 </div>
 
-                <button className={`${yellowBtn} mt-3`}>
+                <button
+                  type="button"
+                  onClick={() => setRedeemOpen(true)}
+                  className={`${yellowBtn} mt-3`}
+                >
                   {t("রিডিম করুন", "REDEEM")}
                 </button>
 
@@ -296,6 +298,16 @@ const ProfileNavbar = () => {
           </main>
         </div>
       </div>
+      <RedeemModal
+        open={redeemOpen}
+        onClose={() => setRedeemOpen(false)}
+        referralWallet={referralWallet}
+        currencySymbol={currencySymbol === "USDT" ? "USDT" : "৳"}
+        onSuccess={() => {
+          // ✅ refresh referral wallet number
+          refetchWallet?.();
+        }}
+      />
     </div>
   );
 };

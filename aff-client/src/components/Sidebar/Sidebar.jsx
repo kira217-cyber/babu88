@@ -121,12 +121,6 @@ const Sidebar = () => {
       icon: <FaBullhorn />,
       text: "Withdraw-History",
     },
-    {
-      to: "/dashboard/transfer-balance",
-      icon: <FaLink />,
-      text: "Transfer-Balance",
-    },
-    { to: "/dashboard/settings", icon: <FaCog />, text: "Settings" },
   ];
 
   return (

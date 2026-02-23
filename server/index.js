@@ -69,7 +69,10 @@ import withdrawRequestRoutes from "./routes/WithdrawRequestsRoutes.js";
 import autoDepositRoutes from "./routes/AutoDepositRoutes.js";
 import affiliateRoutes from "./routes/affiliateRoutes.js";
 import adminAffiliateBridgeRoutes from "./routes/adminAffiliateBridgeRoutes.js";
-
+import affWithdrawMethodRoutes from "./routes/affWithdrawMethodRoutes.js";
+import affWithdrawRequestsRoutes from "./routes/affWithdrawRequestsRoutes.js";
+import redeemRoutes from "./routes/redeemRoutes.js";
+import adminRedeemRoutes from "./routes/adminRedeemRoutes.js";
 
 
 
@@ -163,6 +166,10 @@ app.use("/api/withdraw-requests", withdrawRequestRoutes);
 app.use("/api/auto-deposit", autoDepositRoutes);
 app.use("/api/affiliate", affiliateRoutes);
 app.use("/api/admin", adminAffiliateBridgeRoutes);
+app.use("/api", affWithdrawMethodRoutes);
+app.use("/api", affWithdrawRequestsRoutes);
+app.use("/api/redeem", redeemRoutes);
+app.use("/api/admin/redeem", adminRedeemRoutes);
 
 
 // ✅ port

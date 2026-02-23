@@ -1,5 +1,7 @@
+// src/components/DepositWithdrawTabs/DepositWithdrawTabs.jsx
 import React from "react";
 import { NavLink } from "react-router";
+import { useLanguage } from "../../Context/LanguageProvider";
 
 const TabItem = ({ to, label }) => {
   return (
@@ -10,11 +12,7 @@ const TabItem = ({ to, label }) => {
         `
         relative px-4 py-3 text-[15px] font-extrabold tracking-wide
         transition
-        ${
-          isActive
-            ? "text-yellow-400"
-            : "text-white/80 hover:text-white"
-        }
+        ${isActive ? "text-yellow-400" : "text-white/80 hover:text-white"}
       `
       }
     >
@@ -38,12 +36,23 @@ const TabItem = ({ to, label }) => {
 };
 
 const DepositWithdrawTabs = () => {
+  const { isBangla } = useLanguage();
+
+  // simple translator
+  const t = (bn, en) => (isBangla ? bn : en);
+
   return (
     <div className="block md:hidden w-full bg-black border-b border-white/10">
       <div className="flex items-center justify-between gap-2">
-        <TabItem to="/profile/deposit" label="Deposit" />
-        <TabItem to="/profile/auto-deposit" label="Auto Deposit" />
-        <TabItem to="/profile/withdraw" label="Withdrawal" />
+        <TabItem
+          to="/profile/deposit"
+          label={t("ম্যানুয়াল ডিপি", "Manual DP")}
+        />
+        <TabItem
+          to="/profile/auto-deposit"
+          label={t("অটো ডিপি", "Auto DP")}
+        />
+        <TabItem to="/profile/withdraw" label={t("উইথড্র", "Withdrawal")} />
       </div>
     </div>
   );

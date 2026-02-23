@@ -48,6 +48,10 @@ import WithdrawRequestDetails from "../pages/WithdrawRequestDetails/WithdrawRequ
 import AddAutoDeposit from "../pages/AddAutoDeposit/AddAutoDeposit";
 import AutoDepositHistory from "../pages/AutoDepositHistory/AutoDepositHistory";
 import AffiliateBrige from "../pages/AffiliateBrige/AffiliateBrige";
+import AddAffiliateWithdraw from "../pages/AddAffiliateWithdraw/AddAffiliateWithdraw";
+import AffiliateWithdrawRequest from "../pages/AffiliateWithdrawRequest/AffiliateWithdrawRequest";
+import AffiliateWithdrawRequestDetails from "../pages/AffiliateWithdrawRequestDetails/AffiliateWithdrawRequestDetails";
+import AddRedeem from "../pages/AddRedeem/AddRedeem";
 
 export const routes = createBrowserRouter([
   {
@@ -252,6 +256,14 @@ export const routes = createBrowserRouter([
           </PrivateRoute>
         ),
       },
+       {
+        path: "add-redeem",
+        element: (
+          <PrivateRoute permKey="add-redeem">
+            <AddRedeem />
+          </PrivateRoute>
+        ),
+      },
       {
         path: "/deposit-request/:id",
         element: (
@@ -269,6 +281,14 @@ export const routes = createBrowserRouter([
         ),
       },
       {
+        path: "add-aff-withdraw",
+        element: (
+          <PrivateRoute permKey="add-aff-withdraw">
+            <AddAffiliateWithdraw />
+          </PrivateRoute>
+        ),
+      },
+      {
         path: "withdraw-request",
         element: (
           <PrivateRoute permKey="withdraw-request">
@@ -277,10 +297,26 @@ export const routes = createBrowserRouter([
         ),
       },
       {
+        path: "affiliate-withdraw-request",
+        element: (
+          <PrivateRoute permKey="affiliate-withdraw-request">
+            <AffiliateWithdrawRequest />
+          </PrivateRoute>
+        ),
+      },
+      {
         path: "/withdraw-request/:id",
         element: (
           <PrivateRoute permKey="withdraw-request-details">
             <WithdrawRequestDetails />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "/affiliate-withdraw-request/:id",
+        element: (
+          <PrivateRoute permKey="affiliate-withdraw-request-details">
+            <AffiliateWithdrawRequestDetails />
           </PrivateRoute>
         ),
       },

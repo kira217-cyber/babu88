@@ -175,6 +175,12 @@ const Sidebar = () => {
         text: "Add Deposit",
       },
       {
+        perm: "add-redeem",
+        to: "/add-redeem",
+        icon: <PiHandDepositBold />,
+        text: "Add Redeem",
+      },
+      {
         perm: "deposit-request",
         to: "/deposit-request",
         icon: <FaCodePullRequest />,
@@ -209,6 +215,18 @@ const Sidebar = () => {
         to: "/withdraw-request",
         icon: <FaCodePullRequest />,
         text: "Withdraw Request",
+      },
+       {
+        perm: "add-aff-withdraw",
+        to: "/add-aff-withdraw",
+        icon: <PiHandWithdrawBold />,
+        text: "Add Aff Withdraw",
+      },
+       {
+        perm: "affiliate-withdraw-request",
+        to: "/affiliate-withdraw-request",
+        icon: <FaCodePullRequest />,
+        text: "Aff Withdraw Request",
       },
     ],
     [],

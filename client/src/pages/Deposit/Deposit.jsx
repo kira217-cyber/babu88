@@ -355,7 +355,7 @@ const Deposit = () => {
           {/* LEFT */}
           <div className="bg-white rounded-xl border border-black/10 p-5 sm:p-6 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
             <div className="text-[18px] font-extrabold text-black">
-              {t("ডিপোজিট", "Deposit")}
+              {t("ম্যানুয়াল ডিপোজিট", "Manual Deposit")}
             </div>
 
             {/* Deposit Options */}
