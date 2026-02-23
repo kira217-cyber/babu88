@@ -47,6 +47,7 @@ import WithdrawRequest from "../pages/WithdrawRequest/WithdrawRequest";
 import WithdrawRequestDetails from "../pages/WithdrawRequestDetails/WithdrawRequestDetails";
 import AddAutoDeposit from "../pages/AddAutoDeposit/AddAutoDeposit";
 import AutoDepositHistory from "../pages/AutoDepositHistory/AutoDepositHistory";
+import AffiliateBrige from "../pages/AffiliateBrige/AffiliateBrige";
 
 export const routes = createBrowserRouter([
   {
@@ -192,6 +193,14 @@ export const routes = createBrowserRouter([
         element: (
           <PrivateRoute permKey="all-affiliate-user">
             <AllAffiliateUser />
+          </PrivateRoute>
+        ),
+      },
+       {
+        path: "affiliate-user-brige",
+        element: (
+          <PrivateRoute permKey="affiliate-user-brige">
+            <AffiliateBrige />
           </PrivateRoute>
         ),
       },

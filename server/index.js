@@ -68,6 +68,8 @@ import turnOverRoutes from "./routes/turnOverRoutes.js";
 import withdrawRequestRoutes from "./routes/WithdrawRequestsRoutes.js";
 import autoDepositRoutes from "./routes/AutoDepositRoutes.js";
 import affiliateRoutes from "./routes/affiliateRoutes.js";
+import adminAffiliateBridgeRoutes from "./routes/adminAffiliateBridgeRoutes.js";
+
 
 
 
@@ -160,6 +162,7 @@ app.use("/api", turnOverRoutes);
 app.use("/api/withdraw-requests", withdrawRequestRoutes);
 app.use("/api/auto-deposit", autoDepositRoutes);
 app.use("/api/affiliate", affiliateRoutes);
+app.use("/api/admin", adminAffiliateBridgeRoutes);
 
 
 // ✅ port

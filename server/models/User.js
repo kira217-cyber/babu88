@@ -82,6 +82,7 @@ const userSchema = new Schema(
       default: [],
     },
 
+    commissionBalance: { type: Number, default: 0 },
     // commissions (affiliate + other)
     gameLossCommission: { type: Number, default: 0 },
     depositCommission: { type: Number, default: 0 },

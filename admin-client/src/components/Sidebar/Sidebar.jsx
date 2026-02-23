@@ -27,6 +27,7 @@ import {
   FaStream,
   FaHistory,
 } from "react-icons/fa";
+import { PiBridgeBold } from "react-icons/pi";
 import { IoAppsSharp } from "react-icons/io5";
 import { GrAnnounce, GrUserAdmin } from "react-icons/gr";
 import { FaCodePullRequest } from "react-icons/fa6";
@@ -130,6 +131,12 @@ const Sidebar = () => {
         to: "/all-affiliate-user",
         icon: <FaUsers className="text-purple-400" />,
         text: "All Affiliator",
+      },
+      {
+        key: "affiliate-user-brige",
+        to: "/affiliate-user-brige",
+        icon: <PiBridgeBold className="text-red-400" />,
+        text: "Affiliate User Bridge",
       },
     ],
     [],
