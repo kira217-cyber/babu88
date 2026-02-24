@@ -1,5 +1,5 @@
 // src/pages/Profile/Referral/MyReferrals.jsx
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { FaCopy, FaShareAlt, FaUser, FaUserTie } from "react-icons/fa";
 import { toast } from "react-toastify";
@@ -7,10 +7,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useLanguage } from "../../Context/LanguageProvider";
 import { selectIsAuthenticated } from "../../features/auth/authSelectors";
 import { api } from "../../api/axios";
+import RedeemModal from "../../components/RedeemModal/RedeemModal";
 
 const fetchMyReferralInfo = async () => {
   const { data } = await api.get("/api/users/me/referrals");
-  return data; 
+  return data;
 };
 
 // fallback default tiers (client side display only)
@@ -23,10 +24,18 @@ const DEFAULT_TIERS = [
 const MyReferrals = () => {
   const { isBangla } = useLanguage();
   const isAuthenticated = useSelector(selectIsAuthenticated);
+  const [redeemOpen, setRedeemOpen] = useState(false);
 
   const t = (bn, en) => (isBangla ? bn : en);
 
-  const { data, isLoading, isError } = useQuery({
+  // ✅ keep refetch so modal success can refresh
+  const {
+    data,
+    isLoading,
+    isError,
+    refetch: refetchWallet,
+    isFetching,
+  } = useQuery({
     queryKey: ["me-referrals"],
     queryFn: fetchMyReferralInfo,
     enabled: !!isAuthenticated,
@@ -40,7 +49,6 @@ const MyReferrals = () => {
   const username = me?.username || "Guest";
   const referralCount = Number(me?.referralCount || 0);
   const referCommissionBalance = Number(me?.referCommissionBalance || 0);
-  
 
   const tiers = useMemo(() => {
     const override = me?.referralTierOverride;
@@ -53,21 +61,16 @@ const MyReferrals = () => {
         isActive: typeof x.isActive === "boolean" ? x.isActive : true,
       }));
     }
-    // if override is [] or null or missing -> show default tiers
     return DEFAULT_TIERS;
   }, [me?.referralTierOverride]);
 
-  const referralLink = useMemo(
-    () =>
-      referralCode
-        ? `${import.meta.env.VITE_CLIENT_URL}/register?ref=${referralCode}`
-        : "",
-    [referralCode],
-  );
+  const referralLink = useMemo(() => {
+    if (!referralCode) return "";
+    return `${import.meta.env.VITE_CLIENT_URL}/register?ref=${referralCode}`;
+  }, [referralCode]);
 
   // ✅ Count per tier based on referralCount and tier range
   const tierCounts = useMemo(() => {
-    // for each tier: how many referrals fall into [from..to] given total referralCount
     return tiers.map((tr) => {
       const from = Number(tr.from);
       const to = Number(tr.to);
@@ -78,20 +81,22 @@ const MyReferrals = () => {
     });
   }, [tiers, referralCount]);
 
+  const currencySymbol = me?.currency === "USDT" ? "USDT" : "৳";
+  const referralWallet = referCommissionBalance; // ✅ used for RedeemModal
+
   const bonus = useMemo(() => {
-    const currencySymbol = me?.currency === "USDT" ? "USDT" : "৳";
     return {
       referralFreeBonus: referCommissionBalance.toFixed(2),
       depositRequired: "0.00 / 0.00",
       turnoverRequired: "0.00 / 0.00",
       currencySymbol,
     };
-  }, [referCommissionBalance, me?.currency]);
+  }, [referCommissionBalance, currencySymbol]);
 
   const status = useMemo(
     () => ({
       friendsInvited: referralCount,
-      completedInvitation: 0, // ✅ later: তোমার business logic/API
+      completedInvitation: 0, // ✅ later: your business logic/API
     }),
     [referralCount],
   );
@@ -253,7 +258,7 @@ const MyReferrals = () => {
             </div>
           </div>
 
-          {/* ✅ Tier rows now from referralTierOverride */}
+          {/* Tier rows */}
           {tiers.map((tr, idx) => {
             const from = Number(tr.from);
             const to = Number(tr.to);
@@ -296,6 +301,7 @@ const MyReferrals = () => {
           })}
         </div>
 
+        {/* Invite friends */}
         <div className="mt-6">
           <button
             type="button"
@@ -304,6 +310,17 @@ const MyReferrals = () => {
             className="w-full max-w-[380px] bg-[#0b8cff] hover:bg-[#0a7ee6] disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-extrabold rounded-lg py-3.5 text-[13.5px] flex items-center justify-center gap-2.5 transition"
           >
             {t("বন্ধুদের আমন্ত্রণ জানান", "Invite Friends")} <FaShareAlt />
+          </button>
+        </div>
+
+        {/* ✅ Mobile Redeem button -> opens RedeemModal */}
+        <div className="mt-6 block md:hidden">
+          <button
+            type="button"
+            onClick={() => setRedeemOpen(true)}
+            className="w-full max-w-[380px] bg-[#f5c400] hover:bg-[#e7b900] disabled:bg-gray-400 disabled:cursor-not-allowed text-black font-extrabold rounded-lg py-3.5 text-[13.5px] flex items-center justify-center gap-2.5 transition"
+          >
+            {t("রিডিম করুন!", "Redeem Now!")}
           </button>
         </div>
       </div>
@@ -384,6 +401,18 @@ const MyReferrals = () => {
           )}
         </div>
       </div>
+
+      {/* ✅ Redeem Modal (same behavior as ProfileNavbar) */}
+      <RedeemModal
+        open={redeemOpen}
+        onClose={() => setRedeemOpen(false)}
+        referralWallet={referralWallet}
+        currencySymbol={currencySymbol === "USDT" ? "USDT" : "৳"}
+        onSuccess={() => {
+          // ✅ refresh referral wallet number after redeem
+          refetchWallet?.();
+        }}
+      />
     </div>
   );
 };

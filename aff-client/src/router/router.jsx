@@ -74,7 +74,7 @@ export const routes = createBrowserRouter([
         ),
       },
       {
-        path: "/withdraw-history/:id",
+        path: "withdraw-history/:id",
         element: (
           <PrivateRoute>
             {" "}

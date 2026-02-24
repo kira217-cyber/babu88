@@ -197,7 +197,7 @@ const Sidebar = () => {
         to: "/auto-deposit-history",
         icon: <FaHistory className="text-amber-400" />,
         text: "Auto Deposit History",
-      }
+      },
     ],
     [],
   );
@@ -216,13 +216,13 @@ const Sidebar = () => {
         icon: <FaCodePullRequest />,
         text: "Withdraw Request",
       },
-       {
+      {
         perm: "add-aff-withdraw",
         to: "/add-aff-withdraw",
         icon: <PiHandWithdrawBold />,
         text: "Add Aff Withdraw",
       },
-       {
+      {
         perm: "affiliate-withdraw-request",
         to: "/affiliate-withdraw-request",
         icon: <FaCodePullRequest />,
@@ -645,7 +645,7 @@ const SidebarContent = ({
         ))}
 
         {/* Games Dropdown */}
-        {/* {showGames && (
+        {showGames && (
           <div className="mt-4">
             <button
               onClick={() => setGamesOpen(!gamesOpen)}
@@ -685,7 +685,7 @@ const SidebarContent = ({
               </div>
             )}
           </div>
-        )} */}
+        )}
 
         {/* Users Dropdown */}
         {showUsers && (
