@@ -7,15 +7,26 @@ import Game from "../models/Game.js";
 
 const router = express.Router();
 
+const isRemoteUrl = (v = "") => /^https?:\/\//i.test(String(v || ""));
+
+// ✅ only unlink local uploads path like "/uploads/xxx.png"
 const safeUnlink = (filePath) => {
   try {
     if (!filePath) return;
+
+    // ✅ don't try to delete remote urls
+    if (isRemoteUrl(filePath)) return;
+
+    // ✅ only delete uploads files
+    if (!String(filePath).startsWith("/uploads/")) return;
+
     const full = path.join(process.cwd(), filePath.replace(/^\//, ""));
     if (fs.existsSync(full)) fs.unlinkSync(full);
   } catch (_) {}
 };
 
-// ✅ Create (select game) — now accepts & saves gameName
+// ✅ Create (select game)
+// ✅ FIXED: now supports saving remote oracle image url when no upload
 router.post("/", upload.single("image"), async (req, res) => {
   try {
     const {
@@ -23,27 +34,42 @@ router.post("/", upload.single("image"), async (req, res) => {
       providerDbId,
       gameId,
       gameUuid,
-      gameName,           // ← NEW
+      gameName,
       isHot,
       isNew,
       status,
+      imageUrl, // ✅ NEW: oracle remote image url (string)
     } = req.body;
 
     if (!categoryId || !providerDbId) {
-      return res.status(400).json({ success: false, message: "categoryId & providerDbId required" });
+      return res.status(400).json({
+        success: false,
+        message: "categoryId & providerDbId required",
+      });
     }
     if (!gameId) {
-      return res.status(400).json({ success: false, message: "gameId required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "gameId required" });
     }
 
-    const image = req.file?.filename ? `/uploads/${req.file.filename}` : "";
+    // ✅ image priority:
+    // 1) uploaded file -> "/uploads/xxx.png"
+    // 2) imageUrl string -> "https://....png"
+    // 3) ""
+    let image = "";
+    if (req.file?.filename) {
+      image = `/uploads/${req.file.filename}`;
+    } else if (typeof imageUrl === "string" && imageUrl.trim()) {
+      image = imageUrl.trim();
+    }
 
     const doc = await Game.create({
       categoryId,
       providerDbId,
       gameId,
       gameUuid: gameUuid || "",
-      gameName: gameName || "",               // ← NEW
+      gameName: (gameName || "").trim(),
       image,
       isHot: String(isHot) === "true",
       isNew: String(isNew) === "true",
@@ -54,14 +80,13 @@ router.post("/", upload.single("image"), async (req, res) => {
   } catch (err) {
     return res.status(500).json({
       success: false,
-      message: err?.code === 11000
-        ? "This game is already selected for this provider"
-        : (err?.message || "Server error"),
+      message:
+        err?.code === 11000
+          ? "This game is already selected for this provider"
+          : err?.message || "Server error",
     });
   }
 });
-
-
 
 // ✅ Get selected games (filter by providerDbId or categoryId)
 router.get("/", async (req, res) => {
@@ -74,24 +99,34 @@ router.get("/", async (req, res) => {
     const list = await Game.find(filter).sort({ createdAt: -1 });
     return res.json({ success: true, data: list });
   } catch (err) {
-    return res.status(500).json({ success: false, message: err?.message || "Server error" });
+    return res.status(500).json({
+      success: false,
+      message: err?.message || "Server error",
+    });
   }
 });
 
-// ✅ Update — also allow updating gameName (optional — mostly for future admin edit)
+// ✅ Update
+// ✅ FIXED: remote url থাকলে unlink skip করবে
+// ✅ upload করলে: image becomes "/uploads/xxx.png"
+// ✅ upload না করলে: image unchanged
 router.put("/:id", upload.single("image"), async (req, res) => {
   try {
     const doc = await Game.findById(req.params.id);
-    if (!doc) return res.status(404).json({ success: false, message: "Game not found" });
+    if (!doc)
+      return res
+        .status(404)
+        .json({ success: false, message: "Game not found" });
 
-    const { isHot, isNew, status, gameName } = req.body;   // ← gameName optional
+    const { isHot, isNew, status, gameName } = req.body;
 
     if (typeof isHot !== "undefined") doc.isHot = String(isHot) === "true";
     if (typeof isNew !== "undefined") doc.isNew = String(isNew) === "true";
     if (status) doc.status = status;
-    if (gameName !== undefined) doc.gameName = gameName.trim();   // ← NEW (optional)
+    if (gameName !== undefined) doc.gameName = String(gameName || "").trim();
 
     if (req.file?.filename) {
+      // ✅ delete old local upload only (won't touch remote)
       safeUnlink(doc.image);
       doc.image = `/uploads/${req.file.filename}`;
     }
@@ -99,7 +134,10 @@ router.put("/:id", upload.single("image"), async (req, res) => {
     await doc.save();
     return res.json({ success: true, data: doc });
   } catch (err) {
-    return res.status(500).json({ success: false, message: err?.message || "Server error" });
+    return res.status(500).json({
+      success: false,
+      message: err?.message || "Server error",
+    });
   }
 });
 
@@ -107,14 +145,20 @@ router.put("/:id", upload.single("image"), async (req, res) => {
 router.delete("/:id", async (req, res) => {
   try {
     const doc = await Game.findById(req.params.id);
-    if (!doc) return res.status(404).json({ success: false, message: "Game not found" });
+    if (!doc)
+      return res
+        .status(404)
+        .json({ success: false, message: "Game not found" });
 
     safeUnlink(doc.image);
     await doc.deleteOne();
 
     return res.json({ success: true, message: "Deleted" });
   } catch (err) {
-    return res.status(500).json({ success: false, message: err?.message || "Server error" });
+    return res.status(500).json({
+      success: false,
+      message: err?.message || "Server error",
+    });
   }
 });
 

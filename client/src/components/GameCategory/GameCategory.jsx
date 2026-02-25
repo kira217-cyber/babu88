@@ -45,7 +45,12 @@ const fetchGamesByCategory = async (categoryId) => {
 };
 
 const GameCard = ({ game, onClick, ui, apiBase }) => {
-  const imgSrc = game?.image ? `${apiBase}${game.image}` : "/no-image.png";
+  const imgSrc =
+    game?.image && String(game.image).trim()
+      ? /^https?:\/\//i.test(String(game.image).trim())
+        ? String(game.image).trim()
+        : `${apiBase}${String(game.image).trim()}`
+      : "/no-image.png";
 
   return (
     <motion.button
@@ -223,7 +228,7 @@ const GameCategory = () => {
   };
 
   const handlePlay = (game) => {
-    const gameId = game?.gameId ;
+    const gameId = game?.gameId;
 
     if (!gameId) {
       toast.error(isBangla ? "গেম আইডি পাওয়া যায়নি" : "Game ID not found");

@@ -10,7 +10,7 @@ const router = express.Router();
  * ✅ Apply wager amount to running turnover(s)
  * - adds progress to oldest running turnovers first
  * - marks completed when progress reaches required
- * - all inside same mongoose session/transaction
+ * - uses TurnOver schema: { user, sourceType, sourceId, required, progress, status, completedAt }
  */
 const applyTurnoverProgress = async ({ session, userId, wagerAmount }) => {
   const amt = Number(wagerAmount || 0);
@@ -20,7 +20,7 @@ const applyTurnoverProgress = async ({ session, userId, wagerAmount }) => {
     user: userId,
     status: "running",
   })
-    .sort({ createdAt: 1 })
+    .sort({ createdAt: 1 }) // oldest first
     .session(session);
 
   if (!running.length) return;
@@ -34,7 +34,14 @@ const applyTurnoverProgress = async ({ session, userId, wagerAmount }) => {
     const progress = Number(t.progress || 0);
 
     const left = Math.max(0, required - progress);
-    if (left <= 0) continue;
+    if (left <= 0) {
+      // safety: if somehow progress already reached required but status not updated
+      await TurnOver.updateOne(
+        { _id: t._id },
+        { $set: { status: "completed", completedAt: new Date() } },
+      ).session(session);
+      continue;
+    }
 
     const add = Math.min(left, remaining);
     const newProgress = progress + add;
@@ -170,10 +177,12 @@ router.post("/", async (req, res) => {
       ).session(session);
 
       // =========================================================
-      // ✅ Turnover progress logic (UPDATED)
-      // Now: BET + SETTLE দুইটাই turnover progress করবে amount অনুযায়ী
+      // ✅ Turnover progress logic (BASED ON TurnOver schema)
+      // Rule: user game khelle turnover puron hobe -> wager amount add হবে
+      // ✅ Common practice: only BET counts as turnover (wagered amount)
+      // If you WANT settle to count too, just add "|| bet_type === 'SETTLE'"
       // =========================================================
-      if ((bet_type === "BET" || bet_type === "SETTLE") && amountFloat > 0) {
+      if (bet_type === "BET" && amountFloat > 0) {
         await applyTurnoverProgress({
           session,
           userId: player._id,

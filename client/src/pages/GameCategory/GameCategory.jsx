@@ -262,9 +262,12 @@ const GameCategory = () => {
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-6 md:gap-8">
               {shownGames.map((g) => {
-                const imgSrc = g.image
-                  ? `${API_URL}${g.image}`
-                  : "/no-image.png";
+                const imgSrc =
+                  g.image && String(g.image).trim()
+                    ? /^https?:\/\//i.test(String(g.image).trim())
+                      ? String(g.image).trim() // ✅ remote image
+                      : `${API_URL}${String(g.image).trim()}` // ✅ local /uploads image
+                    : "/no-image.png";
                 const goId = g.gameId; // using gameId as per your last snippet
 
                 return (

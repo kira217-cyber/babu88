@@ -51,10 +51,20 @@ const GameCategoryMobile = () => {
 
   const resolveImg = (path) => {
     if (!path) return "/no-image.png";
+
     const p = String(path).trim();
+    if (!p) return "/no-image.png";
+
+    // ✅ remote url 그대로
     if (/^https?:\/\//i.test(p)) return p;
-    if (!API_URL) return p;
-    return `${API_URL}${p.startsWith("/") ? "" : "/"}${p}`;
+
+    // ✅ normalize API_URL (no trailing slash)
+    const base = (API_URL || "").replace(/\/$/, "");
+    if (!base) return p.startsWith("/") ? p : `/${p}`;
+
+    // ✅ ensure single slash between base and path
+    const normalizedPath = p.startsWith("/") ? p : `/${p}`;
+    return `${base}${normalizedPath}`;
   };
 
   const { data: categories = [], isLoading: loadingCats } = useQuery({

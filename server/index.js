@@ -49,7 +49,7 @@ import affAgentColorRoutes from "./routes/affAgentColorRoutes.js";
 import affWhyUsColorRoutes from "./routes/affWhyUsColorRoutes.js";
 import affNoticeColorRoutes from "./routes/affNoticeColorRoutes.js";
 import affSliderColorRoutes from "./routes/affSliderColorRoutes.js";
-import liveGamesRoutes from "./routes/liveGamesRoutes.js";
+import liveGameGlobalRoutes from "./routes/liveGamesRoutes.js"
 import userRoutes from "./routes/userRoutes.js";
 import adminAffiliateRoutes from "./routes/adminAffiliateRoutes.js";
 import adminUserRoutes from "./routes/adminUserRoutes.js";
@@ -73,7 +73,7 @@ import affWithdrawMethodRoutes from "./routes/affWithdrawMethodRoutes.js";
 import affWithdrawRequestsRoutes from "./routes/affWithdrawRequestsRoutes.js";
 import redeemRoutes from "./routes/redeemRoutes.js";
 import adminRedeemRoutes from "./routes/adminRedeemRoutes.js";
-
+import refundRoutes from "./routes/refundRoutes.js"
 
 
 
@@ -146,7 +146,7 @@ app.use("/api", affAgentColorRoutes);
 app.use("/api", affWhyUsColorRoutes);
 app.use("/api", affNoticeColorRoutes);
 app.use("/api", affSliderColorRoutes);
-app.use("/api", liveGamesRoutes);
+app.use("/api", liveGameGlobalRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/admin", adminAffiliateRoutes);
 app.use("/api/admin", adminUserRoutes);
@@ -170,6 +170,7 @@ app.use("/api", affWithdrawMethodRoutes);
 app.use("/api", affWithdrawRequestsRoutes);
 app.use("/api/redeem", redeemRoutes);
 app.use("/api/admin/redeem", adminRedeemRoutes);
+app.use("/api/refund", refundRoutes);
 
 
 // ✅ port

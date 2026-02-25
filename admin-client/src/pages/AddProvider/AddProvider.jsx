@@ -4,14 +4,14 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { api } from "../../api/axios";
 
-const PROVIDER_API = "https://apigames.oracleapi.net/api/providers";
-const PROVIDER_KEY =
-  "b4fb7adb955b1078d8d38b54f5ad7be8ded17cfba85c37e4faa729ddd679d379";
+// ✅ NEW ORACLE PROVIDER API (use this, not the old one)
+const ORACLE_PROVIDER_API = "https://api.oraclegames.live/api/providers";
+const ORACLE_PROVIDER_KEY = "ceeeba1c-892b-4571-b05f-2bcec5c4a44e";
 
 const emptyForm = {
   categoryId: "",
-  providerId: "",
-  providerName: "",
+  providerId: "", // ✅ we will store providerCode here (ex: "TBC")
+  providerName: "", // ✅ providerName (ex: "2BC")
   providerImage: null,
   providerIcon: null,
   status: "active",
@@ -38,14 +38,18 @@ const AddProvider = () => {
     }
   };
 
+  // ✅ now loads from https://api.oraclegames.live/api/providers
   const loadOracleProviders = async () => {
     try {
-      const res = await axios.get(PROVIDER_API, {
-        headers: { "x-api-key": PROVIDER_KEY },
+      const res = await axios.get(ORACLE_PROVIDER_API, {
+        headers: { "x-dstgame-key": ORACLE_PROVIDER_KEY },
       });
+
+      // response shape:
+      // { success: true, count: 76, data: [{ _id, providerCode, providerName, gameType... }] }
       setOracleProviders(res.data?.data || []);
     } catch {
-      toast.error("Failed to load providers from API");
+      toast.error("Failed to load providers from Oracle API");
     }
   };
 
@@ -72,6 +76,7 @@ const AddProvider = () => {
   }, [form.categoryId]);
 
   useEffect(() => {
+    // banner preview
     if (form.providerImage instanceof File) {
       const url = URL.createObjectURL(form.providerImage);
       setImgPreview(url);
@@ -82,6 +87,7 @@ const AddProvider = () => {
       setImgPreview("");
     }
 
+    // icon preview
     if (form.providerIcon instanceof File) {
       const url = URL.createObjectURL(form.providerIcon);
       setIconPreview(url);
@@ -93,14 +99,16 @@ const AddProvider = () => {
     }
   }, [form.providerImage, form.providerIcon, editing]);
 
-  const handleProviderSelect = (providerId) => {
+  // ✅ select provider by providerCode, save providerCode + providerName
+  const handleProviderSelect = (providerCode) => {
     const selected = oracleProviders.find(
-      (p) => String(p._id) === String(providerId),
+      (p) => String(p.providerCode) === String(providerCode),
     );
+
     setForm((prev) => ({
       ...prev,
-      providerId,
-      providerName: selected?.name || "",
+      providerId: selected?.providerCode || "", // ✅ save providerCode in DB field providerId
+      providerName: selected?.providerName || "", // ✅ save providerName
     }));
   };
 
@@ -108,7 +116,7 @@ const AddProvider = () => {
     setEditing(provider);
     setForm({
       categoryId: provider.categoryId || "",
-      providerId: provider.providerId || "",
+      providerId: provider.providerId || "", // already saved providerCode
       providerName: provider.providerName || "",
       providerImage: null,
       providerIcon: null,
@@ -135,8 +143,13 @@ const AddProvider = () => {
     try {
       const fd = new FormData();
       fd.append("categoryId", form.categoryId);
+
+      // ✅ providerId = providerCode (TBC, WIN568S etc.)
       fd.append("providerId", form.providerId);
+
+      // ✅ providerName = 2BC, "568WIN SPORTS (PHP ONLY)" etc.
       fd.append("providerName", form.providerName);
+
       fd.append("status", form.status);
 
       if (form.providerImage instanceof File)
@@ -246,28 +259,28 @@ const AddProvider = () => {
               )}
             </div>
 
-            {/* Provider (from oracle API) */}
+            {/* Provider (from NEW oracle API) */}
             <div className="md:col-span-2">
               <label className="block text-sm font-semibold text-yellow-300/90 mb-2">
                 Select Provider
               </label>
               <select
                 className={inputBase}
-                value={form.providerId}
+                value={form.providerId} // ✅ providerCode stored here
                 onChange={(e) => handleProviderSelect(e.target.value)}
                 required
               >
                 <option value="">Choose provider...</option>
                 {oracleProviders.map((p) => (
-                  <option key={p._id} value={p._id}>
-                    {p.name}
+                  <option key={p._id} value={p.providerCode}>
+                    {p.providerName} ({p.providerCode})
                   </option>
                 ))}
               </select>
 
               {form.providerId && (
                 <div className="mt-2 text-xs text-yellow-400/70">
-                  ID: <span className="font-mono">{form.providerId}</span> •
+                  Code: <span className="font-mono">{form.providerId}</span> •
                   Name:{" "}
                   <span className="font-semibold text-yellow-200">
                     {form.providerName}
@@ -431,6 +444,7 @@ const AddProvider = () => {
                     <h3 className="font-bold text-lg text-yellow-100 group-hover:text-yellow-300 transition-colors truncate">
                       {prov.providerName}
                     </h3>
+                    {/* ✅ prov.providerId now contains providerCode */}
                     <p className="text-xs text-yellow-400/70 font-mono truncate">
                       {prov.providerId}
                     </p>

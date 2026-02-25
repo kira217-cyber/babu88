@@ -96,6 +96,20 @@ const userSchema = new Schema(
 
     firstName: { type: String, default: "" },
     lastName: { type: String, default: "" },
+    refundHistory: [
+      {
+        provider_code: String,
+        game_code: String,
+        bet_type: String, // "REFUND"
+        amount: Number,
+        transaction_id: String,
+        verification_key: String,
+        times: Number,
+        status: String, // "refunded"
+        balance_after: Number,
+        refundedAt: Date,
+      },
+    ],
     // Existing fields
     gameHistory: [gameHistorySchema],
   },

@@ -4,8 +4,8 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { api } from "../../api/axios";
 
-const ORACLE_KEY =
-  "b4fb7adb955b1078d8d38b54f5ad7be8ded17cfba85c37e4faa729ddd679d379";
+const ORACLE_BASE = "https://api.oraclegames.live/api";
+const ORACLE_KEY = "ceeeba1c-892b-4571-b05f-2bcec5c4a44e";
 
 const GAMES_PER_PAGE = 50;
 
@@ -23,8 +23,8 @@ const AddGame = () => {
     [providers, selectedProviderDbId],
   );
 
-  const [providerGames, setProviderGames] = useState([]); // oracle games
-  const [selectedGames, setSelectedGames] = useState([]); // your DB games
+  const [providerGames, setProviderGames] = useState([]); // ✅ oracle games (from new API)
+  const [selectedGames, setSelectedGames] = useState([]); // ✅ your DB games
 
   const [loadingGames, setLoadingGames] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -32,17 +32,17 @@ const AddGame = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingGame, setEditingGame] = useState(null);
 
-  // Add form (per-card temporary state)
+  // ✅ Per-card add temp state (kept as you had, but scoped is global like before)
   const [form, setForm] = useState({
-    image: null,
+    image: null, // optional upload (overrides oracle image)
     isHot: false,
     isNew: false,
   });
   const [imagePreview, setImagePreview] = useState("");
 
-  // Edit modal temporary state
+  // ✅ Edit modal temp state
   const [editForm, setEditForm] = useState({
-    image: null,
+    image: null, // upload replacement
     isHot: false,
     isNew: false,
   });
@@ -100,6 +100,8 @@ const AddGame = () => {
     loadSelected();
   }, [selectedProviderDbId]);
 
+  // ✅ NEW: Load oracle games by providerCode (selectedProvider.providerId = providerCode)
+  // Uses: GET https://api.oraclegames.live/api/providers/{PROVIDER_CODE}
   useEffect(() => {
     if (!selectedProvider?.providerId) {
       setProviderGames([]);
@@ -110,13 +112,18 @@ const AddGame = () => {
     const fetchOracleGames = async () => {
       setLoadingGames(true);
       try {
+        const providerCode = selectedProvider.providerId; // ex: "JILIS"
         const res = await axios.get(
-          `https://apigames.oracleapi.net/api/games/pagination?page=1&limit=500&provider=${selectedProvider.providerId}`,
-          { headers: { "x-api-key": ORACLE_KEY } },
+          `${ORACLE_BASE}/providers/${providerCode}`,
+          {
+            headers: { "x-dstgame-key": ORACLE_KEY },
+          },
         );
-        setProviderGames(res.data?.data || []);
+
+        // response: { success, provider, gameCount, games: [...] }
+        setProviderGames(res.data?.games || []);
         setCurrentPage(1);
-      } catch {
+      } catch (e) {
         toast.error("Failed to load games from provider");
         setProviderGames([]);
       } finally {
@@ -129,11 +136,20 @@ const AddGame = () => {
 
   // Previews
   useEffect(() => {
-    if (form.image) setImagePreview(URL.createObjectURL(form.image));
+    if (!form.image) {
+      setImagePreview("");
+      return;
+    }
+    const url = URL.createObjectURL(form.image);
+    setImagePreview(url);
+    return () => URL.revokeObjectURL(url);
   }, [form.image]);
 
   useEffect(() => {
-    if (editForm.image) setEditPreview(URL.createObjectURL(editForm.image));
+    if (!editForm.image) return;
+    const url = URL.createObjectURL(editForm.image);
+    setEditPreview(url);
+    return () => URL.revokeObjectURL(url);
   }, [editForm.image]);
 
   // ────────────────────────────────────────────────
@@ -162,16 +178,30 @@ const AddGame = () => {
     setImagePreview("");
   };
 
+  /**
+   * ✅ DB save mapping (your requirement):
+   * - gameId      = oracle game _id
+   * - gameName    = oracle game gameName
+   * - gameUuid    = oracle game game_code
+   * - image:
+   *    - if you upload custom image while adding => save uploaded file path (from backend)
+   *    - else save oracle image URL string directly in DB (as image)
+   *
+   * NOTE: Backend must accept:
+   *   - imageUrl (string) optional, to save remote url when no file uploaded
+   *   - OR it can accept "image" as string. Here I send "imageUrl" to be clean.
+   * If your backend expects another field name, tell me and I’ll adjust.
+   */
   const handleSelectGame = async (game) => {
     const oracleGameId = game._id;
-    const oracleGameUuid = game.game_uuid || "";
-    const oracleGameName = game.name || "Unnamed Game";
+    const oracleGameCode = game.game_code || ""; // ✅ gameUuid = game_code
+    const oracleGameName = game.gameName || game.name || "Unnamed Game";
+    const oracleImageUrl = game.image || ""; // ✅ remote url
 
     const alreadySelected = isGameSelected(oracleGameId);
 
     try {
       if (alreadySelected) {
-        // Remove
         const doc = getSelectedGame(oracleGameId);
         await api.delete(`/api/games/${doc._id}`);
         setSelectedGames((prev) => prev.filter((x) => x._id !== doc._id));
@@ -183,12 +213,23 @@ const AddGame = () => {
       const fd = new FormData();
       fd.append("categoryId", selectedCategoryId);
       fd.append("providerDbId", selectedProviderDbId);
+
+      // ✅ exact mapping you asked
       fd.append("gameId", oracleGameId);
-      fd.append("gameUuid", oracleGameUuid);
-      fd.append("gameName", oracleGameName); // ← saved in DB
+      fd.append("gameUuid", oracleGameCode);
+      fd.append("gameName", oracleGameName);
+
       fd.append("isHot", String(form.isHot));
       fd.append("isNew", String(form.isNew));
-      if (form.image) fd.append("image", form.image);
+
+      // ✅ Image logic:
+      // - upload দিলে: file যাবে
+      // - upload না দিলে: oracle image url string যাবে
+      if (form.image instanceof File) {
+        fd.append("image", form.image);
+      } else {
+        fd.append("imageUrl", oracleImageUrl);
+      }
 
       const res = await api.post("/api/games", fd, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -209,7 +250,13 @@ const AddGame = () => {
       isHot: !!selectedDoc.isHot,
       isNew: !!selectedDoc.isNew,
     });
-    setEditPreview(selectedDoc.image ? `${API_URL}${selectedDoc.image}` : "");
+
+    // ✅ show saved image (could be remote url OR local /uploads path)
+    const img = selectedDoc.image || "";
+    if (!img) setEditPreview("");
+    else if (/^https?:\/\//i.test(img)) setEditPreview(img);
+    else setEditPreview(`${API_URL}${img}`);
+
     setIsModalOpen(true);
   };
 
@@ -220,6 +267,11 @@ const AddGame = () => {
     setEditPreview("");
   };
 
+  /**
+   * ✅ Update rule you asked:
+   * - update করলে user upload দিলে সেটাই save হবে: "/uploads/....png"
+   * - upload না দিলে image unchanged থাকবে
+   */
   const handleUpdate = async (e) => {
     e.preventDefault();
     if (!editingGame) return;
@@ -228,7 +280,7 @@ const AddGame = () => {
       const fd = new FormData();
       fd.append("isHot", String(editForm.isHot));
       fd.append("isNew", String(editForm.isNew));
-      if (editForm.image) fd.append("image", editForm.image);
+      if (editForm.image instanceof File) fd.append("image", editForm.image);
 
       const res = await api.put(`/api/games/${editingGame._id}`, fd, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -258,6 +310,12 @@ const AddGame = () => {
   const btnDanger =
     "bg-gradient-to-r from-red-600/90 to-rose-600/90 hover:from-red-500 hover:to-rose-500 text-white font-medium py-2.5 px-5 rounded-xl transition-all duration-200 shadow-sm hover:shadow-red-500/40";
 
+  // ✅ better: oracle image is already full url (no need old apigames domain)
+  const oracleFallbackImage = (game) => {
+    if (game?.image) return game.image;
+    return "";
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-yellow-950/20 to-black text-white p-5 md:p-8">
       <div className="max-w-7xl mx-auto">
@@ -285,6 +343,7 @@ const AddGame = () => {
                   setProviderGames([]);
                   setSelectedGames([]);
                   setCurrentPage(1);
+                  resetAddForm();
                 }}
                 className={inputBase}
               >
@@ -303,14 +362,20 @@ const AddGame = () => {
               </label>
               <select
                 value={selectedProviderDbId}
-                onChange={(e) => setSelectedProviderDbId(e.target.value)}
+                onChange={(e) => {
+                  setSelectedProviderDbId(e.target.value);
+                  setProviderGames([]);
+                  setSelectedGames([]);
+                  setCurrentPage(1);
+                  resetAddForm();
+                }}
                 disabled={!selectedCategoryId}
                 className={`${inputBase} disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 <option value="">Choose provider...</option>
                 {providers.map((p) => (
                   <option key={p._id} value={p._id}>
-                    {p.providerName} (ID: {p.providerId})
+                    {p.providerName} (CODE: {p.providerId})
                   </option>
                 ))}
               </select>
@@ -321,7 +386,7 @@ const AddGame = () => {
                   <span className="text-yellow-200 font-medium">
                     {selectedProvider.providerName}
                   </span>{" "}
-                  • Oracle ID:{" "}
+                  • Provider Code:{" "}
                   <span className="font-mono">
                     {selectedProvider.providerId}
                   </span>
@@ -356,9 +421,16 @@ const AddGame = () => {
                 const selected = isGameSelected(game._id);
                 const selectedDoc = getSelectedGame(game._id);
 
-                // Prefer saved name from DB, fallback to oracle name
                 const displayName =
-                  selectedDoc?.gameName || game.name || "Unnamed Game";
+                  selectedDoc?.gameName || game.gameName || "Unnamed Game";
+
+                const imageToShow = selected
+                  ? selectedDoc?.image
+                    ? /^https?:\/\//i.test(selectedDoc.image)
+                      ? selectedDoc.image
+                      : `${API_URL}${selectedDoc.image}`
+                    : ""
+                  : oracleFallbackImage(game);
 
                 return (
                   <div
@@ -370,25 +442,14 @@ const AddGame = () => {
                     }`}
                   >
                     <div className="relative">
-                      {selected && selectedDoc?.image ? (
+                      {imageToShow ? (
                         <img
-                          src={`${API_URL}${selectedDoc.image}`}
+                          src={imageToShow}
                           alt={displayName}
                           className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500"
-                          onError={(e) => (e.target.src = "/fallback-game.png")}
-                        />
-                      ) : game?.projectImageDocs?.some(
-                          (item) => item.projectName?.title === "Velki",
-                        ) ? (
-                        <img
-                          src={`https://apigames.oracleapi.net/${
-                            game.projectImageDocs.find(
-                              (item) => item.projectName?.title === "Velki",
-                            )?.image
-                          }`}
-                          alt={displayName}
-                          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500"
-                          onError={(e) => (e.target.src = "/fallback-game.png")}
+                          onError={(e) => {
+                            e.currentTarget.src = "/fallback-game.png";
+                          }}
                         />
                       ) : (
                         <div className="w-full h-48 bg-black/50 flex items-center justify-center text-yellow-500/70 font-medium">
@@ -409,6 +470,8 @@ const AddGame = () => {
                       </h3>
 
                       <div className="text-xs text-yellow-400/70 mb-4 font-mono space-y-1">
+                        <div>gameId: {game._id}</div>
+                        <div>game_code: {game.game_code}</div>
                         {selectedDoc?.gameName && (
                           <div className="text-yellow-200/90">
                             Saved name: {selectedDoc.gameName}
@@ -451,6 +514,14 @@ const AddGame = () => {
                                 alt="preview"
                                 className="mt-3 w-full h-32 object-cover rounded-xl border border-yellow-600/40"
                               />
+                            )}
+
+                            {/* helpful note */}
+                            {!form.image && game.image && (
+                              <div className="mt-2 text-xs text-yellow-400/70">
+                                If you don&apos;t upload, Oracle image URL will
+                                be saved in DB.
+                              </div>
                             )}
                           </div>
 
@@ -556,6 +627,10 @@ const AddGame = () => {
                     className="mt-4 w-full h-56 object-cover rounded-xl border border-yellow-600/50 shadow-lg shadow-black/40"
                   />
                 )}
+                <div className="mt-2 text-xs text-yellow-400/70">
+                  Upload করলে নতুন image path (&quot;/uploads/...&quot;) save
+                  হবে।
+                </div>
               </div>
 
               <div className="flex gap-8 justify-center">
@@ -600,6 +675,14 @@ const AddGame = () => {
                 </button>
               </div>
             </form>
+
+            <button
+              type="button"
+              onClick={closeModal}
+              className={`${btnDanger} w-full mt-5`}
+            >
+              Close
+            </button>
           </div>
         </div>
       )}

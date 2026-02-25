@@ -1,6 +1,7 @@
 // src/components/LiveGames.jsx
 import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
 import { api } from "../../api/axios";
 
 // Flag fallback map (kept exactly as it was)
@@ -37,13 +38,28 @@ const fetchLiveGamesColor = async () => {
   return data;
 };
 
-// Fetch real live games from backend
+// ✅ Fetch real live cricket matches from Oracle API
 const fetchLiveGames = async () => {
-  const { data } = await api.get("/api/live-games");
-  return data || [];
+  const res = await axios.get(
+    "https://api.oraclegames.live/api/cricket/matches",
+    {
+      headers: { Accept: "application/json" },
+    },
+  );
+  return res.data?.data || [];
+};
+
+// ✅ Fetch GLOBAL gameUID from your DB (single config doc)
+const fetchGlobalGame = async () => {
+  // expected response: { gameUID: "69987ca39fa20f5dfecbdc95", isActive: true }
+  const { data } = await api.get("/api/live-games/global");
+  return data || {};
 };
 
 const StatusBadge = ({ text, variant, styles }) => {
+  // only 2 variants existed in design; keep same colors:
+  // - "upcoming" style for SOON / UPDATING / END
+  // - "live" style for LIVE
   const isUpcoming = variant === "upcoming";
   const bg = isUpcoming ? styles.badgeUpcomingBg : styles.badgeLiveBg;
   const color = isUpcoming ? styles.badgeUpcomingText : styles.badgeLiveText;
@@ -62,6 +78,26 @@ const StatusBadge = ({ text, variant, styles }) => {
   );
 };
 
+// ✅ map API state -> required labels: End, Soon, Updating, Live
+const getStatusLabel = (state, isFetching) => {
+  const s = String(state || "").toLowerCase();
+
+  if (isFetching) return { label: "UPDATING", variant: "upcoming" };
+  if (s === "live") return { label: "LIVE", variant: "live" };
+
+  // common possible values from cricket feeds
+  if (["upcoming", "preview", "scheduled", "not started", "soon"].includes(s))
+    return { label: "SOON", variant: "upcoming" };
+
+  if (
+    ["ended", "complete", "completed", "result", "finished", "end"].includes(s)
+  )
+    return { label: "END", variant: "upcoming" };
+
+  // fallback
+  return { label: "SOON", variant: "upcoming" };
+};
+
 const LiveGames = () => {
   // Color settings from admin
   const { data: liveColor } = useQuery({
@@ -71,13 +107,32 @@ const LiveGames = () => {
     retry: 1,
   });
 
-  // Real games from /api/live-games
-  const { data: matchesRaw = [] } = useQuery({
-    queryKey: ["live-games"],
+  // ✅ matches from oracle cricket api
+  // ✅ auto refetch every 30 seconds (live score updates)
+  const { data: matchesRaw = [], isFetching } = useQuery({
+    queryKey: ["live-cricket-matches"],
     queryFn: fetchLiveGames,
-    staleTime: 30 * 1000, // 30 seconds
+    staleTime: 0,
+    refetchInterval: 30 * 1000, // ✅ every 30 sec
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
     retry: 1,
   });
+
+  // ✅ global game uid from DB (NO design impact)
+  const { data: globalGame = {} } = useQuery({
+    queryKey: ["live-games-global"],
+    queryFn: fetchGlobalGame,
+    staleTime: 30 * 1000,
+    retry: 1,
+  });
+
+  const globalGameUID = useMemo(() => {
+    const uid = String(globalGame?.gameUID || "").trim();
+    return uid;
+  }, [globalGame]);
+
+  const isGlobalActive = globalGame?.isActive !== false;
 
   const styles = useMemo(() => {
     const d = liveColor || {};
@@ -121,27 +176,54 @@ const LiveGames = () => {
     };
   }, [liveColor]);
 
-  // Normalize API data to match the expected UI shape
+  const resolveImg = (path) => {
+    if (!path) return "";
+    const p = String(path).trim();
+    if (!p) return "";
+    if (/^https?:\/\//i.test(p)) return p;
+    const base = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+    if (!base) return p.startsWith("/") ? p : `/${p}`;
+    const normalizedPath = p.startsWith("/") ? p : `/${p}`;
+    return `${base}${normalizedPath}`;
+  };
+
+  // ✅ Normalize Oracle cricket matches -> UI shape (design unchanged)
   const matches = useMemo(() => {
-    return (matchesRaw || []).map((m) => ({
-      id: m._id || m.gameUID,
-      gameUID: m.gameUID,
-      statusText: m.statusText,
-      statusType: m.statusType,
-      title: m.title,
-      datetime: m.datetime,
-      teams: (m.teams || []).map((t) => ({
-        name: t.name,
-        countryCode: "GEN", // fallback if needed
-        flagUrl: t.countryImage, // use the uploaded URL from admin
-      })),
-    }));
-  }, [matchesRaw]);
+    return (matchesRaw || []).map((m) => {
+      const { label, variant } = getStatusLabel(m.state, isFetching);
+
+      return {
+        id: m.matchId || m._id,
+        // ⚠️ IMPORTANT: UI shows oracle matches, but click will go to GLOBAL uid
+        gameUID: m.matchId,
+        statusText: label,
+        statusType: variant,
+        title: m.subtitle ? `${m.title} • ${m.subtitle}` : m.title,
+        datetime: null,
+        teams: [
+          {
+            name: m?.team1?.name || "TEAM 1",
+            countryCode: m?.team1?.name || "GEN",
+            flagUrl: m?.team1?.flag || "",
+            score: m?.team1?.score || "",
+          },
+          {
+            name: m?.team2?.name || "TEAM 2",
+            countryCode: m?.team2?.name || "GEN",
+            flagUrl: m?.team2?.flag || "",
+            score: m?.team2?.score || "",
+          },
+        ],
+      };
+    });
+  }, [matchesRaw, isFetching]);
 
   // Open game detail in new tab (target="_blank")
-  const openGameInNewTab = (gameUID) => {
-    if (!gameUID) return;
-    const url = `/playgame/${gameUID}`;
+  // ✅ NOW: always open GLOBAL game UID from DB (no extra params)
+  const openGameInNewTab = () => {
+    if (!isGlobalActive) return;
+    if (!globalGameUID) return;
+    const url = `/playgame/${globalGameUID}`;
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
@@ -178,12 +260,12 @@ const LiveGames = () => {
                 backgroundColor: styles.cardBg,
                 border: `1px solid ${styles.cardBorderRgba}`,
               }}
-              onClick={() => openGameInNewTab(m.gameUID)}
+              // ✅ full card clickable (GLOBAL UID)
+              onClick={openGameInNewTab}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ")
-                  openGameInNewTab(m.gameUID);
+                if (e.key === "Enter" || e.key === " ") openGameInNewTab();
               }}
             >
               {/* Top bar */}
@@ -192,19 +274,15 @@ const LiveGames = () => {
                 style={{ backgroundColor: styles.topBarBg }}
               >
                 <StatusBadge
-                  text={m.statusText}
+                  text={String(m.statusText || "").toUpperCase()}
                   variant={m.statusType === "upcoming" ? "upcoming" : "live"}
                   styles={styles}
                 />
-                <p
-                  className="font-extrabold line-clamp-1"
-                  style={{
-                    color: styles.titleText,
-                    fontSize: `${styles.titleTextSize}px`,
-                  }}
-                >
-                  {m.title}
-                </p>
+
+                {/* (optional tiny indicator; still ok) */}
+                <span className="ml-auto text-[10px] font-extrabold text-black/70">
+                  {isFetching ? "Updating..." : ""}
+                </span>
               </div>
 
               <div className="px-3 py-3">
@@ -215,7 +293,15 @@ const LiveGames = () => {
                     fontSize: `${styles.datetimeTextSize}px`,
                   }}
                 >
-                  {m.datetime ? new Date(m.datetime).toLocaleString() : "N/A"}
+                  <p
+                    className="font-extrabold line-clamp-1"
+                    style={{
+                      color: styles.titleText,
+                      fontSize: `${styles.titleTextSize}px`,
+                    }}
+                  >
+                    {m.title}
+                  </p>
                 </p>
 
                 <div className="mt-3 space-y-3">
@@ -228,7 +314,7 @@ const LiveGames = () => {
                         <img
                           src={
                             t.flagUrl
-                              ? `${import.meta.env.VITE_API_URL}${t.flagUrl}`
+                              ? resolveImg(t.flagUrl)
                               : flagMap[t.countryCode] ||
                                 "https://cdn-icons-png.flaticon.com/512/502/502195.png"
                           }
@@ -246,6 +332,16 @@ const LiveGames = () => {
                           {t.name}
                         </p>
                       </div>
+
+                      <p
+                        className="font-extrabold shrink-0"
+                        style={{
+                          color: styles.scoreText,
+                          fontSize: `${styles.scoreTextSize}px`,
+                        }}
+                      >
+                        {t.score || ""}
+                      </p>
                     </div>
                   ))}
                 </div>

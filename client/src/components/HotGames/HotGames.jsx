@@ -164,9 +164,13 @@ const HotGames = () => {
               const title = g.gameName || g.title || "Game";
               const provider = g.providerName || g.providerId || "";
 
+              // ✅ image url fix (local "/uploads/.." OR remote "https://...")
+
               const img =
                 g.image && String(g.image).trim()
-                  ? `${import.meta.env.VITE_API_URL}${g.image}`
+                  ? /^https?:\/\//i.test(String(g.image).trim())
+                    ? String(g.image).trim() // ✅ remote url 그대로
+                    : `${import.meta.env.VITE_API_URL}${String(g.image).trim()}` // ✅ local path হলে base যোগ
                   : "";
 
               return (
@@ -186,7 +190,7 @@ const HotGames = () => {
                       <img
                         src={img}
                         alt={title}
-                        className="h-48 w-full object-cover transition duration-300"
+                        className="h-48 w-full transition duration-300"
                         loading="lazy"
                         // onError={(e) => {
                         //   e.currentTarget.src = FALLBACK_IMG;
