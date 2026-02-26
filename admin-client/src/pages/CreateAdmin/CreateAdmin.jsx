@@ -7,41 +7,175 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 const CreateAdmin = () => {
   const token = localStorage.getItem("token");
 
+  // ✅ ALL ROUTES PERMISSIONS (login ছাড়া বাকি সব)
   const allPerms = useMemo(
     () => [
+      // ✅ Core
       { key: "dashboard", label: "Dashboard ( / )" },
+      { key: "withdraw", label: "Withdraw ( /withdraw )" },
+      { key: "deposit", label: "Deposit ( /deposit )" },
+      { key: "profile", label: "Profile ( /profile )" }, // (route uses dashboard, but kept for clarity)
+
+      // ✅ Users
       { key: "all-user", label: "All Users ( /all-user )" },
-      { key: "add-game", label: "Add Game ( /add-game )" },
-      { key: "add-promotion", label: "Add Promotion ( /add-promotion )" },
+      {
+        key: "all-affiliate-user",
+        label: "All Affiliate Users ( /all-affiliate-user )",
+      },
+      {
+        key: "affiliate-user-brige",
+        label: "Affiliate User Bridge ( /affiliate-user-brige )",
+      },
+      {
+        key: "affiliate-user-details",
+        label: "Affiliate User Details ( /affiliate-users/:id )",
+      },
+      { key: "user-details", label: "User Details ( /users/:id )" },
+
+      // ✅ Deposit / Withdraw Ops
       { key: "add-deposit", label: "Add Deposit ( /add-deposit )" },
+      {
+        key: "add-auto-deposit",
+        label: "Add Auto Deposit ( /add-auto-deposit )",
+      },
+      {
+        key: "auto-deposit-history",
+        label: "Auto Deposit History ( /auto-deposit-history )",
+      },
       { key: "deposit-request", label: "Deposit Request ( /deposit-request )" },
+      {
+        key: "deposit-request-details",
+        label: "Deposit Request Details ( /deposit-request/:id )",
+      },
+
       { key: "add-withdraw", label: "Add Withdraw ( /add-withdraw )" },
       {
         key: "withdraw-request",
         label: "Withdraw Request ( /withdraw-request )",
       },
       {
+        key: "withdraw-request-details",
+        label: "Withdraw Request Details ( /withdraw-request/:id )",
+      },
+
+      // ✅ Affiliate Withdraw / Redeem
+      {
+        key: "add-aff-withdraw",
+        label: "Add Affiliate Withdraw ( /add-aff-withdraw )",
+      },
+      {
+        key: "affiliate-withdraw-request",
+        label: "Affiliate Withdraw Request ( /affiliate-withdraw-request )",
+      },
+      {
+        key: "affiliate-withdraw-request-details",
+        label:
+          "Affiliate Withdraw Request Details ( /affiliate-withdraw-request/:id )",
+      },
+      { key: "add-redeem", label: "Add Redeem ( /add-redeem )" },
+
+      // ✅ Games
+      {
+        key: "add-game-category",
+        label: "Add Game Category ( /add-game-category )",
+      },
+      { key: "add-provider", label: "Add Provider ( /add-provider )" },
+      { key: "add-game", label: "Add Game ( /add-game )" },
+
+      // ✅ Promotions
+      { key: "add-promotion", label: "Add Promotion ( /add-promotion )" },
+
+      // ✅ Client Site Controllers
+      {
+        key: "slider-controller",
+        label: "Slider Controller ( /slider-controller )",
+      },
+      {
+        key: "footer-controller",
+        label: "Footer Controller ( /footer-controller )",
+      },
+      {
+        key: "notice-controller",
+        label: "Notice Controller ( /notice-controller )",
+      },
+      {
+        key: "download-banner-controller",
+        label: "Download Banner Controller ( /download-banner-controller )",
+      },
+      {
+        key: "banner-video-controller",
+        label: "Banner Video Controller ( /banner-video-controller )",
+      },
+      {
+        key: "two-banner-controller",
+        label: "Two Banner Controller ( /two-banner-controller )",
+      },
+      {
+        key: "single-banner-controller",
+        label: "Single Banner Controller ( /single-banner-controller )",
+      },
+      {
         key: "fav-icon-and-logo-controller",
-        label: "Favicon & Logo Controller",
+        label: "Favicon & Logo Controller ( /fav-icon-and-logo-controller )",
+      },
+      {
+        key: "floating-social-controller",
+        label: "Floating Social Controller ( /floating-social-controller )",
       },
       {
         key: "download-header-controller",
-        label: "Download Header Controller",
+        label: "Download Header Controller ( /download-header-controller )",
       },
-      { key: "slider-controller", label: "Slider Controller" },
-      { key: "notice-controller", label: "Notice Controller" },
-      { key: "two-banner-controller", label: "Two Banner Controller" },
-      { key: "single-banner-controller", label: "Single Banner Controller" },
+
+      // ✅ Affiliate Site Controllers
       {
-        key: "download-banner-controller",
-        label: "Download Banner Controller",
+        key: "aff-footer-controller",
+        label: "Affiliate Footer Controller ( /aff-footer-controller )",
       },
-      { key: "banner-video-controller", label: "Banner Video Controller" },
       {
-        key: "floating-social-controller",
-        label: "Floating Social Controller",
+        key: "aff-slider-controller",
+        label: "Affiliate Slider Controller ( /aff-slider-controller )",
       },
-      { key: "footer-controller", label: "Footer Controller" },
+      {
+        key: "aff-whyus-controller",
+        label: "Affiliate Why Us Controller ( /aff-whyus-controller )",
+      },
+      {
+        key: "aff-agent-controller",
+        label: "Affiliate Agent Controller ( /aff-agent-controller )",
+      },
+      {
+        key: "aff-notice-controller",
+        label: "Affiliate Notice Controller ( /aff-notice-controller )",
+      },
+      {
+        key: "aff-fav-and-title-controller",
+        label:
+          "Affiliate Fav & Title Controller ( /aff-fav-and-title-controller )",
+      },
+      {
+        key: "aff-floating-social-controller",
+        label:
+          "Affiliate Floating Social Controller ( /aff-floating-social-controller )",
+      },
+      {
+        key: "aff-commission-controller",
+        label: "Affiliate Commission Controller ( /aff-commission-controller )",
+      },
+
+      // ✅ Colors / Live
+      {
+        key: "color-controller-client",
+        label: "Color Controller Client ( /color-controller-client )",
+      },
+      {
+        key: "aff-color-controller-client",
+        label: "Color Controller Affiliate ( /aff-color-controller-client )",
+      },
+      {
+        key: "live-controller",
+        label: "Live Game Controller ( /live-controller )",
+      },
     ],
     [],
   );
@@ -100,6 +234,7 @@ const CreateAdmin = () => {
 
   useEffect(() => {
     loadAdmins();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const resetCreate = () => {
@@ -160,13 +295,10 @@ const CreateAdmin = () => {
         permissions: editRole === "mother" ? [] : editPermissions,
       };
 
-      if (editEmail.trim() !== "") {
+      if (editEmail.trim() !== "")
         payload.email = editEmail.trim().toLowerCase();
-      }
-
-      if (editNewPassword.trim().length > 0) {
+      if (editNewPassword.trim().length > 0)
         payload.newPassword = editNewPassword.trim();
-      }
 
       await api.put(`/api/admin/admins/${id}`, payload, authHeaders);
 
@@ -178,9 +310,7 @@ const CreateAdmin = () => {
     }
   };
 
-  const confirmDelete = (id) => {
-    setDeleteConfirmId(id);
-  };
+  const confirmDelete = (id) => setDeleteConfirmId(id);
 
   const handleDelete = async () => {
     if (!deleteConfirmId || !token) {

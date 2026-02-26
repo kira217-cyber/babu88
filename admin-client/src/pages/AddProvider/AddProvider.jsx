@@ -6,7 +6,7 @@ import { api } from "../../api/axios";
 
 // ✅ NEW ORACLE PROVIDER API (use this, not the old one)
 const ORACLE_PROVIDER_API = "https://api.oraclegames.live/api/providers";
-const ORACLE_PROVIDER_KEY = "ceeeba1c-892b-4571-b05f-2bcec5c4a44e";
+const ORACLE_PROVIDER_KEY = import.meta.env.VITE_ORACLE_TOKEN;
 
 const emptyForm = {
   categoryId: "",
@@ -42,14 +42,20 @@ const AddProvider = () => {
   const loadOracleProviders = async () => {
     try {
       const res = await axios.get(ORACLE_PROVIDER_API, {
-        headers: { "x-dstgame-key": ORACLE_PROVIDER_KEY },
+        headers: {
+          "x-api-key": ORACLE_PROVIDER_KEY, // ✅ correct header
+        },
       });
 
-      // response shape:
-      // { success: true, count: 76, data: [{ _id, providerCode, providerName, gameType... }] }
+      // response:
+      // { success, count, data: [...] }
       setOracleProviders(res.data?.data || []);
-    } catch {
-      toast.error("Failed to load providers from Oracle API");
+    } catch (err) {
+      console.error(err);
+      toast.error(
+        err?.response?.data?.message ||
+          "Failed to load providers from Oracle API",
+      );
     }
   };
 

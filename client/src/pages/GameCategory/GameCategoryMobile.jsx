@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/axios";
 import { useLanguage } from "../../Context/LanguageProvider";
 import { toast } from "react-toastify";
+import Loading from "../../components/Loading/Loading";
 
 const HOT_ICON = "https://babu88.gold/static/image/other/hot-icon.png";
 const NEW_ICON = "https://babu88.gold/static/svg/game-icon-new.svg";
@@ -212,6 +213,12 @@ const GameCategoryMobile = () => {
 
   return (
     <div className="min-h-screen bg-[#f5f5f5]">
+      {/* ✅ Global Loading Overlay */}
+      <Loading
+        open={loadingCats || loadingProviders || loadingGames}
+        text={isBangla ? "লোড হচ্ছে..." : "Loading..."}
+      />
+
       {/* Top header */}
       <div className="mx-3 mt-3 rounded-xl bg-black text-white h-[54px] flex items-center px-3">
         <button

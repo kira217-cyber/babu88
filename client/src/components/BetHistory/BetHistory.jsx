@@ -6,11 +6,17 @@ import {
   selectIsAuthenticated,
   selectUser,
 } from "../../features/auth/authSelectors";
+import Loading from "../Loading/Loading";
+
+
 
 const fmtMoney = (n) => {
   const num = Number(n || 0);
   if (Number.isNaN(num)) return "0.00";
-  return num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return num.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 };
 
 const fmtDateTime = (d) => {
@@ -69,16 +75,23 @@ const BetHistory = () => {
     return (
       <div className="bg-white rounded-xl border border-black/10 p-4 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
         <div className="text-[14px] font-extrabold text-black">Bet History</div>
-        <p className="mt-2 text-[13px] text-black/60">Please login to view your bet history.</p>
+        <p className="mt-2 text-[13px] text-black/60">
+          Please login to view your bet history.
+        </p>
       </div>
     );
   }
 
   return (
     <div className="bg-white rounded-xl border border-black/10 p-4 md:p-5 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
+      {/* ✅ Global Loading Overlay */}
+      <Loading open={isLoading} text="Loading bet history..." />
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
-          <div className="text-[16px] font-extrabold text-black">Bet History</div>
+          <div className="text-[16px] font-extrabold text-black">
+            Bet History
+          </div>
           <div className="text-[12px] text-black/55 mt-1">
             Showing {rows.length} items • Page {page}/{totalPages}
           </div>
@@ -177,7 +190,9 @@ const BetHistory = () => {
       {/* Content */}
       <div className="mt-4">
         {isLoading ? (
-          <div className="text-[13px] text-black/60 py-10 text-center">Loading bet history...</div>
+          <div className="text-[13px] text-black/60 py-10 text-center">
+            Loading bet history...
+          </div>
         ) : isError ? (
           <div className="text-[13px] text-red-600 py-10 text-center">
             Failed to load bet history.
@@ -204,9 +219,14 @@ const BetHistory = () => {
               </thead>
               <tbody>
                 {rows.map((x, idx) => (
-                  <tr key={x.transaction_id || `${x.createdAt}-${idx}`} className="border-t border-black/5 text-[13px]">
+                  <tr
+                    key={x.transaction_id || `${x.createdAt}-${idx}`}
+                    className="border-t border-black/5 text-[13px]"
+                  >
                     <td className="px-3 py-2">{fmtDateTime(x.createdAt)}</td>
-                    <td className="px-3 py-2 font-semibold">{x.provider_code || "-"}</td>
+                    <td className="px-3 py-2 font-semibold">
+                      {x.provider_code || "-"}
+                    </td>
                     <td className="px-3 py-2">{x.game_code || "-"}</td>
                     <td className="px-3 py-2">{x.bet_type || "-"}</td>
                     <td className="px-3 py-2">
@@ -217,7 +237,9 @@ const BetHistory = () => {
                     <td className="px-3 py-2">{fmtMoney(x.amount)}</td>
                     <td className="px-3 py-2">{fmtMoney(x.win_amount)}</td>
                     <td className="px-3 py-2">{fmtMoney(x.balance_after)}</td>
-                    <td className="px-3 py-2 text-[12px] text-black/70">{x.transaction_id || "-"}</td>
+                    <td className="px-3 py-2 text-[12px] text-black/70">
+                      {x.transaction_id || "-"}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -233,7 +255,9 @@ const BetHistory = () => {
           onClick={() => setPage((p) => Math.max(p - 1, 1))}
           disabled={page <= 1}
           className={`h-10 px-4 rounded-lg font-extrabold text-[13px] ${
-            page <= 1 ? "bg-black/10 text-black/40 cursor-not-allowed" : "bg-black text-white hover:brightness-95"
+            page <= 1
+              ? "bg-black/10 text-black/40 cursor-not-allowed"
+              : "bg-black text-white hover:brightness-95"
           }`}
         >
           Prev

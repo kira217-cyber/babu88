@@ -8,6 +8,7 @@ import { useLanguage } from "../../Context/LanguageProvider";
 import { selectIsAuthenticated } from "../../features/auth/authSelectors";
 import { api } from "../../api/axios";
 import RedeemModal from "../../components/RedeemModal/RedeemModal";
+import Loading from "../../components/Loading/Loading";
 
 const fetchMyReferralInfo = async () => {
   const { data } = await api.get("/api/users/me/referrals");
@@ -187,6 +188,12 @@ const MyReferrals = () => {
 
   return (
     <div className={`${card} p-5 sm:p-6`}>
+      {/* ✅ Global Loading Overlay (covers refetch/isFetching too) */}
+      <Loading
+        open={isLoading || isFetching}
+        text={t("লোড হচ্ছে...", "Loading...")}
+      />
+
       {/* Referral Code + Link */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
         <div>

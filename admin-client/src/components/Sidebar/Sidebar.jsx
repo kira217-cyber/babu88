@@ -597,12 +597,12 @@ const SidebarContent = ({
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center shadow-lg shadow-yellow-500/50">
             <span className="text-black font-black text-3xl tracking-wider">
-              B
+              A
             </span>
           </div>
           <div>
             <h2 className="text-2xl font-bold text-white tracking-tight">
-              BABU88
+              ADMIN
             </h2>
             <p className="text-sm text-yellow-200/90 font-medium">
               {role === "mother" ? "Mother" : "Sub"} Admin Panel

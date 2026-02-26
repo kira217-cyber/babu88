@@ -4,6 +4,8 @@ import { useParams, useSearchParams, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/axios";
 import { useLanguage } from "../../Context/LanguageProvider";
+import Loading from "../../components/Loading/Loading";
+
 
 const fetchCategory = async (categoryId) => {
   const { data } = await api.get(`/api/public/game-categories/${categoryId}`);
@@ -129,6 +131,12 @@ const GameCategory = () => {
 
   return (
     <div className="min-h-screen bg-[#f6f6f6]">
+      {/* ✅ Global Loading Overlay (Category/Games load হলে দেখাবে) */}
+      <Loading
+        open={loadingCat || loadingGames}
+        text={isBangla ? "লোড হচ্ছে..." : "Loading..."}
+      />
+
       {/* Banner */}
       <div className="relative w-full h-[240px] md:h-[320px] overflow-hidden">
         {cat.bannerImage ? (

@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 import { api } from "../../api/axios";
 
 const ORACLE_BASE = "https://api.oraclegames.live/api";
-const ORACLE_KEY = "ceeeba1c-892b-4571-b05f-2bcec5c4a44e";
+const ORACLE_KEY = import.meta.env.VITE_ORACLE_TOKEN;
 
 const GAMES_PER_PAGE = 50;
 
@@ -116,7 +116,7 @@ const AddGame = () => {
         const res = await axios.get(
           `${ORACLE_BASE}/providers/${providerCode}`,
           {
-            headers: { "x-dstgame-key": ORACLE_KEY },
+            headers: { "x-api-key": ORACLE_KEY }, // ✅ FIXED
           },
         );
 

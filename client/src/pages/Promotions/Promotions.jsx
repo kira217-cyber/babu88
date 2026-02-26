@@ -6,6 +6,7 @@ import { IoClose } from "react-icons/io5";
 import { useLanguage } from "../../Context/LanguageProvider";
 import { api } from "../../api/axios";
 import { useQuery } from "@tanstack/react-query";
+import Loading from "../../components/Loading/Loading";
 
 const fade = {
   hidden: { opacity: 0, y: 10 },
@@ -227,6 +228,9 @@ const Promotions = () => {
 
   return (
     <div className="w-full" style={{ backgroundColor: ui.pageBg }}>
+      {/* ✅ Global Loading Overlay (same style as before) */}
+      <Loading open={loading} text={t.loading} />
+
       <div className="w-full max-w-[1500px] mx-auto px-3 sm:px-5 lg:px-6 py-4 sm:py-6">
         {/* title */}
         <div className="mb-3 sm:mb-5">
@@ -313,7 +317,10 @@ const Promotions = () => {
                     className="absolute left-0 mt-2 z-[60] w-[220px] rounded-xl overflow-hidden shadow-[0_18px_40px_rgba(0,0,0,0.18)]"
                     style={{
                       backgroundColor: ui.mobileDropBg,
-                      border: `1px solid ${hexToRgba(ui.mobileDropBorder, ui.mobileDropBorderOpacity)}`,
+                      border: `1px solid ${hexToRgba(
+                        ui.mobileDropBorder,
+                        ui.mobileDropBorderOpacity,
+                      )}`,
                     }}
                     initial={{ opacity: 0, y: 8, scale: 0.98 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -368,7 +375,10 @@ const Promotions = () => {
                 className="col-span-1 lg:col-span-2 rounded-2xl p-6"
                 style={{
                   backgroundColor: ui.boxBg,
-                  border: `1px solid ${hexToRgba(ui.boxBorder, ui.boxBorderOpacity)}`,
+                  border: `1px solid ${hexToRgba(
+                    ui.boxBorder,
+                    ui.boxBorderOpacity,
+                  )}`,
                 }}
               >
                 <p
@@ -387,7 +397,10 @@ const Promotions = () => {
                 className="col-span-1 lg:col-span-2 rounded-2xl p-6"
                 style={{
                   backgroundColor: ui.boxBg,
-                  border: `1px solid ${hexToRgba(ui.boxBorder, ui.boxBorderOpacity)}`,
+                  border: `1px solid ${hexToRgba(
+                    ui.boxBorder,
+                    ui.boxBorderOpacity,
+                  )}`,
                 }}
               >
                 <p
@@ -412,7 +425,10 @@ const Promotions = () => {
                   className="rounded-md overflow-hidden"
                   style={{
                     backgroundColor: ui.cardBg,
-                    border: `1px solid ${hexToRgba(ui.cardBorder, ui.cardBorderOpacity)}`,
+                    border: `1px solid ${hexToRgba(
+                      ui.cardBorder,
+                      ui.cardBorderOpacity,
+                    )}`,
                   }}
                   whileHover={{ y: -3 }}
                   transition={{ type: "spring", stiffness: 260, damping: 18 }}

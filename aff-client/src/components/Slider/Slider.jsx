@@ -10,6 +10,8 @@ import "swiper/css/pagination";
 import "swiper/css/navigation";
 
 import { api } from "../../api/axios";
+import Loading from "../Loading/Loading";
+
 
 const Slider = () => {
   const { data, isLoading } = useQuery({
@@ -20,7 +22,7 @@ const Slider = () => {
   });
 
   // ✅ UI Config
-  const { data: cfg } = useQuery({
+  const { data: cfg, isLoading: isCfgLoading } = useQuery({
     queryKey: ["aff-slider-color"],
     queryFn: async () => (await api.get("/api/aff-slider-color")).data,
     staleTime: 60_000,
@@ -78,10 +80,10 @@ const Slider = () => {
   };
 
   return (
-    <div
-      style={cssVars}
-      className="w-full bg-[color:var(--s-bg)]"
-    >
+    <div style={cssVars} className="w-full bg-[color:var(--s-bg)]">
+      {/* ✅ Global Loading Overlay */}
+      <Loading open={isLoading || isCfgLoading} />
+
       <div
         className="max-w-7xl mx-auto px-3 sm:px-6"
         style={{ paddingTop: "var(--s-py-m)", paddingBottom: "var(--s-py-m)" }}

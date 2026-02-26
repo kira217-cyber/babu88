@@ -1,9 +1,15 @@
 // src/pages/Profile/Withdraw/WithdrawHistory.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
-import { FaSearch, FaSyncAlt, FaChevronDown, FaChevronUp } from "react-icons/fa";
+import {
+  FaSearch,
+  FaSyncAlt,
+  FaChevronDown,
+  FaChevronUp,
+} from "react-icons/fa";
 import { useLanguage } from "../../Context/LanguageProvider";
 import { api } from "../../api/axios";
+import Loading from "../Loading/Loading";
 
 const money = (n) => {
   const num = Number(n || 0);
@@ -73,7 +79,10 @@ const WithdrawHistory = () => {
     } catch (err) {
       toast.error(
         err?.response?.data?.message ||
-          t("উইথড্র হিস্টরি লোড ব্যর্থ হয়েছে", "Failed to load withdraw history"),
+          t(
+            "উইথড্র হিস্টরি লোড ব্যর্থ হয়েছে",
+            "Failed to load withdraw history",
+          ),
       );
     } finally {
       setLoading(false);
@@ -103,8 +112,12 @@ const WithdrawHistory = () => {
         const channelId = String(x?.channelId || "").toLowerCase();
 
         const fields = x?.fields || {};
-        const phone = String(fields?.phone || fields?.senderNumber || "").toLowerCase();
-        const trx = String(fields?.trxId || fields?.transactionId || "").toLowerCase();
+        const phone = String(
+          fields?.phone || fields?.senderNumber || "",
+        ).toLowerCase();
+        const trx = String(
+          fields?.trxId || fields?.transactionId || "",
+        ).toLowerCase();
 
         return (
           methodId.includes(q) ||
@@ -120,6 +133,9 @@ const WithdrawHistory = () => {
 
   return (
     <div className="w-full">
+      {/* ✅ Global Loading Overlay */}
+      <Loading open={loading} text={t("লোড হচ্ছে...", "Loading...")} />
+
       <div className="bg-white rounded-xl border border-black/10 shadow-[0_1px_0_rgba(0,0,0,0.06)] overflow-hidden">
         {/* Header */}
         <div className="p-5 sm:p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -180,7 +196,9 @@ const WithdrawHistory = () => {
 
             {/* Shown */}
             <div className="flex items-center justify-between lg:justify-end gap-3 rounded-xl bg-black/[0.03] border border-black/10 px-4 py-3">
-              <div className="text-[12px] text-black/50">{t("দেখাচ্ছে", "Shown")}</div>
+              <div className="text-[12px] text-black/50">
+                {t("দেখাচ্ছে", "Shown")}
+              </div>
               <div className="text-[14px] font-extrabold text-black">
                 {filtered.length}
               </div>
@@ -205,7 +223,6 @@ const WithdrawHistory = () => {
                     : "—";
 
                   const statusText = String(r?.status || "pending");
-
                   const amount = Number(r?.amount || 0);
 
                   return (
@@ -223,7 +240,8 @@ const WithdrawHistory = () => {
                                 {String(r?.methodId || "—").toUpperCase()}
                               </span>
                               <span className="text-[12px] text-black/45">
-                                {t("চ্যানেল:", "Channel:")} {r?.channelId || "—"}
+                                {t("চ্যানেল:", "Channel:")}{" "}
+                                {r?.channelId || "—"}
                               </span>
                               <span
                                 className={`inline-flex items-center px-3 py-1 rounded-full text-[11px] font-extrabold border ${chipClass(
@@ -268,10 +286,22 @@ const WithdrawHistory = () => {
                                 </div>
 
                                 <div className="mt-3 space-y-2">
-                                  <FieldRow k={t("উইথড্র এমাউন্ট", "Withdraw Amount")} v={money(amount)} />
-                                  <FieldRow k={t("স্ট্যাটাস", "Status")} v={statusText} />
-                                  <FieldRow k={t("মেথড", "Method")} v={String(r?.methodId || "—").toUpperCase()} />
-                                  <FieldRow k={t("চ্যানেল", "Channel")} v={String(r?.channelId || "—")} />
+                                  <FieldRow
+                                    k={t("উইথড্র এমাউন্ট", "Withdraw Amount")}
+                                    v={money(amount)}
+                                  />
+                                  <FieldRow
+                                    k={t("স্ট্যাটাস", "Status")}
+                                    v={statusText}
+                                  />
+                                  <FieldRow
+                                    k={t("মেথড", "Method")}
+                                    v={String(r?.methodId || "—").toUpperCase()}
+                                  />
+                                  <FieldRow
+                                    k={t("চ্যানেল", "Channel")}
+                                    v={String(r?.channelId || "—")}
+                                  />
                                 </div>
 
                                 {r?.adminNote ? (
@@ -303,7 +333,10 @@ const WithdrawHistory = () => {
                                     ))
                                   ) : (
                                     <div className="py-3 text-[13px] text-black/55">
-                                      {t("কোনো তথ্য সাবমিট করা হয়নি।", "No submitted fields.")}
+                                      {t(
+                                        "কোনো তথ্য সাবমিট করা হয়নি।",
+                                        "No submitted fields.",
+                                      )}
                                     </div>
                                   )}
                                 </div>
@@ -318,7 +351,10 @@ const WithdrawHistory = () => {
               </div>
             ) : (
               <div className="py-10 text-center text-[13px] text-black/60">
-                {t("কোনো উইথড্র হিস্টরি পাওয়া যায়নি।", "No withdraw history found.")}
+                {t(
+                  "কোনো উইথড্র হিস্টরি পাওয়া যায়নি।",
+                  "No withdraw history found.",
+                )}
               </div>
             )}
           </div>

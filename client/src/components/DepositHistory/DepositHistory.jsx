@@ -1,8 +1,14 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
-import { FaSearch, FaSyncAlt, FaChevronDown, FaChevronUp } from "react-icons/fa";
+import {
+  FaSearch,
+  FaSyncAlt,
+  FaChevronDown,
+  FaChevronUp,
+} from "react-icons/fa";
 import { api } from "../../api/axios";
 import { useLanguage } from "../../Context/LanguageProvider";
+import Loading from "../Loading/Loading";
 
 
 const money = (n) => {
@@ -112,8 +118,12 @@ const DepositHistory = () => {
         const promoId = String(x?.promoId || "").toLowerCase();
 
         const fields = x?.fields || {};
-        const trxId = String(fields?.trxId || fields?.transactionId || "").toLowerCase();
-        const sender = String(fields?.senderNumber || fields?.phone || "").toLowerCase();
+        const trxId = String(
+          fields?.trxId || fields?.transactionId || "",
+        ).toLowerCase();
+        const sender = String(
+          fields?.senderNumber || fields?.phone || "",
+        ).toLowerCase();
 
         return (
           methodId.includes(q) ||
@@ -130,6 +140,9 @@ const DepositHistory = () => {
 
   return (
     <div className="w-full">
+      {/* ✅ Global Loading Overlay */}
+      <Loading open={loading} text={t("লোড হচ্ছে...", "Loading...")} />
+
       <div className="bg-white rounded-xl border border-black/10 shadow-[0_1px_0_rgba(0,0,0,0.06)] overflow-hidden">
         {/* Header */}
         <div className="p-5 sm:p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -192,7 +205,9 @@ const DepositHistory = () => {
 
             {/* Total */}
             <div className="flex items-center justify-between lg:justify-end gap-3 rounded-xl bg-black/[0.03] border border-black/10 px-4 py-3">
-              <div className="text-[12px] text-black/50">{t("দেখাচ্ছে", "Shown")}</div>
+              <div className="text-[12px] text-black/50">
+                {t("দেখাচ্ছে", "Shown")}
+              </div>
               <div className="text-[14px] font-extrabold text-black">
                 {filtered.length}
               </div>
@@ -237,7 +252,8 @@ const DepositHistory = () => {
                                 {String(r?.methodId || "—").toUpperCase()}
                               </span>
                               <span className="text-[12px] text-black/45">
-                                {t("চ্যানেল:", "Channel:")} {r?.channelId || "—"}
+                                {t("চ্যানেল:", "Channel:")}{" "}
+                                {r?.channelId || "—"}
                               </span>
                               <span
                                 className={`inline-flex items-center px-3 py-1 rounded-full text-[11px] font-extrabold border ${chipClass(
@@ -299,18 +315,49 @@ const DepositHistory = () => {
                                 </div>
 
                                 <div className="mt-3 space-y-2">
-                                  <FieldRow k={t("ডিপোজিট অ্যামাউন্ট", "Deposit Amount")} v={money(amount)} />
-                                  <FieldRow k={t("প্রোমো বোনাস", "Promo Bonus")} v={money(r?.calc?.promoBonus || 0)} />
-                                  <FieldRow k={t("চ্যানেল বোনাস", "Channel Bonus")} v={money(r?.calc?.percentBonus || 0)} />
-                                  <FieldRow k={t("মোট বোনাস", "Total Bonus")} v={money(bonus)} />
                                   <FieldRow
-                                    k={t("টার্নওভার মাল্টিপ্লায়ার", "Turnover Multiplier")}
+                                    k={t(
+                                      "ডিপোজিট অ্যামাউন্ট",
+                                      "Deposit Amount",
+                                    )}
+                                    v={money(amount)}
+                                  />
+                                  <FieldRow
+                                    k={t("প্রোমো বোনাস", "Promo Bonus")}
+                                    v={money(r?.calc?.promoBonus || 0)}
+                                  />
+                                  <FieldRow
+                                    k={t("চ্যানেল বোনাস", "Channel Bonus")}
+                                    v={money(r?.calc?.percentBonus || 0)}
+                                  />
+                                  <FieldRow
+                                    k={t("মোট বোনাস", "Total Bonus")}
+                                    v={money(bonus)}
+                                  />
+                                  <FieldRow
+                                    k={t(
+                                      "টার্নওভার মাল্টিপ্লায়ার",
+                                      "Turnover Multiplier",
+                                    )}
                                     v={`x${r?.calc?.turnoverMultiplier ?? 13}`}
                                   />
-                                  <FieldRow k={t("টার্গেট টার্নওভার", "Target Turnover")} v={money(turnover)} />
                                   <FieldRow
-                                    k={t("ক্রেডিটেড অ্যামাউন্ট", "Credited Amount")}
-                                    v={statusText === "approved" ? money(credited) : "—"}
+                                    k={t(
+                                      "টার্গেট টার্নওভার",
+                                      "Target Turnover",
+                                    )}
+                                    v={money(turnover)}
+                                  />
+                                  <FieldRow
+                                    k={t(
+                                      "ক্রেডিটেড অ্যামাউন্ট",
+                                      "Credited Amount",
+                                    )}
+                                    v={
+                                      statusText === "approved"
+                                        ? money(credited)
+                                        : "—"
+                                    }
                                   />
                                 </div>
 
@@ -335,18 +382,27 @@ const DepositHistory = () => {
                                 <div className="mt-3 rounded-xl border border-black/10 bg-white px-3 py-2">
                                   {r?.fields && Object.keys(r.fields).length ? (
                                     Object.keys(r.fields).map((k) => (
-                                      <FieldRow key={k} k={k} v={String(r.fields[k] ?? "")} />
+                                      <FieldRow
+                                        key={k}
+                                        k={k}
+                                        v={String(r.fields[k] ?? "")}
+                                      />
                                     ))
                                   ) : (
                                     <div className="py-3 text-[13px] text-black/55">
-                                      {t("কোনো তথ্য সাবমিট করা হয়নি।", "No submitted fields.")}
+                                      {t(
+                                        "কোনো তথ্য সাবমিট করা হয়নি।",
+                                        "No submitted fields.",
+                                      )}
                                     </div>
                                   )}
                                 </div>
 
                                 <div className="mt-3 text-[12px] text-black/50">
                                   {t("প্রোমো:", "Promo:")}{" "}
-                                  <span className="font-extrabold">{r?.promoId || "none"}</span>
+                                  <span className="font-extrabold">
+                                    {r?.promoId || "none"}
+                                  </span>
                                 </div>
                               </div>
                             </div>
@@ -359,7 +415,10 @@ const DepositHistory = () => {
               </div>
             ) : (
               <div className="py-10 text-center text-[13px] text-black/60">
-                {t("কোনো ডিপোজিট হিস্টরি পাওয়া যায়নি।", "No deposit history found.")}
+                {t(
+                  "কোনো ডিপোজিট হিস্টরি পাওয়া যায়নি।",
+                  "No deposit history found.",
+                )}
               </div>
             )}
           </div>

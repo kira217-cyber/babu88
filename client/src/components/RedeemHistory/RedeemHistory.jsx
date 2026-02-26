@@ -8,6 +8,7 @@ import {
 } from "react-icons/fa";
 import { api } from "../../api/axios";
 import { useLanguage } from "../../Context/LanguageProvider";
+import Loading from "../Loading/Loading";
 
 const money = (n, symbol = "৳") => {
   const num = Number(n || 0);
@@ -135,6 +136,9 @@ const RedeemHistory = () => {
 
   return (
     <div className="w-full">
+      {/* ✅ Global Loading Overlay */}
+      <Loading open={loading} text={t("লোড হচ্ছে...", "Loading...")} />
+
       <div className="bg-white rounded-xl border border-black/10 shadow-[0_1px_0_rgba(0,0,0,0.06)] overflow-hidden">
         {/* Header */}
         <div className="p-5 sm:p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-3">

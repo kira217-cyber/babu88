@@ -74,6 +74,7 @@ import affWithdrawRequestsRoutes from "./routes/affWithdrawRequestsRoutes.js";
 import redeemRoutes from "./routes/redeemRoutes.js";
 import adminRedeemRoutes from "./routes/adminRedeemRoutes.js";
 import refundRoutes from "./routes/refundRoutes.js"
+import dashboardStatsRoutes from "./routes/dashboardStatsRoutes.js";
 
 
 
@@ -171,6 +172,7 @@ app.use("/api", affWithdrawRequestsRoutes);
 app.use("/api/redeem", redeemRoutes);
 app.use("/api/admin/redeem", adminRedeemRoutes);
 app.use("/api/refund", refundRoutes);
+app.use("/api", dashboardStatsRoutes);
 
 
 // ✅ port

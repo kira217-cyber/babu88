@@ -14,6 +14,8 @@ import {
 } from "../../features/auth/authSelectors";
 import DepositWithdrawTabs from "../../components/DepositWithdrawTabs/DepositWithdrawTabs";
 import { useNavigate } from "react-router";
+import Loading from "../../components/Loading/Loading";
+
 
 const Withdraw = () => {
   const { isBangla } = useLanguage();
@@ -334,6 +336,16 @@ const Withdraw = () => {
 
   return (
     <>
+      {/* ✅ Global Loading Overlay */}
+      <Loading
+        open={loadingMethods || eligLoading || submitting}
+        text={
+          submitting
+            ? t("Submitting…", "Submitting…")
+            : t("লোড হচ্ছে...", "Loading...")
+        }
+      />
+
       <DepositWithdrawTabs />
       <div className="w-full">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4">

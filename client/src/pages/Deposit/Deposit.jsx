@@ -6,6 +6,8 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/axios";
 import DepositModal from "./DepositModal";
 import DepositWithdrawTabs from "../../components/DepositWithdrawTabs/DepositWithdrawTabs";
+import Loading from "../../components/Loading/Loading";
+
 
 // ✅ fallback logo placeholders (when no image)
 const OptionLogo = ({ type }) => {
@@ -349,6 +351,9 @@ const Deposit = () => {
 
   return (
     <>
+      {/* ✅ Global Loading Overlay (methods load until isLoading false) */}
+      <Loading open={isLoading} text={t("লোড হচ্ছে...", "Loading...")} />
+
       <DepositWithdrawTabs />
       <div className="w-full">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4">

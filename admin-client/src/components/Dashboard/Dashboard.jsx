@@ -1,6 +1,9 @@
 // src/pages/Dashboard.jsx
 import React, { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router";
+import { useQuery } from "@tanstack/react-query";
+
 import {
   FaUsers,
   FaUserFriends,
@@ -10,6 +13,7 @@ import {
   FaMoneyCheckAlt,
   FaCalendarAlt,
 } from "react-icons/fa";
+
 import CountUp from "react-countup";
 import {
   format,
@@ -20,6 +24,7 @@ import {
   getDay,
   isSameMonth,
 } from "date-fns";
+import { api } from "../../api/axios";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -30,12 +35,16 @@ const fadeUp = {
   }),
 };
 
-const CardShell = ({ className = "", children }) => (
+const CardShell = ({ className = "", children, onClick }) => (
   <motion.div
     whileHover={{ y: -4, scale: 1.02 }}
     transition={{ type: "spring", stiffness: 300, damping: 20 }}
+    onClick={onClick}
+    role={onClick ? "button" : undefined}
+    tabIndex={onClick ? 0 : undefined}
     className={[
       "rounded-2xl shadow-xl border border-yellow-700/30 overflow-hidden",
+      onClick ? "cursor-pointer select-none" : "",
       className,
     ].join(" ")}
   >
@@ -43,19 +52,31 @@ const CardShell = ({ className = "", children }) => (
   </motion.div>
 );
 
+// helper formatting
+const formatBDT = (n) => {
+  const num = Number(n || 0);
+  if (!Number.isFinite(num)) return "৳ 0";
+  return `৳ ${Math.round(num).toLocaleString("en-US")}`;
+};
+
 const StatCard = ({
   icon: Icon,
   label,
   value,
   accent = "from-yellow-600 to-amber-600",
+  onClick,
 }) => {
-  const [prefix, numStr] = value
+  const [prefix, numStr] = String(value)
     .match(/^([^\d]*)(\d+(?:,\d+)*)$/)
-    ?.slice(1) || ["", value];
-  const num = parseInt(numStr.replace(/,/g, ""), 10) || 0;
+    ?.slice(1) || ["", String(value)];
+
+  const num = parseInt(String(numStr).replace(/,/g, ""), 10) || 0;
 
   return (
-    <CardShell className="bg-gradient-to-br from-black to-yellow-950/40">
+    <CardShell
+      onClick={onClick}
+      className="bg-gradient-to-br from-black to-yellow-950/40"
+    >
       <div className="p-5">
         <div className="flex items-center justify-between">
           <div className="min-w-0">
@@ -68,7 +89,7 @@ const StatCard = ({
               className="text-white text-2xl font-extrabold mt-1 tracking-tight"
             >
               {prefix}
-              <CountUp end={num} duration={2} separator="," />
+              <CountUp end={num} duration={1.6} separator="," />
             </motion.p>
           </div>
 
@@ -98,14 +119,12 @@ const TinyBarChart = () => {
       viewBox="0 0 300 120"
       className="w-full h-[120px]"
     >
-      {/* grid */}
       <g opacity="0.2" stroke="yellow">
         <line x1="12" y1="25" x2="288" y2="25" />
         <line x1="12" y1="55" x2="288" y2="55" />
         <line x1="12" y1="85" x2="288" y2="85" />
       </g>
 
-      {/* bars */}
       {bars.map((h, i) => {
         const x = 22 + i * 38;
         const y = 105 - h;
@@ -132,7 +151,6 @@ const TinyBarChart = () => {
         );
       })}
 
-      {/* axis labels */}
       <g fill="rgba(255,255,255,0.6)" fontSize="10" fontWeight="700">
         {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
           <text key={i} x={32 + i * 38} y={116} textAnchor="middle">
@@ -160,13 +178,11 @@ const TinyAreaCard = () => {
       viewBox="0 0 360 140"
       className="w-full h-[140px]"
     >
-      {/* dark bg wave */}
       <path
         d="M0,55 C40,10 85,10 120,50 C155,90 205,100 250,70 C295,40 330,45 360,60 L360,0 L0,0 Z"
         fill="rgba(255,255,255,0.08)"
       />
 
-      {/* main gradient area */}
       <path
         d="M0,70 C45,10 110,25 150,65 C185,95 235,120 285,85 C315,65 338,65 360,75 L360,140 L0,140 Z"
         fill="url(#areaGrad)"
@@ -222,7 +238,6 @@ const Gauge = ({ value = 63 }) => {
         viewBox="0 0 220 220"
         className="max-w-full"
       >
-        {/* outer ticks */}
         {Array.from({ length: 48 }).map((_, i) => {
           const angle = (i / 48) * 280 - 140;
           const rad = (angle * Math.PI) / 180;
@@ -250,7 +265,6 @@ const Gauge = ({ value = 63 }) => {
           );
         })}
 
-        {/* track */}
         <circle
           cx={cx}
           cy={cy}
@@ -264,7 +278,6 @@ const Gauge = ({ value = 63 }) => {
           transform="rotate(140 110 110)"
         />
 
-        {/* progress */}
         <motion.circle
           initial={{ strokeDasharray: 0 }}
           animate={{ strokeDasharray: `${dash * 0.78} ${circumference}` }}
@@ -280,7 +293,6 @@ const Gauge = ({ value = 63 }) => {
           transform="rotate(140 110 110)"
         />
 
-        {/* center */}
         <circle cx={cx} cy={cy} r="62" fill="rgba(0,0,0,0.35)" />
         <text
           x="110"
@@ -323,7 +335,6 @@ const RealCalendar = () => {
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
   const days = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
 
-  // Pad start with empty days
   const startDay = getDay(monthStart);
   const paddedDays = [...Array(startDay).fill(null), ...daysInMonth];
 
@@ -468,56 +479,85 @@ const BottomStrip = () => (
   </CardShell>
 );
 
-const Dashboard = () => {
-  const [currentTime, setCurrentTime] = useState(new Date());
+// ✅ fetcher
+const fetchDashboardStats = async () => {
+  const { data } = await api.get("/api/admin/dashboard-stats");
+  return data?.data || {};
+};
 
+const Dashboard = () => {
+  const navigate = useNavigate();
+
+  const [currentTime, setCurrentTime] = useState(new Date());
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Demo stats (can be replaced with real API data)
-  const stats = useMemo(
-    () => [
+  const {
+    data: statsData,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["admin-dashboard-stats"],
+    queryFn: fetchDashboardStats,
+    refetchInterval: 1000 * 20, // every 20s (optional)
+    staleTime: 1000 * 10,
+  });
+
+  // ✅ map backend -> cards
+  const stats = useMemo(() => {
+    const safe = statsData || {};
+
+    return [
       {
         label: "All Users",
-        value: "12,540",
+        value:
+          String(safe.allUsers ?? 0).toLocaleString?.("en-US") ||
+          String(safe.allUsers ?? 0),
         icon: FaUsers,
         accent: "from-yellow-600 to-amber-600",
+        to: "/all-user",
       },
       {
         label: "All Affiliate Users",
-        value: "3,210",
+        value:
+          String(safe.allAffiliateUsers ?? 0).toLocaleString?.("en-US") ||
+          String(safe.allAffiliateUsers ?? 0),
         icon: FaUserFriends,
         accent: "from-amber-600 to-yellow-600",
+        to: "/all-affiliate-user",
       },
       {
         label: "All Deposit Balances",
-        value: "৳ 8,92,300",
+        value: formatBDT(safe.allDepositBalances ?? 0),
         icon: FaWallet,
-        accent: "from-emerald-600 to-teal-600", // kept green for money feel
+        accent: "from-emerald-600 to-teal-600",
+        to: "/deposit-request",
       },
       {
         label: "All Withdraw Balance",
-        value: "৳ 4,21,900",
+        value: formatBDT(safe.allWithdrawBalance ?? 0),
         icon: FaHandHoldingUsd,
         accent: "from-orange-600 to-amber-600",
+        to: "/withdraw-request",
       },
       {
         label: "Pending Deposit Requests",
-        value: "46",
+        value: String(safe.pendingDepositRequests ?? 0),
         icon: FaClock,
         accent: "from-yellow-600 to-amber-500",
+        to: "/deposit-request",
       },
       {
         label: "Pending Withdraw Requests",
-        value: "19",
+        value: String(safe.pendingWithdrawRequests ?? 0),
         icon: FaMoneyCheckAlt,
         accent: "from-amber-600 to-orange-600",
+        to: "/withdraw-request",
       },
-    ],
-    [],
-  );
+    ];
+  }, [statsData]);
 
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-black via-yellow-950/20 to-black text-gray-100">
@@ -536,6 +576,11 @@ const Dashboard = () => {
             <p className="text-sm text-yellow-300 mt-1">
               Real-time Overview • Professional Admin Panel
             </p>
+            {isError ? (
+              <p className="mt-2 text-xs text-red-300">
+                Failed to load dashboard stats
+              </p>
+            ) : null}
           </div>
           <div className="mt-4 sm:mt-0 text-yellow-200 font-semibold">
             {format(currentTime, "PPPpp")}
@@ -550,14 +595,17 @@ const Dashboard = () => {
         >
           {stats.map((s, i) => (
             <motion.div key={s.label} custom={i} variants={fadeUp}>
-              <StatCard {...s} />
+              <StatCard
+                {...s}
+                value={isLoading ? "0" : s.value}
+                onClick={() => navigate(s.to)}
+              />
             </motion.div>
           ))}
         </motion.div>
 
         {/* Main widgets layout */}
         <div className="mt-8 sm:mt-10 grid grid-cols-12 gap-5">
-          {/* Row 1: bar + area + earnings */}
           <motion.div
             variants={fadeUp}
             initial="hidden"
@@ -603,10 +651,9 @@ const Dashboard = () => {
             custom={2}
             className="col-span-12 md:col-span-2"
           >
-            <EarningsCard />
+            {/* <EarningsCard /> */}
           </motion.div>
 
-          {/* Row 2: gauge + calendar + percent */}
           <motion.div
             variants={fadeUp}
             initial="hidden"
@@ -668,7 +715,6 @@ const Dashboard = () => {
             </CardShell>
           </motion.div>
 
-          {/* Bottom strip */}
           <motion.div
             variants={fadeUp}
             initial="hidden"
