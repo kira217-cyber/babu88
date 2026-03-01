@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Navigation } from "swiper/modules";
@@ -8,20 +8,35 @@ import "swiper/css/navigation";
 import { api } from "../../api/axios";
 import Loading from "../Loading/Loading";
 
-
 const fetchSliders = async () => {
   const { data } = await api.get("/api/sliders");
   return data.sliders || [];
 };
 
 const Slider = () => {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const update = () => setIsMobile(mq.matches);
+    update();
+
+    // safari support
+    if (mq.addEventListener) mq.addEventListener("change", update);
+    else mq.addListener(update);
+
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener("change", update);
+      else mq.removeListener(update);
+    };
+  }, []);
+
   const { data: slides = [], isLoading } = useQuery({
     queryKey: ["sliders-public"],
     queryFn: fetchSliders,
     staleTime: 1000 * 60,
   });
 
-  // ✅ keep your skeleton loading (unchanged), but also call Loading overlay
   if (isLoading) {
     return (
       <>
@@ -34,6 +49,8 @@ const Slider = () => {
   }
 
   if (!slides.length) return null;
+
+  const apiBase = import.meta.env.VITE_API_URL;
 
   return (
     <div className="w-full mt-4 px-2 md:mt-0 md:px-0">
@@ -51,21 +68,27 @@ const Slider = () => {
           navigation={{ nextEl: ".babu-next", prevEl: ".babu-prev" }}
           className="w-full"
         >
-          {slides.map((s) => (
-            <SwiperSlide key={s._id}>
-              <div className="relative w-full">
-                <div className="w-full h-[160px] sm:h-[200px] md:h-[260px] lg:h-[400px]">
-                  <img
-                    src={`${import.meta.env.VITE_API_URL}${s.imageUrl}`}
-                    alt="Slider"
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                    draggable={false}
-                  />
+          {slides.map((s) => {
+            const imgUrl = isMobile
+              ? s.imageUrlMobile || s.imageUrlDesktop
+              : s.imageUrlDesktop || s.imageUrlMobile;
+
+            return (
+              <SwiperSlide key={s._id}>
+                <div className="relative w-full">
+                  <div className="w-full h-[160px] sm:h-[200px] md:h-[260px] lg:h-[400px]">
+                    <img
+                      src={`${apiBase}${imgUrl}`}
+                      alt="Slider"
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      draggable={false}
+                    />
+                  </div>
                 </div>
-              </div>
-            </SwiperSlide>
-          ))}
+              </SwiperSlide>
+            );
+          })}
         </Swiper>
 
         <button

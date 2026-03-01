@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import Game from "../models/Game.js";
 import GameProvider from "../models/GameProvider.js";
+import qs from "qs";
 
 const router = express.Router();
 
@@ -241,23 +242,38 @@ router.post("/playgame", requireAuth, async (req, res) => {
     // ✅ Launch payload (Oracle requires these fields)
     const payload = {
       username: user.username,
-      money: balance,
+      money: parseInt(balance, 10),
+      currency: "USD",
       game_code, // from DB gameUuid
       provider_code, // from provider.providerId
       game_type, // resolved from provider.gameType or oracle single game provider.gameType
     };
 
-    // ✅ IMPORTANT: launch requires x-api-key
-    const response = await axios.post(ORACLE_LAUNCH_URL, payload, {
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ORACLE_API_KEY, // ✅ FIXED
-        Accept: "application/json",
+    console.log("Launching game with payload:", payload);
+
+    // // ✅ IMPORTANT: launch requires x-api-key
+    // const response = await axios.post("https://crazybet99.com/getgameurl/v2",
+    //   qs.stringify(payload), {
+    //   headers: {
+    //   'Content-Type': 'application/x-www-form-urlencoded',
+    //     "x-dstgame-key": "bb10373906ea00faa6717f10f8049c61", // ✅ FIXED
+    //   },
+    //   timeout: 30000,
+    // });
+
+    const response = await axios.post(
+      "https://crazybet99.com/getgameurl/v2",
+      qs.stringify(payload), // encode as x-www-form-urlencoded
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "x-dstgame-key": "bb10373906ea00faa6717f10f8049c61",
+        },
       },
-      timeout: 30000,
-    });
+    );
 
     const gameUrl =
+      response.data ||
       response.data?.url ||
       response.data?.data?.url ||
       response.data?.gameUrl ||
@@ -265,13 +281,15 @@ router.post("/playgame", requireAuth, async (req, res) => {
       response.data?.launchUrl ||
       response.data?.data?.launchUrl;
 
-    if (!gameUrl || typeof gameUrl !== "string") {
-      return res.status(502).json({
-        success: false,
-        message: "No game URL received from oracle launch API",
-        error: response.data,
-      });
-    }
+    // if (!gameUrl || typeof gameUrl !== "string") {
+    //   return res.status(502).json({
+    //     success: false,
+    //     message: "No game URL received from oracle launch API",
+    //     error: response.data,
+    //   });
+    // }
+
+    console.log("Game launched successfully. URL:", response);
 
     return res.json({
       success: true,

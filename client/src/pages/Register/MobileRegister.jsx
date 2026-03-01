@@ -77,8 +77,7 @@ const MobileRegister = () => {
 
     // image
     const bannerUrl =
-      resolveUrl(api.defaults.baseURL, d?.mobileBannerUrl) ||
-      "https://babu88.gold/static/image/banner/registerBanner/register_banner_en.jpg";
+      resolveUrl(api.defaults.baseURL, d?.mobileBannerUrl)
 
     return {
       isActive: d?.isActive ?? true,
@@ -813,7 +812,7 @@ const MobileRegister = () => {
         </div>
 
         <div className="mt-16">
-          <PrimaryBtn onClick={() => navigate("/deposit")}>
+          <PrimaryBtn onClick={() => navigate("/profile/deposit")}>
             {t.done.deposit}
           </PrimaryBtn>
           <div className="mt-3">

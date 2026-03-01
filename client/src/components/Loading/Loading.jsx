@@ -34,11 +34,11 @@ const Loading = ({ open = false, text = "" }) => {
         </div>
 
         {/* Optional text */}
-        {text && (
+        {/* {text && (
           <div className="mt-5 text-[13px] font-extrabold text-yellow-200/90">
             {text}
           </div>
-        )}
+        )} */}
       </div>
 
       {/* Component CSS */}
