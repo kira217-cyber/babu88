@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Link, NavLink, Outlet } from "react-router";
+import { FaDiagramProject } from "react-icons/fa6";
+
 import {
   FaHome,
   FaBell,
@@ -83,6 +85,12 @@ const Sidebar = () => {
         to: "/create-admin",
         icon: <GrUserAdmin />,
         text: "Create Admin",
+      },
+      {
+        key: "add-promotion",
+        to: "/add-promotion",
+        icon: <FaDiagramProject />,
+        text: "Add Promotion",
       },
     ],
     [],

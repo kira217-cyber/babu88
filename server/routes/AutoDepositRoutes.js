@@ -166,16 +166,6 @@ router.post("/create", async (req, res) => {
       return res.status(403).json({ success: false, message: "User is inactive" });
     }
 
-    // ✅ Save deposit first (controls duplicate invoice)
-    // await AutoDeposit.create({
-    //   userIdentity: String(userIdentity),
-    //   amount: numAmount,
-    //   invoiceNumber: String(invoiceNumber),
-    //   status: "PENDING",
-    //   checkoutItems: checkoutItems || {},
-    //   balanceAdded: false,
-    // });
-
     const callbackUrl = `${process.env.PUBLIC_BACKEND_URL}/api/auto-deposit/webhook`;
     const successRedirectUrl = `${process.env.PUBLIC_FRONTEND_URL}`;
 
@@ -358,6 +348,7 @@ router.get("/deposits/admin", async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
+
 
 /**
  * ✅ WEBHOOK (OraclePay -> Backend)
