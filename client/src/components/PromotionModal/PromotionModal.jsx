@@ -53,7 +53,9 @@ const PromotionModal = () => {
 
     const isActive = d?.isActive ?? true;
     const storageKey = d?.storageKey || "promotion_modal_last_shown_v1";
-    const showOncePerMs = d?.showOncePerMs ?? 0;
+
+    // ✅ 24 hour পর পর ১বার দেখাবে (server value না থাকলে fallback)
+    const showOncePerMs = d?.showOncePerMs ?? 24 * 60 * 60 * 1000;
 
     const title =
       (isBangla ? d?.titleBn : d?.titleEn) || "Important Announcement";
