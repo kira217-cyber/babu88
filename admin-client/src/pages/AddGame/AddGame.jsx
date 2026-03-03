@@ -489,7 +489,35 @@ const AddGame = () => {
                 selected
               </div>
 
-              <div className="flex flex-wrap gap-3">
+             
+
+              <div className="grid grid-cols-1 items-center md:grid-cols-2 lg:grid-cols-3 flex-wrap gap-3">
+                <div>
+                   {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex flex-wrap justify-center items-center gap-3 mt-12">
+                <button
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-5 py-2.5 bg-black/70 border border-yellow-700/50 rounded-lg text-yellow-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-yellow-900/40 transition"
+                >
+                  Previous
+                </button>
+
+                <span className="px-4 py-2 text-yellow-200 font-medium">
+                  Page {currentPage} of {totalPages}
+                </span>
+
+                <button
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="px-5 py-2.5 bg-black/70 border border-yellow-700/50 rounded-lg text-yellow-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-yellow-900/40 transition"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+                </div>
                 <button
                   onClick={handleSelectAllThisPage}
                   disabled={bulkLoading || allSelectedThisPage}
