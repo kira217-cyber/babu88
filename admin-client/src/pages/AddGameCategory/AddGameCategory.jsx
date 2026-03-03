@@ -9,7 +9,8 @@ const emptyForm = {
   categoryTitleBn: "",
   categoryTitleEn: "",
   bannerImage: null,
-  iconImage: null, // ← NEW
+  iconImage: null,
+  order: "", // ✅ NEW
   status: "active",
 };
 
@@ -68,7 +69,8 @@ const AddGameCategory = () => {
       categoryTitleBn: category?.categoryTitle?.bn || "",
       categoryTitleEn: category?.categoryTitle?.en || "",
       bannerImage: null,
-      iconImage: null, // reset file input
+      iconImage: null,
+      order: category?.order ? String(category.order) : "", // ✅ NEW
       status: category?.status || "active",
     });
   };
@@ -92,11 +94,16 @@ const AddGameCategory = () => {
       fd.append("categoryTitleEn", form.categoryTitleEn);
       fd.append("status", form.status);
 
+      // ✅ NEW: order (optional — backend auto sets if empty)
+      if (String(form.order || "").trim() !== "") {
+        fd.append("order", String(form.order).trim());
+      }
+
       if (form.bannerImage instanceof File) {
         fd.append("bannerImage", form.bannerImage);
       }
       if (form.iconImage instanceof File) {
-        fd.append("iconImage", form.iconImage); // ← NEW
+        fd.append("iconImage", form.iconImage);
       }
 
       if (editing?._id) {
@@ -225,6 +232,24 @@ const AddGameCategory = () => {
               />
             </div>
 
+            {/* ✅ ORDER — NEW */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-semibold text-yellow-300/90 mb-2">
+                Order Number (1, 2, 3...)
+              </label>
+              <input
+                type="number"
+                min={1}
+                className={inputBase}
+                value={form.order}
+                onChange={(e) => setForm({ ...form, order: e.target.value })}
+                placeholder="Leave empty to auto-generate"
+              />
+              <p className="mt-2 text-xs text-yellow-300/60">
+                If you keep it empty, server will set next order automatically.
+              </p>
+            </div>
+
             {/* Banner */}
             <div className="md:col-span-2">
               <label className="block text-sm font-semibold text-yellow-300/90 mb-2">
@@ -250,7 +275,7 @@ const AddGameCategory = () => {
               )}
             </div>
 
-            {/* Icon — NEW */}
+            {/* Icon */}
             <div className="md:col-span-2">
               <label className="block text-sm font-semibold text-yellow-300/90 mb-2">
                 Category Icon (small logo / symbol)
@@ -333,7 +358,7 @@ const AddGameCategory = () => {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
-                {/* Icon overlay (top-left corner) */}
+                {/* Icon overlay */}
                 {cat.iconImage && (
                   <div className="absolute top-3 left-3 w-14 h-14 rounded-full overflow-hidden border-2 border-yellow-400/70 shadow-lg">
                     <img
@@ -344,6 +369,13 @@ const AddGameCategory = () => {
                     />
                   </div>
                 )}
+
+                {/* ✅ Order badge (top-right) */}
+                <div className="absolute top-3 right-3">
+                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black bg-yellow-500/90 text-black shadow-lg">
+                    #{cat.order || 0}
+                  </span>
+                </div>
 
                 {/* Status badge */}
                 <div className="absolute bottom-3 left-3">

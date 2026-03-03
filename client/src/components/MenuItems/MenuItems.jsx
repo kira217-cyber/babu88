@@ -109,18 +109,50 @@ const MenuItems = () => {
     };
   }, [cfg]);
 
+  // ✅ SORT categories by order ASC (1 first, 9 last)
+  // - order missing/0/invalid => goes LAST
+  // - same order => older first (stable)
+  const sortedMenuCats = useMemo(() => {
+    const arr = Array.isArray(menuCats) ? [...menuCats] : [];
+
+    arr.sort((a, b) => {
+      const aRaw = parseInt(a?.order, 10);
+      const bRaw = parseInt(b?.order, 10);
+
+      const aHas = Number.isFinite(aRaw) && aRaw > 0;
+      const bHas = Number.isFinite(bRaw) && bRaw > 0;
+
+      if (aHas && bHas) {
+        if (aRaw !== bRaw) return aRaw - bRaw; // ✅ ASC
+      } else if (aHas && !bHas) {
+        return -1; // a first
+      } else if (!aHas && bHas) {
+        return 1; // b first
+      }
+
+      // tie-break: oldest first
+      const at = new Date(a?.createdAt || 0).getTime();
+      const bt = new Date(b?.createdAt || 0).getTime();
+      return at - bt;
+    });
+
+    return arr;
+  }, [menuCats]);
+
+  console.log("game category", sortedMenuCats)
+
   // ✅ DB categories -> dropdown menus
-  // label bn/en
   const dropdownMenus = useMemo(() => {
-    return (menuCats || []).map((c) => ({
-      key: c._id, // use categoryId as openKey
+    return (sortedMenuCats || []).map((c) => ({
+      key: c._id,
       label: isBangla ? c.categoryName?.bn || "" : c.categoryName?.en || "",
       badge: c.badge || "none",
       providers: c.providers || [],
       categoryId: c._id,
       menuKey: c.menuKey,
+      order: c.order,
     }));
-  }, [menuCats, isBangla]);
+  }, [sortedMenuCats, isBangla]);
 
   // other nav items fixed
   const fixedNav = useMemo(
@@ -211,7 +243,6 @@ const MenuItems = () => {
       e.preventDefault();
       return;
     }
-    // let <a> open new tab by default
   };
 
   return (
@@ -249,7 +280,6 @@ const MenuItems = () => {
                       }}
                       onMouseEnter={onHoverIn}
                       onMouseLeave={onHoverOut}
-                      // ✅ category click -> category page (show all providers games)
                       onClick={() => {
                         setOpenKey(null);
                         navigate(`/games/${m.categoryId}`);
@@ -262,7 +292,6 @@ const MenuItems = () => {
                 );
               }
 
-              // ✅ NEW: affiliate opens PARTNET_URL in new tab (keep styling same)
               if (m.key === "affiliate") {
                 return (
                   <div key={m.key} className="relative">
@@ -364,7 +393,6 @@ const MenuItems = () => {
                           type="button"
                           onClick={() => {
                             setOpenKey(null);
-                            // ✅ provider click -> category page with provider filter
                             navigate(
                               `/games/${openMenuObj.categoryId}?provider=${p._id}`,
                             );

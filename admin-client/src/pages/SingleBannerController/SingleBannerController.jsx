@@ -19,7 +19,9 @@ const updateSingleBanner = async (formData) => {
 
 const SingleBannerController = () => {
   const qc = useQueryClient();
-  const [preview, setPreview] = useState("");
+
+  const [desktopPreview, setDesktopPreview] = useState("");
+  const [mobilePreview, setMobilePreview] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-single-banner"],
@@ -38,7 +40,8 @@ const SingleBannerController = () => {
       clickLink: "",
       openInNewTab: false,
       isActive: true,
-      bannerImg: null,
+      desktopImg: null,
+      mobileImg: null,
     },
   });
 
@@ -49,24 +52,44 @@ const SingleBannerController = () => {
       clickLink: data.clickLink || "",
       openInNewTab: data.openInNewTab ?? false,
       isActive: data.isActive ?? true,
-      bannerImg: null,
+      desktopImg: null,
+      mobileImg: null,
     });
 
-    setPreview(
-      data.bannerUrl ? `${api.defaults.baseURL}${data.bannerUrl}` : "",
+    setDesktopPreview(
+      data.desktopBannerUrl
+        ? `${api.defaults.baseURL}${data.desktopBannerUrl}`
+        : "",
+    );
+
+    setMobilePreview(
+      data.mobileBannerUrl
+        ? `${api.defaults.baseURL}${data.mobileBannerUrl}`
+        : "",
     );
   }, [data, reset]);
 
-  // Live preview for newly selected file
-  const imgWatch = watch("bannerImg");
+  // Live preview for Desktop
+  const desktopWatch = watch("desktopImg");
   useEffect(() => {
-    const file = imgWatch?.[0];
+    const file = desktopWatch?.[0];
     if (file) {
       const url = URL.createObjectURL(file);
-      setPreview(url);
+      setDesktopPreview(url);
       return () => URL.revokeObjectURL(url);
     }
-  }, [imgWatch]);
+  }, [desktopWatch]);
+
+  // Live preview for Mobile
+  const mobileWatch = watch("mobileImg");
+  useEffect(() => {
+    const file = mobileWatch?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setMobilePreview(url);
+      return () => URL.revokeObjectURL(url);
+    }
+  }, [mobileWatch]);
 
   const mutation = useMutation({
     mutationFn: updateSingleBanner,
@@ -85,8 +108,11 @@ const SingleBannerController = () => {
     fd.append("openInNewTab", String(values.openInNewTab));
     fd.append("isActive", String(values.isActive));
 
-    const img = values.bannerImg?.[0];
-    if (img) fd.append("bannerImg", img);
+    const desktop = values.desktopImg?.[0];
+    const mobile = values.mobileImg?.[0];
+
+    if (desktop) fd.append("desktopImg", desktop);
+    if (mobile) fd.append("mobileImg", mobile);
 
     mutation.mutate(fd);
   };
@@ -110,29 +136,56 @@ const SingleBannerController = () => {
           </div>
         ) : (
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-7">
-            {/* Banner Image Upload + Preview */}
+            {/* Desktop Banner Upload + Preview */}
             <div className="space-y-4">
               <label className="block text-yellow-100 font-bold text-lg cursor-pointer">
-                Upload Banner Image
+                Upload Desktop Banner Image
               </label>
               <input
                 type="file"
                 accept="image/*"
                 className="block w-full text-sm text-yellow-200 file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-yellow-700/30 file:text-black hover:file:bg-yellow-600/50 file:cursor-pointer cursor-pointer bg-black/70 border border-yellow-700/50 rounded-xl p-4"
-                {...register("bannerImg")}
+                {...register("desktopImg")}
               />
 
-              {preview ? (
+              {desktopPreview ? (
                 <div className="rounded-xl overflow-hidden border-2 border-yellow-700/50 bg-black/50 shadow-inner">
                   <img
-                    src={preview}
-                    alt="Banner Preview"
+                    src={desktopPreview}
+                    alt="Desktop Banner Preview"
                     className="w-full h-64 sm:h-72 lg:h-80 object-contain"
                   />
                 </div>
               ) : (
                 <div className="rounded-xl bg-black/60 border border-yellow-700/40 p-8 text-center text-yellow-300/70">
-                  No banner image selected
+                  No desktop banner image selected
+                </div>
+              )}
+            </div>
+
+            {/* Mobile Banner Upload + Preview */}
+            <div className="space-y-4">
+              <label className="block text-yellow-100 font-bold text-lg cursor-pointer">
+                Upload Mobile Banner Image
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                className="block w-full text-sm text-yellow-200 file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-yellow-700/30 file:text-black hover:file:bg-yellow-600/50 file:cursor-pointer cursor-pointer bg-black/70 border border-yellow-700/50 rounded-xl p-4"
+                {...register("mobileImg")}
+              />
+
+              {mobilePreview ? (
+                <div className="rounded-xl overflow-hidden border-2 border-yellow-700/50 bg-black/50 shadow-inner">
+                  <img
+                    src={mobilePreview}
+                    alt="Mobile Banner Preview"
+                    className="w-full h-64 sm:h-72 lg:h-80 object-contain"
+                  />
+                </div>
+              ) : (
+                <div className="rounded-xl bg-black/60 border border-yellow-700/40 p-8 text-center text-yellow-300/70">
+                  No mobile banner image selected
                 </div>
               )}
             </div>

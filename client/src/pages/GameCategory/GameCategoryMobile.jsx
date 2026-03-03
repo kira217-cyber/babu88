@@ -9,6 +9,8 @@ import Loading from "../../components/Loading/Loading";
 const HOT_ICON = "https://babu88.gold/static/image/other/hot-icon.png";
 const NEW_ICON = "https://babu88.gold/static/svg/game-icon-new.svg";
 
+const PAGE_SIZE = 30;
+
 const fetchCategories = async () => {
   const { data } = await api.get("/api/public/game-categories");
   return data?.data || [];
@@ -41,29 +43,30 @@ const GameCategoryMobile = () => {
   const [activeProviderDbId, setActiveProviderDbId] = useState("");
   const [q, setQ] = useState("");
 
-  // Debounce search (optional but recommended for mobile)
+  // ✅ Pagination state
+  const [page, setPage] = useState(1);
+
+  // Debounce search
   const [debouncedQ, setDebouncedQ] = useState(q);
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedQ(q);
-    }, 400);
+    const timer = setTimeout(() => setDebouncedQ(q), 400);
     return () => clearTimeout(timer);
   }, [q]);
 
+  // ✅ Reset page when category/provider/search changes
+  useEffect(() => {
+    setPage(1);
+  }, [activeCategoryId, activeProviderDbId, debouncedQ]);
+
   const resolveImg = (path) => {
     if (!path) return "/no-image.png";
-
     const p = String(path).trim();
     if (!p) return "/no-image.png";
-
-    // ✅ remote url 그대로
     if (/^https?:\/\//i.test(p)) return p;
 
-    // ✅ normalize API_URL (no trailing slash)
     const base = (API_URL || "").replace(/\/$/, "");
     if (!base) return p.startsWith("/") ? p : `/${p}`;
 
-    // ✅ ensure single slash between base and path
     const normalizedPath = p.startsWith("/") ? p : `/${p}`;
     return `${base}${normalizedPath}`;
   };
@@ -117,7 +120,7 @@ const GameCategoryMobile = () => {
     retry: 1,
   });
 
-  // Improved client-side sorting: exact match / start with → highest priority
+  // ✅ client-side sorting priority for search
   const shownGames = useMemo(() => {
     let list = [...(games || [])];
 
@@ -125,11 +128,11 @@ const GameCategoryMobile = () => {
     if (!term) return list;
 
     const getPriority = (str = "") => {
-      const s = str.toLowerCase();
+      const s = String(str || "").toLowerCase();
       if (!s) return 0;
-      if (s === term) return 100; // exact match
-      if (s.startsWith(term)) return 50; // starts with
-      if (s.includes(term)) return 10; // contains
+      if (s === term) return 100;
+      if (s.startsWith(term)) return 50;
+      if (s.includes(term)) return 10;
       return 1;
     };
 
@@ -141,13 +144,50 @@ const GameCategoryMobile = () => {
       const bScore = getPriority(bName);
 
       if (bScore !== aScore) return bScore - aScore;
-
-      // same score → alphabetical fallback
-      return aName.localeCompare(bName);
+      return String(aName).localeCompare(String(bName));
     });
 
     return list;
   }, [games, q, debouncedQ]);
+
+  // ✅ Pagination computed
+  const total = shownGames.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+
+  const start = (safePage - 1) * PAGE_SIZE;
+  const end = start + PAGE_SIZE;
+
+  const pagedGames = useMemo(
+    () => shownGames.slice(start, end),
+    [shownGames, start, end],
+  );
+
+  const pageButtons = useMemo(() => {
+    const tp = totalPages;
+    const p = safePage;
+    const out = [];
+
+    const push = (v) => out.push(v);
+
+    if (tp <= 3) {
+      for (let i = 1; i <= tp; i++) push(i);
+      return out;
+    }
+
+    push(1);
+
+    if (p > 3) push("...");
+
+    const s = Math.max(2, p - 1);
+    const e = Math.min(tp - 1, p + 1);
+    for (let i = s; i <= e; i++) push(i);
+
+    if (p < tp - 2) push("...");
+
+    push(tp);
+    return out;
+  }, [safePage, totalPages]);
 
   const goPrev = () => {
     if (!categories.length) return;
@@ -211,9 +251,12 @@ const GameCategoryMobile = () => {
     navigate(`/playgame/${gameId}`, { state: { game: g } });
   };
 
+  const goPage = (p) => setPage(() => Math.min(totalPages, Math.max(1, p)));
+  const prevPage = () => setPage((p) => Math.max(1, p - 1));
+  const nextPage = () => setPage((p) => Math.min(totalPages, p + 1));
+
   return (
     <div className="min-h-screen bg-[#f5f5f5]">
-      {/* ✅ Global Loading Overlay */}
       <Loading
         open={loadingCats || loadingProviders || loadingGames}
         text={isBangla ? "লোড হচ্ছে..." : "Loading..."}
@@ -337,7 +380,7 @@ const GameCategoryMobile = () => {
           <div className="py-10 text-center font-bold text-black/50">
             Loading...
           </div>
-        ) : shownGames.length === 0 ? (
+        ) : total === 0 ? (
           <div className="py-10 text-center font-bold text-black/50">
             {q.trim()
               ? isBangla
@@ -348,57 +391,111 @@ const GameCategoryMobile = () => {
                 : "No games found"}
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-3">
-            {shownGames.map((g) => {
-              const imgSrc = resolveImg(g.image);
-              const label = g.gameName || g.gameUuid || g.gameId || "Game";
+          <>
+            <div className="grid grid-cols-3 gap-3">
+              {pagedGames.map((g) => {
+                const imgSrc = resolveImg(g.image);
+                const label = g.gameName || g.gameUuid || g.gameId || "Game";
 
-              return (
+                return (
+                  <button
+                    key={g._id}
+                    type="button"
+                    onClick={() => onPlay(g)}
+                    className="group"
+                    title={label}
+                  >
+                    <div className="relative rounded-2xl overflow-hidden bg-white shadow-sm border border-black/10">
+                      <div className="aspect-square w-full overflow-hidden">
+                        <img
+                          src={imgSrc}
+                          alt={label}
+                          className="w-full h-full object-cover transition duration-300 group-hover:scale-[1.04]"
+                          loading="lazy"
+                          onError={(e) =>
+                            (e.currentTarget.src = "/no-image.png")
+                          }
+                        />
+                      </div>
+
+                      <div className="absolute top-0 right-0 flex flex-col gap-1 items-end">
+                        {g.isHot === true && (
+                          <img
+                            src={HOT_ICON}
+                            alt="hot"
+                            className="h-8 w-auto drop-shadow"
+                            loading="lazy"
+                          />
+                        )}
+                        {g.isNew === true && (
+                          <img
+                            src={NEW_ICON}
+                            alt="new"
+                            className="h-8 w-auto drop-shadow"
+                            loading="lazy"
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-1 text-[12px] font-bold text-black/80 truncate text-center px-1">
+                      {label}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* ✅ Pagination */}
+            {totalPages > 1 && (
+              <div className="mt-6 flex items-center justify-center gap-2 flex-wrap">
                 <button
-                  key={g._id}
                   type="button"
-                  onClick={() => onPlay(g)}
-                  className="group"
-                  title={label}
+                  onClick={prevPage}
+                  disabled={safePage <= 1}
+                  className="px-3 py-2 rounded-lg font-bold border border-black/10 bg-white hover:bg-black/5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <div className="relative rounded-2xl overflow-hidden bg-white shadow-sm border border-black/10">
-                    <div className="aspect-square w-full overflow-hidden">
-                      <img
-                        src={imgSrc}
-                        alt={label}
-                        className="w-full h-full object-cover transition duration-300 group-hover:scale-[1.04]"
-                        loading="lazy"
-                        onError={(e) => (e.currentTarget.src = "/no-image.png")}
-                      />
-                    </div>
-
-                    <div className="absolute top-0 right-0 flex flex-col gap-1 items-end">
-                      {g.isHot === true && (
-                        <img
-                          src={HOT_ICON}
-                          alt="hot"
-                          className="h-8 w-auto drop-shadow"
-                          loading="lazy"
-                        />
-                      )}
-                      {g.isNew === true && (
-                        <img
-                          src={NEW_ICON}
-                          alt="new"
-                          className="h-8 w-auto drop-shadow"
-                          loading="lazy"
-                        />
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="mt-1 text-[12px] font-bold text-black/80 truncate text-center px-1">
-                    {label}
-                  </div>
+                  {isBangla ? "পূর্বের" : "Prev"}
                 </button>
-              );
-            })}
-          </div>
+
+                {pageButtons.map((p, idx) =>
+                  p === "..." ? (
+                    <span key={`dots-${idx}`} className="px-2 text-black/50">
+                      ...
+                    </span>
+                  ) : (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => goPage(p)}
+                      className={`px-3 py-2 rounded-lg font-extrabold border border-black/10 ${
+                        p === safePage
+                          ? "bg-[#f5b400] text-black"
+                          : "bg-white hover:bg-black/5"
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ),
+                )}
+
+                <button
+                  type="button"
+                  onClick={nextPage}
+                  disabled={safePage >= totalPages}
+                  className="px-3 py-2 rounded-lg font-bold border border-black/10 bg-white hover:bg-black/5 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isBangla ? "পরের" : "Next"}
+                </button>
+              </div>
+            )}
+
+            {/* ✅ Page info */}
+            <div className="mt-3 text-center text-[12px] font-bold text-black/45">
+              {isBangla ? "পেজ" : "Page"} {safePage}/{totalPages} •{" "}
+              {isBangla ? "মোট" : "Total"} {total}
+            </div>
+          </>
         )}
       </div>
     </div>

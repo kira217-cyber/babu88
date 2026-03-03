@@ -1,11 +1,12 @@
 // src/pages/GameCategory/GameCategory.jsx
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/axios";
 import { useLanguage } from "../../Context/LanguageProvider";
 import Loading from "../../components/Loading/Loading";
 
+const PAGE_SIZE = 30;
 
 const fetchCategory = async (categoryId) => {
   const { data } = await api.get(`/api/public/game-categories/${categoryId}`);
@@ -33,6 +34,7 @@ const GameCategory = () => {
 
   const [sortKey, setSortKey] = useState("default");
   const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
 
   const API_URL = import.meta.env.VITE_API_URL;
 
@@ -64,15 +66,18 @@ const GameCategory = () => {
   );
 
   const setProvider = (id) => {
-    if (!id) {
-      sp.delete("provider");
-    } else {
-      sp.set("provider", id);
-    }
-    setSp(sp, { replace: true });
+    const next = new URLSearchParams(sp);
+    if (!id) next.delete("provider");
+    else next.set("provider", id);
+    setSp(next, { replace: true });
   };
 
-  const shownGames = useMemo(() => {
+  // ✅ Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [categoryId, providerDbId, sortKey, q]);
+
+  const filteredSortedGames = useMemo(() => {
     let list = [...games];
 
     // Search filter
@@ -88,12 +93,12 @@ const GameCategory = () => {
       });
     }
 
-    // Sort – safer boolean handling
+    // Sort
     if (sortKey === "hot") {
       list.sort((a, b) => {
         const aHot = a.isHot === true || a.isHot === "true" || !!a.isHot;
         const bHot = b.isHot === true || b.isHot === "true" || !!b.isHot;
-        return bHot - aHot; // true (hot) games first
+        return bHot - aHot;
       });
     } else if (sortKey === "new") {
       list.sort((a, b) => {
@@ -108,10 +113,54 @@ const GameCategory = () => {
         return bTime - aTime;
       });
     }
-    // "default" → original order from API
+    // default -> API order
 
     return list;
   }, [games, q, sortKey]);
+
+  // ✅ Pagination computed
+  const total = filteredSortedGames.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  const safePage = Math.min(page, totalPages);
+  const start = (safePage - 1) * PAGE_SIZE;
+  const end = start + PAGE_SIZE;
+
+  const pagedGames = useMemo(() => {
+    return filteredSortedGames.slice(start, end);
+  }, [filteredSortedGames, start, end]);
+
+  // ✅ compact page buttons
+  const pageButtons = useMemo(() => {
+    const p = safePage;
+    const tp = totalPages;
+    const out = [];
+
+    const push = (v) => out.push(v);
+
+    if (tp <= 7) {
+      for (let i = 1; i <= tp; i++) push(i);
+      return out;
+    }
+
+    push(1);
+
+    if (p > 3) push("...");
+
+    const s = Math.max(2, p - 1);
+    const e = Math.min(tp - 1, p + 1);
+    for (let i = s; i <= e; i++) push(i);
+
+    if (p < tp - 2) push("...");
+
+    push(tp);
+
+    return out;
+  }, [safePage, totalPages]);
+
+  const goPrev = () => setPage((p) => Math.max(1, p - 1));
+  const goNext = () => setPage((p) => Math.min(totalPages, p + 1));
+  const goPage = (p) => setPage(() => Math.min(totalPages, Math.max(1, p)));
 
   if (loadingCat) {
     return (
@@ -131,7 +180,7 @@ const GameCategory = () => {
 
   return (
     <div className="min-h-screen bg-[#f6f6f6]">
-      {/* ✅ Global Loading Overlay (Category/Games load হলে দেখাবে) */}
+      {/* ✅ Global Loading Overlay */}
       <Loading
         open={loadingCat || loadingGames}
         text={isBangla ? "লোড হচ্ছে..." : "Loading..."}
@@ -144,7 +193,6 @@ const GameCategory = () => {
             src={`${API_URL}${cat.bannerImage}`}
             alt={categoryName}
             className="w-full h-full object-cover"
-            // onError={(e) => (e.currentTarget.style.display = "none")}
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-r from-[#0b0b2b] to-[#001a5a]" />
@@ -187,7 +235,7 @@ const GameCategory = () => {
             </button>
 
             {providers.map((p) => {
-              const active = providerDbId === p._id;
+              const activeP = providerDbId === p._id;
               return (
                 <button
                   key={p._id}
@@ -195,7 +243,7 @@ const GameCategory = () => {
                   className={[
                     "h-[42px] rounded-full border-2 px-4 font-extrabold text-[12px]",
                     "flex items-center justify-center gap-2 transition",
-                    active
+                    activeP
                       ? "bg-[#f5b400] border-[#f5b400] text-black"
                       : "bg-white border-[#f5b400] text-black hover:bg-yellow-50",
                   ].join(" ")}
@@ -251,13 +299,22 @@ const GameCategory = () => {
           </div>
         </div>
 
+        {/* Count info */}
+        {/* <div className="mt-3 text-sm font-bold text-black/50">
+          {total > 0
+            ? `${isBangla ? "মোট গেম" : "Total games"}: ${total} • ${
+                isBangla ? "পেজ" : "Page"
+              } ${safePage}/${totalPages}`
+            : ""}
+        </div> */}
+
         {/* Games grid */}
         <div className="mt-5 pb-10">
           {loadingGames ? (
             <div className="py-16 text-center text-black/60 font-bold">
               Loading games...
             </div>
-          ) : shownGames.length === 0 ? (
+          ) : filteredSortedGames.length === 0 ? (
             <div className="py-16 text-center text-black/60 font-bold">
               {q.trim()
                 ? isBangla
@@ -268,81 +325,128 @@ const GameCategory = () => {
                   : "No games found"}
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-6 md:gap-8">
-              {shownGames.map((g) => {
-                const imgSrc =
-                  g.image && String(g.image).trim()
-                    ? /^https?:\/\//i.test(String(g.image).trim())
-                      ? String(g.image).trim() // ✅ remote image
-                      : `${API_URL}${String(g.image).trim()}` // ✅ local /uploads image
-                    : "/no-image.png";
-                const goId = g.gameId; // using gameId as per your last snippet
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-6 md:gap-8">
+                {pagedGames.map((g) => {
+                  const imgSrc =
+                    g.image && String(g.image).trim()
+                      ? /^https?:\/\//i.test(String(g.image).trim())
+                        ? String(g.image).trim()
+                        : `${API_URL}${String(g.image).trim()}`
+                      : "/no-image.png";
 
-                return (
-                  <button
-                    key={g._id}
-                    type="button"
-                    onClick={() => navigate(`/playgame/${goId}`)}
-                    className="group text-left"
-                    title={g.gameName || goId}
-                  >
-                    <div className="relative rounded-[14px] overflow-hidden border border-black/10 bg-white shadow-sm">
-                      {/* Badges */}
-                      <div className="absolute top-0 right-0 z-10 flex flex-col gap-1 items-end">
-                        {(g.isHot === true || g.isHot === "true") && (
+                  const goId = g.gameId;
+
+                  return (
+                    <button
+                      key={g._id}
+                      type="button"
+                      onClick={() => navigate(`/playgame/${goId}`)}
+                      className="group text-left"
+                      title={g.gameName || goId}
+                    >
+                      <div className="relative rounded-[14px] overflow-hidden border border-black/10 bg-white shadow-sm">
+                        {/* Badges */}
+                        <div className="absolute top-0 right-0 z-10 flex flex-col gap-1 items-end">
+                          {(g.isHot === true || g.isHot === "true") && (
+                            <img
+                              src={HOT_ICON}
+                              alt="hot"
+                              className="h-8 w-auto drop-shadow"
+                              loading="lazy"
+                            />
+                          )}
+                          {(g.isNew === true || g.isNew === "true") && (
+                            <img
+                              src={NEW_ICON}
+                              alt="new"
+                              className="h-8 w-auto drop-shadow"
+                              loading="lazy"
+                            />
+                          )}
+                        </div>
+
+                        {/* Image + hover play */}
+                        <div className="aspect-square bg-gray-100 relative cursor-pointer">
                           <img
-                            src={HOT_ICON}
-                            alt="hot"
-                            className="h-8 w-auto drop-shadow"
-                            loading="lazy"
+                            src={imgSrc}
+                            alt={g.gameName || goId}
+                            className="w-full h-full object-cover transition duration-300 group-hover:scale-[1.08]"
+                            onError={(e) =>
+                              (e.currentTarget.src = "/no-image.png")
+                            }
                           />
-                        )}
-                        {(g.isNew === true || g.isNew === "true") && (
-                          <img
-                            src={NEW_ICON}
-                            alt="new"
-                            className="h-8 w-auto drop-shadow"
-                            loading="lazy"
-                          />
-                        )}
-                      </div>
 
-                      {/* Image + hover play */}
-                      <div className="aspect-square bg-gray-100 relative cursor-pointer">
-                        <img
-                          src={imgSrc}
-                          alt={g.gameName || goId}
-                          className="w-full h-full object-cover transition duration-300 group-hover:scale-[1.08]"
-                          onError={(e) =>
-                            (e.currentTarget.src = "/no-image.png")
-                          }
-                        />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition duration-300" />
 
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition duration-300" />
-
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-300">
-                          <div className="w-[48px] h-[48px] rounded-full bg-yellow-500 hover:bg-blue-700 shadow-lg flex items-center justify-center">
-                            <svg
-                              width="28"
-                              height="28"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path d="M9 7V17L17 12L9 7Z" fill="white" />
-                            </svg>
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-300">
+                            <div className="w-[48px] h-[48px] rounded-full bg-yellow-500 hover:bg-blue-700 shadow-lg flex items-center justify-center">
+                              <svg
+                                width="28"
+                                height="28"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path d="M9 7V17L17 12L9 7Z" fill="white" />
+                              </svg>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="mt-2 text-[14px] font-extrabold text-black text-center line-clamp-1 px-1">
-                      {g.gameName || goId}
-                    </div>
+                      <div className="mt-2 text-[14px] font-extrabold text-black text-center line-clamp-1 px-1">
+                        {g.gameName || goId}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* ✅ Pagination */}
+              {totalPages > 1 && (
+                <div className="mt-8 flex items-center justify-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={goPrev}
+                    disabled={safePage <= 1}
+                    className="px-3 py-2 rounded-lg font-bold border border-black/10 bg-white hover:bg-black/5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isBangla ? "পূর্বের" : "Prev"}
                   </button>
-                );
-              })}
-            </div>
+
+                  {pageButtons.map((p, idx) =>
+                    p === "..." ? (
+                      <span key={`dots-${idx}`} className="px-2 text-black/50">
+                        ...
+                      </span>
+                    ) : (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => goPage(p)}
+                        className={`px-3 py-2 rounded-lg font-extrabold border border-black/10 ${
+                          p === safePage
+                            ? "bg-[#f5b400] text-black"
+                            : "bg-white hover:bg-black/5"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ),
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={goNext}
+                    disabled={safePage >= totalPages}
+                    className="px-3 py-2 rounded-lg font-bold border border-black/10 bg-white hover:bg-black/5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isBangla ? "পরের" : "Next"}
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

@@ -13,7 +13,8 @@ const router = express.Router();
 router.get("/game-menu", async (req, res) => {
   try {
     const categories = await GameCategory.find({ status: "active" })
-      .sort({ createdAt: 1 })
+      // ✅ 1 first, 9 last
+      .sort({ order: 1, createdAt: 1 })
       .lean();
 
     const categoryIds = categories.map((c) => c._id);
@@ -44,6 +45,8 @@ router.get("/game-menu", async (req, res) => {
       categoryName: c.categoryName,
       categoryTitle: c.categoryTitle,
       bannerImage: c.bannerImage,
+      iconImage: c.iconImage,
+      order: c.order, // ✅ NEW: send order
       providers: providerMap[String(c._id)] || [],
     }));
 
@@ -102,7 +105,9 @@ router.get("/game-categories/:id/providers", async (req, res) => {
     const categoryId = req.params.id;
 
     // category exists check (optional but good)
-    const category = await GameCategory.findById(categoryId).select("_id").lean();
+    const category = await GameCategory.findById(categoryId)
+      .select("_id")
+      .lean();
     if (!category) {
       return res
         .status(404)
@@ -184,12 +189,14 @@ router.get("/game-categories", async (req, res) => {
   try {
     const list = await GameCategory.find({ status: "active" })
       .sort({ createdAt: -1 })
-      .select("categoryName iconImage status createdAt")
+      .select("categoryName iconImage status createdAt order")
       .lean();
 
     res.json({ success: true, data: list });
   } catch (err) {
-    res.status(500).json({ success: false, message: err?.message || "Server error" });
+    res
+      .status(500)
+      .json({ success: false, message: err?.message || "Server error" });
   }
 });
 
@@ -198,7 +205,9 @@ router.get("/all-games", async (req, res) => {
   try {
     const { categoryId } = req.query;
     if (!categoryId) {
-      return res.status(400).json({ success: false, message: "categoryId is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "categoryId is required" });
     }
 
     const games = await Game.find({ categoryId })
@@ -207,9 +216,10 @@ router.get("/all-games", async (req, res) => {
 
     res.json({ success: true, data: games });
   } catch (err) {
-    res.status(500).json({ success: false, message: err?.message || "Server error" });
+    res
+      .status(500)
+      .json({ success: false, message: err?.message || "Server error" });
   }
 });
-
 
 export default router;

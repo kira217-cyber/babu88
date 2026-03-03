@@ -23,7 +23,7 @@ const AddGame = () => {
     [providers, selectedProviderDbId],
   );
 
-  const [providerGames, setProviderGames] = useState([]); // ✅ oracle games (from new API)
+  const [providerGames, setProviderGames] = useState([]); // ✅ oracle games
   const [selectedGames, setSelectedGames] = useState([]); // ✅ your DB games
 
   const [loadingGames, setLoadingGames] = useState(false);
@@ -32,9 +32,9 @@ const AddGame = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingGame, setEditingGame] = useState(null);
 
-  // ✅ Per-card add temp state (kept as you had, but scoped is global like before)
+  // ✅ Per-card add temp state (global)
   const [form, setForm] = useState({
-    image: null, // optional upload (overrides oracle image)
+    image: null,
     isHot: false,
     isNew: false,
   });
@@ -42,11 +42,14 @@ const AddGame = () => {
 
   // ✅ Edit modal temp state
   const [editForm, setEditForm] = useState({
-    image: null, // upload replacement
+    image: null,
     isHot: false,
     isNew: false,
   });
   const [editPreview, setEditPreview] = useState("");
+
+  // ✅ NEW: bulk action loading
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   // ────────────────────────────────────────────────
   //                   LOAD DATA
@@ -100,8 +103,7 @@ const AddGame = () => {
     loadSelected();
   }, [selectedProviderDbId]);
 
-  // ✅ NEW: Load oracle games by providerCode (selectedProvider.providerId = providerCode)
-  // Uses: GET https://api.oraclegames.live/api/providers/{PROVIDER_CODE}
+  // ✅ Load oracle games by providerCode
   useEffect(() => {
     if (!selectedProvider?.providerId) {
       setProviderGames([]);
@@ -116,11 +118,10 @@ const AddGame = () => {
         const res = await axios.get(
           `${ORACLE_BASE}/providers/${providerCode}`,
           {
-            headers: { "x-api-key": ORACLE_KEY }, // ✅ FIXED
+            headers: { "x-api-key": ORACLE_KEY },
           },
         );
 
-        // response: { success, provider, gameCount, games: [...] }
         setProviderGames(res.data?.games || []);
         setCurrentPage(1);
       } catch (e) {
@@ -178,25 +179,20 @@ const AddGame = () => {
     setImagePreview("");
   };
 
+  // ✅ better: oracle image is already full url
+  const oracleFallbackImage = (game) => {
+    if (game?.image) return game.image;
+    return "";
+  };
+
   /**
-   * ✅ DB save mapping (your requirement):
-   * - gameId      = oracle game _id
-   * - gameName    = oracle game gameName
-   * - gameUuid    = oracle game game_code
-   * - image:
-   *    - if you upload custom image while adding => save uploaded file path (from backend)
-   *    - else save oracle image URL string directly in DB (as image)
-   *
-   * NOTE: Backend must accept:
-   *   - imageUrl (string) optional, to save remote url when no file uploaded
-   *   - OR it can accept "image" as string. Here I send "imageUrl" to be clean.
-   * If your backend expects another field name, tell me and I’ll adjust.
+   * ✅ Select/Unselect single game (kept same logic)
    */
   const handleSelectGame = async (game) => {
     const oracleGameId = game._id;
-    const oracleGameCode = game.game_code || ""; // ✅ gameUuid = game_code
+    const oracleGameCode = game.game_code || "";
     const oracleGameName = game.gameName || game.name || "Unnamed Game";
-    const oracleImageUrl = game.image || ""; // ✅ remote url
+    const oracleImageUrl = game.image || "";
 
     const alreadySelected = isGameSelected(oracleGameId);
 
@@ -209,12 +205,10 @@ const AddGame = () => {
         return;
       }
 
-      // Add
       const fd = new FormData();
       fd.append("categoryId", selectedCategoryId);
       fd.append("providerDbId", selectedProviderDbId);
 
-      // ✅ exact mapping you asked
       fd.append("gameId", oracleGameId);
       fd.append("gameUuid", oracleGameCode);
       fd.append("gameName", oracleGameName);
@@ -222,9 +216,6 @@ const AddGame = () => {
       fd.append("isHot", String(form.isHot));
       fd.append("isNew", String(form.isNew));
 
-      // ✅ Image logic:
-      // - upload দিলে: file যাবে
-      // - upload না দিলে: oracle image url string যাবে
       if (form.image instanceof File) {
         fd.append("image", form.image);
       } else {
@@ -243,6 +234,93 @@ const AddGame = () => {
     }
   };
 
+  // ✅ NEW: Add all games in current page
+  const handleSelectAllThisPage = async () => {
+    if (bulkLoading) return;
+    if (!paginatedGames.length) return;
+
+    setBulkLoading(true);
+    let added = 0;
+    let skipped = 0;
+    let failed = 0;
+
+    try {
+      for (const game of paginatedGames) {
+        const oracleGameId = game._id;
+        if (isGameSelected(oracleGameId)) {
+          skipped++;
+          continue;
+        }
+
+        const fd = new FormData();
+        fd.append("categoryId", selectedCategoryId);
+        fd.append("providerDbId", selectedProviderDbId);
+
+        fd.append("gameId", oracleGameId);
+        fd.append("gameUuid", game.game_code || "");
+        fd.append("gameName", game.gameName || game.name || "Unnamed Game");
+
+        // bulk uses current form flags
+        fd.append("isHot", String(form.isHot));
+        fd.append("isNew", String(form.isNew));
+
+        // bulk does NOT upload per-card image; saves oracle URL
+        fd.append("imageUrl", game.image || "");
+
+        try {
+          const res = await api.post("/api/games", fd, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
+          setSelectedGames((prev) => [res.data.data, ...prev]);
+          added++;
+        } catch (e) {
+          failed++;
+        }
+      }
+
+      if (added) toast.success(`Selected ${added} games (this page)`);
+      if (skipped) toast.info(`Skipped ${skipped} already selected`);
+      if (failed) toast.error(`Failed ${failed} games`);
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  // ✅ NEW: Remove all selected games in current page
+  const handleRemoveAllThisPage = async () => {
+    if (bulkLoading) return;
+    if (!paginatedGames.length) return;
+
+    setBulkLoading(true);
+    let removed = 0;
+    let skipped = 0;
+    let failed = 0;
+
+    try {
+      for (const game of paginatedGames) {
+        const doc = getSelectedGame(game._id);
+        if (!doc?._id) {
+          skipped++;
+          continue;
+        }
+
+        try {
+          await api.delete(`/api/games/${doc._id}`);
+          setSelectedGames((prev) => prev.filter((x) => x._id !== doc._id));
+          removed++;
+        } catch (e) {
+          failed++;
+        }
+      }
+
+      if (removed) toast.success(`Removed ${removed} games (this page)`);
+      if (skipped) toast.info(`Skipped ${skipped} not selected`);
+      if (failed) toast.error(`Failed ${failed} removes`);
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
   const openEditModal = (selectedDoc) => {
     setEditingGame(selectedDoc);
     setEditForm({
@@ -251,7 +329,6 @@ const AddGame = () => {
       isNew: !!selectedDoc.isNew,
     });
 
-    // ✅ show saved image (could be remote url OR local /uploads path)
     const img = selectedDoc.image || "";
     if (!img) setEditPreview("");
     else if (/^https?:\/\//i.test(img)) setEditPreview(img);
@@ -267,11 +344,6 @@ const AddGame = () => {
     setEditPreview("");
   };
 
-  /**
-   * ✅ Update rule you asked:
-   * - update করলে user upload দিলে সেটাই save হবে: "/uploads/....png"
-   * - upload না দিলে image unchanged থাকবে
-   */
   const handleUpdate = async (e) => {
     e.preventDefault();
     if (!editingGame) return;
@@ -310,11 +382,18 @@ const AddGame = () => {
   const btnDanger =
     "bg-gradient-to-r from-red-600/90 to-rose-600/90 hover:from-red-500 hover:to-rose-500 text-white font-medium py-2.5 px-5 rounded-xl transition-all duration-200 shadow-sm hover:shadow-red-500/40";
 
-  // ✅ better: oracle image is already full url (no need old apigames domain)
-  const oracleFallbackImage = (game) => {
-    if (game?.image) return game.image;
-    return "";
-  };
+  // helper: how many selected on this page
+  const selectedCountThisPage = useMemo(() => {
+    return paginatedGames.reduce(
+      (acc, g) => (isGameSelected(g._id) ? acc + 1 : acc),
+      0,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paginatedGames, selectedGames]);
+
+  const allSelectedThisPage =
+    paginatedGames.length > 0 &&
+    selectedCountThisPage === paginatedGames.length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-yellow-950/20 to-black text-white p-5 md:p-8">
@@ -328,7 +407,7 @@ const AddGame = () => {
 
         {/* Filters */}
         <div
-          className={`${cardBg} border border-yellow-700/30 rounded-2xl p-6 md:p-8 shadow-2xl shadow-black/70 mb-12 backdrop-blur-sm`}
+          className={`${cardBg} border border-yellow-700/30 rounded-2xl p-6 md:p-8 shadow-2xl shadow-black/70 mb-8 backdrop-blur-sm`}
         >
           <div className="grid md:grid-cols-2 gap-6">
             <div>
@@ -395,6 +474,46 @@ const AddGame = () => {
             </div>
           </div>
         </div>
+
+        {/* ✅ NEW: Bulk action bar */}
+        {selectedProviderDbId && providerGames.length > 0 && !loadingGames && (
+          <div
+            className={`${cardBg} border border-yellow-700/30 rounded-2xl p-5 md:p-6 shadow-xl shadow-black/60 mb-10`}
+          >
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="text-sm text-yellow-300/80">
+                This page:{" "}
+                <span className="text-yellow-200 font-semibold">
+                  {selectedCountThisPage}/{paginatedGames.length}
+                </span>{" "}
+                selected
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={handleSelectAllThisPage}
+                  disabled={bulkLoading || allSelectedThisPage}
+                  className={`${btnPrimary} py-2.5 px-5 rounded-xl disabled:opacity-60`}
+                >
+                  {bulkLoading ? "Working..." : "Select All (This Page)"}
+                </button>
+
+                <button
+                  onClick={handleRemoveAllThisPage}
+                  disabled={bulkLoading || selectedCountThisPage === 0}
+                  className="py-2.5 px-5 rounded-xl bg-black/70 hover:bg-black/50 border border-yellow-700/50 text-yellow-300 font-medium transition disabled:opacity-50"
+                >
+                  {bulkLoading ? "Working..." : "Remove All (This Page)"}
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-3 text-xs text-yellow-400/70">
+              Bulk add uses current Hot/New flags (from the left form state) and
+              saves Oracle image URL (no custom uploads).
+            </div>
+          </div>
+        )}
 
         {/* Games Grid + Pagination */}
         {!selectedProviderDbId ? (
@@ -472,13 +591,27 @@ const AddGame = () => {
                       <div className="text-xs text-yellow-400/70 mb-4 font-mono space-y-1">
                         <div>gameId: {game._id}</div>
                         <div>game_code: {game.game_code}</div>
+
+                        {/* ✅ Hot / New badges */}
+                        <div className="flex flex-wrap gap-2 pt-1 font-sans">
+                          {(selected ? selectedDoc?.isHot : form.isHot) && (
+                            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-500/20 text-red-200 border border-red-400/30">
+                              HOT
+                            </span>
+                          )}
+                          {(selected ? selectedDoc?.isNew : form.isNew) && (
+                            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-200 border border-emerald-400/30">
+                              NEW
+                            </span>
+                          )}
+                        </div>
+
                         {selectedDoc?.gameName && (
                           <div className="text-yellow-200/90">
                             Saved name: {selectedDoc.gameName}
                           </div>
                         )}
                       </div>
-
                       <label className="flex items-center gap-3 mb-4 cursor-pointer">
                         <input
                           type="checkbox"
@@ -516,7 +649,6 @@ const AddGame = () => {
                               />
                             )}
 
-                            {/* helpful note */}
                             {!form.image && game.image && (
                               <div className="mt-2 text-xs text-yellow-400/70">
                                 If you don&apos;t upload, Oracle image URL will

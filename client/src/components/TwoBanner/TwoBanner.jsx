@@ -183,7 +183,7 @@ const TwoBanner = () => {
                 <img
                   src={view.LEFT_BANNER}
                   alt={isBangla ? "বন্ধু রেফার" : "Refer friends"}
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-container"
                   loading="lazy"
                   draggable={false}
                 />
@@ -314,7 +314,7 @@ const TwoBanner = () => {
                       ? "এক্সক্লুসিভ বেটিং পাস"
                       : "Exclusive betting pass"
                   }
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-container"
                   loading="lazy"
                   draggable={false}
                 />

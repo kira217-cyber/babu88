@@ -256,7 +256,7 @@ const Footer = () => {
                 t.brandAmbassadors}
             </h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {ambassadors.map((a) => (
                 <div key={a._id || a.name} className="flex items-center gap-1">
                   <div className="h-12 w-16 flex items-center justify-start">

@@ -15,6 +15,18 @@ const safeUnlink = (filePath) => {
   } catch (_) {}
 };
 
+const toInt = (v) => {
+  const n = Number(String(v ?? "").trim());
+  return Number.isFinite(n) ? Math.floor(n) : null;
+};
+
+// ✅ helper: auto next order (max + 1)
+const getNextOrder = async () => {
+  const last = await GameCategory.findOne().sort({ order: -1 }).select("order");
+  const maxOrder = Number(last?.order || 0);
+  return maxOrder + 1;
+};
+
 // ─── CREATE ────────────────────────────────────────────────
 router.post(
   "/",
@@ -30,6 +42,7 @@ router.post(
         categoryTitleBn,
         categoryTitleEn,
         status,
+        order, // ✅ NEW
       } = req.body;
 
       const bannerImage = req.files?.bannerImage?.[0]?.filename
@@ -40,11 +53,18 @@ router.post(
         ? `/uploads/${req.files.iconImage[0].filename}`
         : "";
 
+      // ✅ order: if not provided -> auto next
+      let orderNum = toInt(order);
+      if (!orderNum || orderNum <= 0) {
+        orderNum = await getNextOrder();
+      }
+
       const doc = await GameCategory.create({
         categoryName: { bn: categoryNameBn || "", en: categoryNameEn || "" },
         categoryTitle: { bn: categoryTitleBn || "", en: categoryTitleEn || "" },
         bannerImage,
-        iconImage, // ← NEW
+        iconImage,
+        order: orderNum, // ✅ NEW
         status: status || "active",
       });
 
@@ -61,7 +81,8 @@ router.post(
 // ─── GET ALL ───────────────────────────────────────────────
 router.get("/", async (req, res) => {
   try {
-    const list = await GameCategory.find().sort({ createdAt: -1 });
+    // ✅ sort by order asc, then newest
+    const list = await GameCategory.find().sort({ order: 1, createdAt: -1 });
     res.json({ success: true, data: list });
   } catch (err) {
     res
@@ -91,6 +112,7 @@ router.put(
         categoryTitleBn,
         categoryTitleEn,
         status,
+        order, // ✅ NEW
       } = req.body;
 
       doc.categoryName = {
@@ -103,6 +125,12 @@ router.put(
       };
 
       if (status) doc.status = status;
+
+      // ✅ order update (only if provided and valid)
+      const orderNum = toInt(order);
+      if (orderNum !== null) {
+        doc.order = orderNum <= 0 ? 0 : orderNum;
+      }
 
       // Banner update
       if (req.files?.bannerImage?.[0]?.filename) {
@@ -136,7 +164,7 @@ router.delete("/:id", async (req, res) => {
         .json({ success: false, message: "Category not found" });
 
     safeUnlink(doc.bannerImage);
-    safeUnlink(doc.iconImage); // ← NEW
+    safeUnlink(doc.iconImage);
 
     await doc.deleteOne();
     res.json({ success: true, message: "Deleted" });

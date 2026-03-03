@@ -3,7 +3,9 @@ import mongoose from "mongoose";
 
 const singleBannerSchema = new mongoose.Schema(
   {
-    bannerUrl: { type: String, default: "" }, // /uploads/xxx.jpg
+    desktopBannerUrl: { type: String, default: "" }, // /uploads/xxx.jpg
+    mobileBannerUrl: { type: String, default: "" }, // /uploads/xxx.jpg
+
     clickLink: { type: String, default: "" }, // optional: /register or https://...
     openInNewTab: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
@@ -13,7 +15,8 @@ const singleBannerSchema = new mongoose.Schema(
 
 singleBannerSchema.statics.getDefault = function () {
   return {
-    bannerUrl: "",
+    desktopBannerUrl: "",
+    mobileBannerUrl: "",
     clickLink: "",
     openInNewTab: false,
     isActive: true,

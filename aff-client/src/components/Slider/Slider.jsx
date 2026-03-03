@@ -61,9 +61,6 @@ const Slider = () => {
   const fallbackSlides = useMemo(
     () => [
       "https://i.ibb.co.com/6cH71jbY/online-sport-bet-3d-banner-600nw-2635613707.webp",
-      "https://i.ibb.co.com/6R5c5S4H/sports-betting-purple-banner-smartphone-champion-cups-falling-gold-coins-sport-balls-button-24633419.webp",
-      "https://i.ibb.co.com/zHh2TpVY/istockphoto-1410370133-612x612.jpg",
-      "https://i.ibb.co.com/sDyZRZq/sports-betting-banner-smartphone-soccer-600nw-2664078705.webp",
     ],
     [],
   );
@@ -121,7 +118,7 @@ const Slider = () => {
                     <img
                       src={src}
                       alt={`slide-${idx + 1}`}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-container"
                       draggable="false"
                       loading="lazy"
                     />

@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/axios";
 import Skeleton from "react-loading-skeleton";
@@ -16,16 +16,44 @@ const SingleBanner = () => {
     staleTime: 1000 * 60 * 5,
   });
 
+  // ✅ detect mobile/desktop (md breakpoint = 768)
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.innerWidth < 768;
+  });
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   const view = useMemo(() => {
-    const bannerUrl = data?.bannerUrl
-      ? `${api.defaults.baseURL}${data.bannerUrl}`
+    const desktopUrl = data?.desktopBannerUrl
+      ? `${api.defaults.baseURL}${data.desktopBannerUrl}`
       : "";
+
+    const mobileUrl = data?.mobileBannerUrl
+      ? `${api.defaults.baseURL}${data.mobileBannerUrl}`
+      : "";
+
+    const bannerUrl = isMobile
+      ? mobileUrl || desktopUrl
+      : desktopUrl || mobileUrl;
+
     const clickLink = (data?.clickLink || "").trim();
     const openInNewTab = data?.openInNewTab ?? false;
     const isActive = data?.isActive ?? true;
 
-    return { bannerUrl, clickLink, openInNewTab, isActive };
-  }, [data]);
+    return {
+      bannerUrl,
+      desktopUrl,
+      mobileUrl,
+      clickLink,
+      openInNewTab,
+      isActive,
+    };
+  }, [data, isMobile]);
 
   const openLinkProps = useMemo(() => {
     if (!view.clickLink) return null;
@@ -39,10 +67,10 @@ const SingleBanner = () => {
       };
     }
 
-    // internal route
     const href = view.clickLink.startsWith("/")
       ? view.clickLink
       : `/${view.clickLink}`;
+
     return {
       href,
       target: view.openInNewTab ? "_blank" : undefined,
@@ -73,11 +101,20 @@ const SingleBanner = () => {
       <img
         src={view.bannerUrl}
         alt="Banner"
-        className="w-full h-32 object-cover md:h-52 md:object-center"
+        className="w-full h-32 md:h-52 object-container"
         loading="lazy"
         draggable={false}
         onError={(e) => {
-          e.currentTarget.style.display = "none";
+          // ✅ if selected one fails, try fallback (mobile<->desktop) once
+          const img = e.currentTarget;
+
+          const fallback = isMobile ? view.desktopUrl : view.mobileUrl;
+          if (fallback && img.src !== fallback) {
+            img.src = fallback;
+            return;
+          }
+
+          img.style.display = "none";
         }}
       />
     </div>

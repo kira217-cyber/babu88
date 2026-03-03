@@ -409,7 +409,6 @@ const Navber = () => {
       to: "/affiliate",
       icon: FaRocket,
       label: t.affiliates,
-      // ✅ NEW
       externalUrl: PARTNET_URL,
     },
     {
@@ -421,8 +420,23 @@ const Navber = () => {
   ];
 
   // ✅ Games section now from DB (same design)
+  // ✅ UPDATED: sort by order asc (missing/0 goes last), then createdAt desc
   const gameItems = useMemo(() => {
-    const list = Array.isArray(dbCategories) ? dbCategories : [];
+    const list = Array.isArray(dbCategories) ? [...dbCategories] : [];
+    list.sort((a, b) => {
+      const ao = Number(a?.order);
+      const bo = Number(b?.order);
+
+      const aOrd = Number.isFinite(ao) && ao > 0 ? ao : 999999;
+      const bOrd = Number.isFinite(bo) && bo > 0 ? bo : 999999;
+
+      if (aOrd !== bOrd) return aOrd - bOrd;
+
+      const at = new Date(a?.createdAt || 0).getTime();
+      const bt = new Date(b?.createdAt || 0).getTime();
+      return bt - at;
+    });
+
     return list.map((c) => {
       const label = isBangla ? c.categoryName?.bn : c.categoryName?.en;
       const iconImg = c.iconImage ? `${API_URL}${c.iconImage}` : "";
@@ -596,9 +610,7 @@ const Navber = () => {
                         title="Reload balance"
                       >
                         <span
-                          className={`${
-                            balReloading ? "animate-spin inline-block" : ""
-                          }`}
+                          className={`${balReloading ? "animate-spin inline-block" : ""}`}
                         >
                           <TfiReload />
                         </span>
@@ -747,7 +759,6 @@ const Navber = () => {
                       badge={it.badge}
                       colors={colors}
                       onClick={() => setSidebarOpen(false)}
-                      // ✅ NEW: only affiliate has externalUrl
                       externalUrl={it.externalUrl}
                     />
                   ))}

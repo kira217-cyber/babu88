@@ -674,7 +674,7 @@ const AddDeposit = () => {
             <h3 className={subheadCls}>Deposit Details (per method)</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
               <div>
-                <label className={labelCls}>Agent Number</label>
+                <label className={labelCls}>Agent Number / Personal / Merchant Number</label>
                 <input
                   className={inputBase}
                   placeholder="013XXXXXXXX"

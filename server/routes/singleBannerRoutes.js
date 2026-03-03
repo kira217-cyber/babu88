@@ -18,7 +18,15 @@ const ALLOWED_MIME = new Set([
   "image/svg+xml",
   "image/gif",
 ]);
-const ALLOWED_EXT = new Set([".png", ".jpg", ".jpeg", ".webp", ".avif", ".svg", ".gif"]);
+const ALLOWED_EXT = new Set([
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".webp",
+  ".avif",
+  ".svg",
+  ".gif",
+]);
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOAD_DIR),
@@ -47,7 +55,10 @@ const deleteIfExists = (fileUrl) => {
   try {
     if (!fileUrl) return;
     if (!fileUrl.startsWith("/uploads/")) return;
-    const filePath = path.join(process.cwd(), fileUrl.replace("/uploads/", "uploads/"));
+    const filePath = path.join(
+      process.cwd(),
+      fileUrl.replace("/uploads/", "uploads/"),
+    );
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
   } catch {}
 };
@@ -69,39 +80,59 @@ router.get("/single-banner", async (req, res) => {
     res.json(data);
   } catch (err) {
     console.error("SingleBanner GET error:", err);
-    res.status(500).json({ error: "Server error while fetching single banner" });
+    res
+      .status(500)
+      .json({ error: "Server error while fetching single banner" });
   }
 });
 
 /**
  * ✅ PUT /api/single-banner
  * - multipart/form-data
- * - file: bannerImg (optional)
+ * - files (optional): desktopImg, mobileImg
  * - fields: clickLink, openInNewTab, isActive
  */
-router.put("/single-banner", upload.single("bannerImg"), async (req, res) => {
-  try {
-    const body = req.body || {};
+router.put(
+  "/single-banner",
+  upload.fields([
+    { name: "desktopImg", maxCount: 1 },
+    { name: "mobileImg", maxCount: 1 },
+  ]),
+  async (req, res) => {
+    try {
+      const body = req.body || {};
 
-    let data = await SingleBanner.findOne();
-    if (!data) data = new SingleBanner(SingleBanner.getDefault());
+      let data = await SingleBanner.findOne();
+      if (!data) data = new SingleBanner(SingleBanner.getDefault());
 
-    if (typeof body.clickLink === "string") data.clickLink = body.clickLink;
-    if (typeof body.openInNewTab === "string")
-      data.openInNewTab = body.openInNewTab === "true";
-    if (typeof body.isActive === "string") data.isActive = body.isActive === "true";
+      if (typeof body.clickLink === "string") data.clickLink = body.clickLink;
+      if (typeof body.openInNewTab === "string")
+        data.openInNewTab = body.openInNewTab === "true";
+      if (typeof body.isActive === "string")
+        data.isActive = body.isActive === "true";
 
-    if (req.file) {
-      deleteIfExists(data.bannerUrl);
-      data.bannerUrl = `/${UPLOAD_DIR}/${req.file.filename}`;
+      const desktopFile = req.files?.desktopImg?.[0];
+      const mobileFile = req.files?.mobileImg?.[0];
+
+      if (desktopFile) {
+        deleteIfExists(data.desktopBannerUrl);
+        data.desktopBannerUrl = `/${UPLOAD_DIR}/${desktopFile.filename}`;
+      }
+
+      if (mobileFile) {
+        deleteIfExists(data.mobileBannerUrl);
+        data.mobileBannerUrl = `/${UPLOAD_DIR}/${mobileFile.filename}`;
+      }
+
+      await data.save();
+      res.json({ message: "Single banner updated successfully", data });
+    } catch (err) {
+      console.error("SingleBanner PUT error:", err);
+      res
+        .status(500)
+        .json({ error: err?.message || "Server error while updating banner" });
     }
-
-    await data.save();
-    res.json({ message: "Single banner updated successfully", data });
-  } catch (err) {
-    console.error("SingleBanner PUT error:", err);
-    res.status(500).json({ error: err?.message || "Server error while updating banner" });
-  }
-});
+  },
+);
 
 export default router;

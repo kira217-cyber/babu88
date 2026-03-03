@@ -1,4 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
 import { useNavigate } from "react-router";
 import { motion } from "framer-motion";
 import { useLanguage } from "../../Context/LanguageProvider";
@@ -6,8 +12,13 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/axios";
 import { toast } from "react-toastify";
 
+// ✅ NEW: use your overlay loading component
+import Loading from "../../components/Loading/Loading";
+
 const HOT_ICON = "https://babu88.gold/static/image/other/hot-icon.png";
 const NEW_ICON = "https://babu88.gold/static/svg/game-icon-new.svg";
+
+const PAGE_SIZE = 21;
 
 const hexToRgba = (hex, alpha = 1) => {
   if (!hex || typeof hex !== "string") return `rgba(0,0,0,${alpha})`;
@@ -37,11 +48,41 @@ const fetchCategories = async () => {
   return data?.data || [];
 };
 
-const fetchGamesByCategory = async (categoryId) => {
+// ✅ Fetch games (supports server pagination if backend honors it; otherwise slices client-side safely)
+const fetchGamesByCategory = async (categoryId, page, limit) => {
   const qs = new URLSearchParams();
   qs.set("categoryId", categoryId);
+  qs.set("page", String(page));
+  qs.set("limit", String(limit));
+
   const { data } = await api.get(`/api/public/all-games?${qs.toString()}`);
-  return data?.data || [];
+
+  const raw = data?.data;
+
+  // pattern: { data: { items: [], total, page, limit } }
+  if (raw && typeof raw === "object" && Array.isArray(raw.items)) {
+    const items = raw.items || [];
+    const total = Number(raw.total) || items.length || 0;
+    const pg = Number(raw.page) || page;
+    const lim = Number(raw.limit) || limit;
+    return { items, total, page: pg, limit: lim };
+  }
+
+  // pattern: { data: [...] }
+  const list = Array.isArray(raw) ? raw : [];
+
+  const totalFromApi = Number(data?.total) || Number(data?.pagination?.total);
+
+  const total =
+    Number.isFinite(totalFromApi) && totalFromApi > 0
+      ? totalFromApi
+      : list.length;
+
+  // If backend returns full list, do client-side slice (safe even if backend already paginates)
+  const start = (page - 1) * limit;
+  const items = list.slice(start, start + limit);
+
+  return { items, total, page, limit };
 };
 
 const GameCard = ({ game, onClick, ui, apiBase }) => {
@@ -101,10 +142,9 @@ const GameCard = ({ game, onClick, ui, apiBase }) => {
 const GameCategory = () => {
   const navigate = useNavigate();
   const { isBangla } = useLanguage();
-
   const API_URL = import.meta.env.VITE_API_URL;
 
-  const { data: colorDoc } = useQuery({
+  const { data: colorDoc, isLoading: loadingUi } = useQuery({
     queryKey: ["gamecategory-color"],
     queryFn: fetchGameCategoryColor,
     staleTime: 10 * 60 * 1000,
@@ -146,28 +186,68 @@ const GameCategory = () => {
     };
   }, [colorDoc]);
 
-  const { data: categories = [], isLoading: loadingCats } = useQuery({
+  const { data: categoriesRaw = [], isLoading: loadingCats } = useQuery({
     queryKey: ["public-mobile-categories"],
     queryFn: fetchCategories,
     staleTime: 60000,
     retry: 1,
   });
 
-  const [active, setActive] = useState("");
+  // ✅ sort categories by order ASC (1 first)
+  const categories = useMemo(() => {
+    const arr = Array.isArray(categoriesRaw) ? [...categoriesRaw] : [];
+    arr.sort((a, b) => {
+      const aRaw = parseInt(a?.order, 10);
+      const bRaw = parseInt(b?.order, 10);
 
+      const aHas = Number.isFinite(aRaw) && aRaw > 0;
+      const bHas = Number.isFinite(bRaw) && bRaw > 0;
+
+      if (aHas && bHas) {
+        if (aRaw !== bRaw) return aRaw - bRaw; // ASC
+      } else if (aHas && !bHas) return -1;
+      else if (!aHas && bHas) return 1;
+
+      // fallback stable
+      const at = new Date(a?.createdAt || 0).getTime();
+      const bt = new Date(b?.createdAt || 0).getTime();
+      return at - bt;
+    });
+    return arr;
+  }, [categoriesRaw]);
+
+  const [active, setActive] = useState("");
+  const [page, setPage] = useState(1);
+
+  // ✅ initial active = first category (after sorting)
   useEffect(() => {
     if (!active && categories?.length) {
       setActive(categories[0]._id);
+      setPage(1);
     }
   }, [categories, active]);
 
-  const { data: games = [], isLoading: loadingGames } = useQuery({
-    queryKey: ["public-mobile-games", active],
-    queryFn: () => fetchGamesByCategory(active),
+  // ✅ when active category changes => reset page = 1
+  useEffect(() => {
+    if (active) setPage(1);
+  }, [active]);
+
+  const {
+    data: gameResp,
+    isLoading: loadingGames,
+    isFetching: fetchingGames,
+  } = useQuery({
+    queryKey: ["public-mobile-games", active, page],
+    queryFn: () => fetchGamesByCategory(active, page, PAGE_SIZE),
     enabled: !!active,
     staleTime: 30000,
     retry: 1,
+    keepPreviousData: true,
   });
+
+  const games = gameResp?.items || [];
+  const totalGames = Number(gameResp?.total) || 0;
+  const totalPages = Math.max(1, Math.ceil(totalGames / PAGE_SIZE));
 
   const scrollerRef = useRef(null);
   const trackRef = useRef(null);
@@ -175,7 +255,7 @@ const GameCategory = () => {
 
   const [thumb, setThumb] = useState({ width: 40, x: 0 });
 
-  const updateThumb = () => {
+  const updateThumb = useCallback(() => {
     const scroller = scrollerRef.current;
     const track = trackRef.current;
     if (!scroller || !track) return;
@@ -194,17 +274,17 @@ const GameCategory = () => {
     const x = (scrollLeft / maxScroll) * maxX;
 
     setThumb({ width: thumbW, x });
-  };
+  }, []);
 
   useEffect(() => {
     updateThumb();
     window.addEventListener("resize", updateThumb);
     return () => window.removeEventListener("resize", updateThumb);
-  }, []);
+  }, [updateThumb]);
 
   useEffect(() => {
     requestAnimationFrame(() => updateThumb());
-  }, [active]);
+  }, [active, categories, updateThumb]);
 
   const scrollToButtonCenter = (id) => {
     const scroller = scrollerRef.current;
@@ -224,6 +304,7 @@ const GameCategory = () => {
 
   const handleCategoryClick = (id) => {
     setActive(id);
+    setPage(1);
     scrollToButtonCenter(id);
   };
 
@@ -235,19 +316,50 @@ const GameCategory = () => {
       return;
     }
 
-    // Optional: লগইন চেক যোগ করতে পারেন (যদি redux থেকে token নেওয়া যায়)
-    // const token = useSelector(state => state.auth.token);
-    // if (!token) {
-    //   toast.error(isBangla ? "খেলতে লগইন করুন" : "Please login to play");
-    //   navigate("/login");
-    //   return;
-    // }
-
     navigate(`/playgame/${gameId}`, { state: { game } });
   };
 
+  // ✅ pagination controls
+  const goPrev = () => setPage((p) => Math.max(1, p - 1));
+  const goNext = () => setPage((p) => Math.min(totalPages, p + 1));
+  const goPage = (p) => setPage(() => Math.min(totalPages, Math.max(1, p)));
+
+  const pageButtons = useMemo(() => {
+    const p = page;
+    const tp = totalPages;
+    const out = [];
+
+    const push = (v) => out.push(v);
+
+    if (tp <= 5) {
+      for (let i = 1; i <= tp; i++) push(i);
+      return out;
+    }
+
+    push(1);
+
+    if (p > 3) push("...");
+
+    const start = Math.max(2, p - 1);
+    const end = Math.min(tp - 1, p + 1);
+    for (let i = start; i <= end; i++) push(i);
+
+    if (p < tp - 2) push("...");
+
+    push(tp);
+
+    return out;
+  }, [page, totalPages]);
+
+  // ✅ show loading overlay until games are ready
+  const overlayLoading =
+    loadingUi || loadingCats || loadingGames || fetchingGames;
+
   return (
     <div className="w-full">
+      {/* ✅ Your Loading Overlay (shows until games load) */}
+      <Loading open={overlayLoading} />
+
       {/* Category Bar */}
       <div
         className="w-full rounded-md px-2 mt-4"
@@ -336,7 +448,7 @@ const GameCategory = () => {
 
       {/* Games Grid */}
       <div className="mt-4">
-        {loadingGames ? (
+        {loadingGames && !games.length ? (
           <div
             className="text-center py-10 font-semibold"
             style={{
@@ -359,17 +471,71 @@ const GameCategory = () => {
               : "No games in this category"}
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-3 px-2">
-            {games.map((game) => (
-              <GameCard
-                key={game._id}
-                game={game}
-                onClick={() => handlePlay(game)}
-                ui={ui}
-                apiBase={API_URL}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-3 gap-3 px-2">
+              {games.map((game) => (
+                <GameCard
+                  key={game._id}
+                  game={game}
+                  onClick={() => handlePlay(game)}
+                  ui={ui}
+                  apiBase={API_URL}
+                />
+              ))}
+            </div>
+
+            {/* ✅ Pagination */}
+            {totalPages > 1 && (
+              <>
+                <div className="mt-5 px-2 flex items-center justify-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={goPrev}
+                    disabled={page <= 1}
+                    className="px-3 py-2 rounded-lg font-bold border border-black/10 bg-white hover:bg-black/5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isBangla ? "পূর্বের" : "Prev"}
+                  </button>
+
+                  {pageButtons.map((p, idx) =>
+                    p === "..." ? (
+                      <span key={`dots-${idx}`} className="px-2 text-black/50">
+                        ...
+                      </span>
+                    ) : (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => goPage(p)}
+                        className={`px-3 py-2 rounded-lg font-extrabold border border-black/10 ${
+                          p === page
+                            ? "bg-[#F5B400] text-black"
+                            : "bg-white hover:bg-black/5"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ),
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={goNext}
+                    disabled={page >= totalPages}
+                    className="px-3 py-2 rounded-lg font-bold border border-black/10 bg-white hover:bg-black/5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isBangla ? "পরের" : "Next"}
+                  </button>
+                </div>
+
+                <div className="mt-2 text-center text-[12px] text-black/50">
+                  {`${isBangla ? "মোট" : "Total"} ${totalGames} ${
+                    isBangla ? "গেম" : "games"
+                  } • ${isBangla ? "পেজ" : "Page"} ${page}/${totalPages}`}
+                </div>
+              </>
+            )}
+          </>
         )}
       </div>
     </div>
