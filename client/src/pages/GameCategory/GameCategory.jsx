@@ -1,4 +1,4 @@
-// src/pages/GameCategory/GameCategory.jsx
+// src/components/GameCategory/GameCategory.jsx
 import React, { useMemo, useState, useEffect } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";

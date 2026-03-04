@@ -114,8 +114,23 @@ const DepositModal = ({
     return Array.isArray(arr) ? arr : [];
   }, [methodDoc]);
 
+  // legacy
   const agentNumber = methodDoc?.details?.agentNumber || "";
   const personalNumber = methodDoc?.details?.personalNumber || "";
+
+  // ✅ NEW: contacts (label bn/en + number)
+  const contacts = useMemo(() => {
+    const arr = methodDoc?.details?.contacts;
+    const list = Array.isArray(arr) ? arr : [];
+    // sort by sort then keep stable
+    const sorted = [...list].sort((a, b) => {
+      const sa = Number(a?.sort ?? 0);
+      const sb = Number(b?.sort ?? 0);
+      if (sa !== sb) return sa - sb;
+      return 0;
+    });
+    return sorted;
+  }, [methodDoc]);
 
   const instructions = useMemo(() => {
     const bn = methodDoc?.details?.instructions?.bn;
@@ -271,6 +286,11 @@ const DepositModal = ({
   // ✅ AFTER hooks, we can early-return safely
   if (!open) return null;
 
+  // ✅ decide what to show in "numbers" section
+  const showContacts = Array.isArray(contacts) && contacts.length > 0;
+  const hasLegacy =
+    !!String(agentNumber || "").trim() || !!String(personalNumber || "").trim();
+
   return (
     <div className="fixed inset-0 z-[99999]" role="dialog" aria-modal="true">
       {/* Backdrop */}
@@ -384,25 +404,51 @@ const DepositModal = ({
                   </>
                 )}
 
-                {/* Always show agent/personal numbers if exist */}
-                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <InputRow
-                    label={t("এজেন্ট নাম্বার:", "Agent number:")}
-                    value={agentNumber || t("সেট করা হয়নি", "Not set")}
-                    onChange={() => {}}
-                    disabled
-                    copyable
-                    onCopy={() => handleCopy(agentNumber || "")}
-                  />
-                  <InputRow
-                    label={t("পার্সোনাল/মার্চেন্ট:", "Personal/Merchant:")}
-                    value={personalNumber || t("সেট করা হয়নি", "Not set")}
-                    onChange={() => {}}
-                    disabled
-                    copyable
-                    onCopy={() => handleCopy(personalNumber || "")}
-                  />
-                </div>
+                {/* ✅ UPDATED: Always show contacts (label bn/en + number) if exist, otherwise legacy agent/personal */}
+                {showContacts ? (
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {contacts
+                      .filter((c) => c?.isActive !== false)
+                      .map((c, idx) => {
+                        const labelText =
+                          (isBangla ? c?.label?.bn : c?.label?.en) ||
+                          (isBangla ? c?.label?.en : c?.label?.bn) ||
+                          t("নাম্বার", "Number");
+                        const num = String(c?.number || "").trim();
+
+                        return (
+                          <InputRow
+                            key={c?.id || `${idx}`}
+                            label={`${labelText}:`}
+                            value={num || t("সেট করা হয়নি", "Not set")}
+                            onChange={() => {}}
+                            disabled
+                            copyable={!!num}
+                            onCopy={() => handleCopy(num)}
+                          />
+                        );
+                      })}
+                  </div>
+                ) : hasLegacy ? (
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <InputRow
+                      label={t("এজেন্ট নাম্বার:", "Agent number:")}
+                      value={agentNumber || t("সেট করা হয়নি", "Not set")}
+                      onChange={() => {}}
+                      disabled
+                      copyable={!!String(agentNumber || "").trim()}
+                      onCopy={() => handleCopy(agentNumber || "")}
+                    />
+                    <InputRow
+                      label={t("পার্সোনাল/মার্চেন্ট:", "Personal/Merchant:")}
+                      value={personalNumber || t("সেট করা হয়নি", "Not set")}
+                      onChange={() => {}}
+                      disabled
+                      copyable={!!String(personalNumber || "").trim()}
+                      onCopy={() => handleCopy(personalNumber || "")}
+                    />
+                  </div>
+                ) : null}
 
                 <button
                   type="submit"

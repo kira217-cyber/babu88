@@ -75,6 +75,9 @@ import redeemRoutes from "./routes/redeemRoutes.js";
 import adminRedeemRoutes from "./routes/adminRedeemRoutes.js";
 import refundRoutes from "./routes/refundRoutes.js"
 import dashboardStatsRoutes from "./routes/dashboardStatsRoutes.js";
+import jackpotRoutes from "./routes/jackpotRoutes.js";
+
+// ...
 
 
 
@@ -173,7 +176,7 @@ app.use("/api/redeem", redeemRoutes);
 app.use("/api/admin/redeem", adminRedeemRoutes);
 app.use("/api/refund", refundRoutes);
 app.use("/api", dashboardStatsRoutes);
-
+app.use("/api", jackpotRoutes);
 
 // ✅ port
 const PORT = process.env.PORT || 5008;

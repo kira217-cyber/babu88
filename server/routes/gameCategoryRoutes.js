@@ -1,4 +1,6 @@
-// routes/gameCategoryRoutes.js
+//  routes/gameCategoryRoutes.js
+
+
 import express from "express";
 import path from "path";
 import fs from "fs";
@@ -20,7 +22,6 @@ const toInt = (v) => {
   return Number.isFinite(n) ? Math.floor(n) : null;
 };
 
-// ✅ helper: auto next order (max + 1)
 const getNextOrder = async () => {
   const last = await GameCategory.findOne().sort({ order: -1 }).select("order");
   const maxOrder = Number(last?.order || 0);
@@ -42,18 +43,17 @@ router.post(
         categoryTitleBn,
         categoryTitleEn,
         status,
-        order, // ✅ NEW
+        order,
+        jackpot, // ← NEW
       } = req.body;
 
       const bannerImage = req.files?.bannerImage?.[0]?.filename
         ? `/uploads/${req.files.bannerImage[0].filename}`
         : "";
-
       const iconImage = req.files?.iconImage?.[0]?.filename
         ? `/uploads/${req.files.iconImage[0].filename}`
         : "";
 
-      // ✅ order: if not provided -> auto next
       let orderNum = toInt(order);
       if (!orderNum || orderNum <= 0) {
         orderNum = await getNextOrder();
@@ -64,7 +64,8 @@ router.post(
         categoryTitle: { bn: categoryTitleBn || "", en: categoryTitleEn || "" },
         bannerImage,
         iconImage,
-        order: orderNum, // ✅ NEW
+        order: orderNum,
+        jackpot: jackpot === "true" || jackpot === true, // ← NEW (safe boolean conversion)
         status: status || "active",
       });
 
@@ -81,7 +82,6 @@ router.post(
 // ─── GET ALL ───────────────────────────────────────────────
 router.get("/", async (req, res) => {
   try {
-    // ✅ sort by order asc, then newest
     const list = await GameCategory.find().sort({ order: 1, createdAt: -1 });
     res.json({ success: true, data: list });
   } catch (err) {
@@ -112,7 +112,8 @@ router.put(
         categoryTitleBn,
         categoryTitleEn,
         status,
-        order, // ✅ NEW
+        order,
+        jackpot, // ← NEW
       } = req.body;
 
       doc.categoryName = {
@@ -126,19 +127,21 @@ router.put(
 
       if (status) doc.status = status;
 
-      // ✅ order update (only if provided and valid)
       const orderNum = toInt(order);
       if (orderNum !== null) {
         doc.order = orderNum <= 0 ? 0 : orderNum;
       }
 
-      // Banner update
+      // ─── NEW: jackpot update ───────────────────────────────
+      if (jackpot !== undefined) {
+        doc.jackpot = jackpot === "true" || jackpot === true;
+      }
+      // ────────────────────────────────────────────────────────
+
       if (req.files?.bannerImage?.[0]?.filename) {
         safeUnlink(doc.bannerImage);
         doc.bannerImage = `/uploads/${req.files.bannerImage[0].filename}`;
       }
-
-      // Icon update
       if (req.files?.iconImage?.[0]?.filename) {
         safeUnlink(doc.iconImage);
         doc.iconImage = `/uploads/${req.files.iconImage[0].filename}`;
@@ -165,8 +168,8 @@ router.delete("/:id", async (req, res) => {
 
     safeUnlink(doc.bannerImage);
     safeUnlink(doc.iconImage);
-
     await doc.deleteOne();
+
     res.json({ success: true, message: "Deleted" });
   } catch (err) {
     res

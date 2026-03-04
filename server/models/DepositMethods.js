@@ -47,10 +47,27 @@ const PromotionSchema = new mongoose.Schema(
   { _id: false },
 );
 
+// ✅ NEW: Multiple label+number (BN/EN label)
+const DepositContactSchema = new mongoose.Schema(
+  {
+    id: { type: String, default: "" }, // optional internal id (client-side)
+    label: { type: TextBiSchema, default: () => ({}) }, // bn/en
+    number: { type: String, default: "" }, // e.g. 013xxxxxxxx
+    isActive: { type: Boolean, default: true },
+    sort: { type: Number, default: 0 },
+  },
+  { _id: false },
+);
+
 const MethodDetailsSchema = new mongoose.Schema(
   {
+    // ✅ NEW
+    contacts: { type: [DepositContactSchema], default: [] },
+
+    // ✅ LEGACY (keep to avoid breaking old DB data)
     agentNumber: { type: String, default: "" },
     personalNumber: { type: String, default: "" },
+
     instructions: { type: TextBiSchema, default: () => ({}) },
     inputs: { type: [DepositInputSchema], default: [] },
   },
@@ -70,7 +87,7 @@ const DepositMethodsSchema = new mongoose.Schema(
     logoUrl: { type: String, default: "" },
     isActive: { type: Boolean, default: true },
 
-    // ✅ NEW: Min/Max deposit amount
+    // ✅ Min/Max deposit amount
     minDepositAmount: { type: Number, default: 0 },
     maxDepositAmount: { type: Number, default: 0 },
 

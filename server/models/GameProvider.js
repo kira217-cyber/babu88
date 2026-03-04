@@ -14,7 +14,11 @@ const GameProviderSchema = new mongoose.Schema(
     providerId: { type: String, required: true },
 
     providerImage: { type: String, default: "" }, // "/uploads/xxx.png"
-    providerIcon: { type: String, default: "" },  // "/uploads/xxx.png"
+    providerIcon: { type: String, default: "" }, // "/uploads/xxx.png"
+
+    // ✅ NEW FIELDS
+    isHot: { type: Boolean, default: false },
+    isNew: { type: Boolean, default: false },
 
     status: { type: String, enum: ["active", "inactive"], default: "active" },
   },

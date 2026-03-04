@@ -30,6 +30,7 @@ import {
   FaHistory,
 } from "react-icons/fa";
 import { PiBridgeBold } from "react-icons/pi";
+import { GiCardJackClubs } from "react-icons/gi";
 import { IoAppsSharp } from "react-icons/io5";
 import { GrAnnounce, GrUserAdmin } from "react-icons/gr";
 import { FaCodePullRequest } from "react-icons/fa6";
@@ -247,6 +248,12 @@ const Sidebar = () => {
         to: "/fav-icon-and-logo-controller",
         icon: <FaCog />,
         text: "Favicon & Logo Controller",
+      },
+      {
+        key: "jackpot-controller",
+        to: "/jackpot-controller",
+        icon: <GiCardJackClubs />,
+        text: "Jackpot Controller",
       },
       {
         perm: "download-header-controller",

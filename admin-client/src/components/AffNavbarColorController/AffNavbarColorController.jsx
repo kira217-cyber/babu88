@@ -1,6 +1,131 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+  useRef,
+  useCallback,
+} from "react";
 import { toast } from "react-toastify";
 import { api } from "../../api/axios";
+
+/* -------------------- Helpers (OUTSIDE = stable) -------------------- */
+
+const safeHex = (v, fallback = "#000000") => {
+  const s = String(v || "").trim();
+  if (!s) return fallback;
+  const ok = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(s);
+  return ok ? s : fallback;
+};
+
+const ColorField = React.memo(function ColorField({
+  label,
+  name,
+  value,
+  setField,
+  labelCls,
+  inputBase,
+  colorInputWrapper,
+  colorPickerCls,
+}) {
+  // Keep a draft for the text input only (doesn't affect picker open/close)
+  const [draft, setDraft] = useState(value || "");
+  const rafRef = useRef(null);
+
+  useEffect(() => {
+    setDraft(value || "");
+  }, [value]);
+
+  const commitDraft = useCallback(() => {
+    const next = String(draft || "").trim();
+    if (!next) return;
+    if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(next)) {
+      setField(name, next);
+    }
+  }, [draft, name, setField]);
+
+  const onColorChange = useCallback(
+    (hex) => {
+      // update draft (text box)
+      setDraft(hex);
+
+      // update state (live) but keep it lightweight
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(() => {
+        setField(name, hex);
+      });
+    },
+    [name, setField],
+  );
+
+  return (
+    <div>
+      <label className={labelCls}>{label}</label>
+      <div className={colorInputWrapper}>
+        <input
+          type="color"
+          value={safeHex(value, "#000000")}
+          onChange={(e) => onColorChange(e.target.value)}
+          className={colorPickerCls}
+        />
+        <input
+          type="text"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commitDraft}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.currentTarget.blur();
+          }}
+          placeholder="#ffffff"
+          className={inputBase}
+        />
+      </div>
+    </div>
+  );
+});
+
+const NumberField = React.memo(function NumberField({
+  label,
+  name,
+  value,
+  setField,
+  min = 0,
+  max = 999,
+  labelCls,
+  inputBase,
+}) {
+  return (
+    <div>
+      <label className={labelCls}>{label}</label>
+      <input
+        type="number"
+        min={min}
+        max={max}
+        value={Number(value ?? min)}
+        onChange={(e) => setField(name, Number(e.target.value))}
+        className={inputBase}
+      />
+    </div>
+  );
+});
+
+const Section = React.memo(function Section({
+  title,
+  children,
+  cardCls,
+  headerCls,
+  sectionTitleCls,
+}) {
+  return (
+    <div className={cardCls}>
+      <div className={headerCls}>
+        <h3 className={sectionTitleCls}>{title}</h3>
+      </div>
+      <div className="p-5 sm:p-6 lg:p-8">{children}</div>
+    </div>
+  );
+});
+
+/* -------------------- Main Component -------------------- */
 
 const AffNavbarColorController = () => {
   const [loading, setLoading] = useState(true);
@@ -39,7 +164,7 @@ const AffNavbarColorController = () => {
     dropdownBorder: "#e5e7eb",
   });
 
-  // Consistent classes with sidebar style
+  // Consistent classes with sidebar style (UNCHANGED)
   const containerCls =
     "min-h-screen bg-gradient-to-br from-black via-yellow-950/20 to-black text-white p-4 sm:p-6 lg:p-8";
   const cardCls =
@@ -61,6 +186,10 @@ const AffNavbarColorController = () => {
   const reloadBtn = `${btnBase} border border-yellow-700/60 bg-yellow-950/40 hover:bg-yellow-900/50 text-yellow-100`;
   const saveBtn = `${btnBase} bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 text-black shadow-md shadow-yellow-900/40 font-semibold`;
 
+  const setField = useCallback((k, v) => {
+    setForm((p) => ({ ...p, [k]: v }));
+  }, []);
+
   const load = async () => {
     try {
       setLoading(true);
@@ -77,8 +206,6 @@ const AffNavbarColorController = () => {
     load();
   }, []);
 
-  const setField = (k, v) => setForm((p) => ({ ...p, [k]: v }));
-
   const save = async () => {
     try {
       setSaving(true);
@@ -92,49 +219,10 @@ const AffNavbarColorController = () => {
     }
   };
 
-  const ColorField = ({ label, name }) => (
-    <div>
-      <label className={labelCls}>{label}</label>
-      <div className={colorInputWrapper}>
-        <input
-          type="color"
-          value={form[name] || "#000000"}
-          onChange={(e) => setField(name, e.target.value)}
-          className={colorPickerCls}
-        />
-        <input
-          type="text"
-          value={form[name] || ""}
-          onChange={(e) => setField(name, e.target.value)}
-          placeholder="#ffffff"
-          className={inputBase}
-        />
-      </div>
-    </div>
-  );
-
-  const NumberField = ({ label, name, min = 0, max = 999 }) => (
-    <div>
-      <label className={labelCls}>{label}</label>
-      <input
-        type="number"
-        min={min}
-        max={max}
-        value={Number(form[name] ?? min)}
-        onChange={(e) => setField(name, Number(e.target.value))}
-        className={inputBase}
-      />
-    </div>
-  );
-
-  const Section = ({ title, children }) => (
-    <div className={cardCls}>
-      <div className={headerCls}>
-        <h3 className={sectionTitleCls}>{title}</h3>
-      </div>
-      <div className="p-5 sm:p-6 lg:p-8">{children}</div>
-    </div>
-  );
+  const headerLoadingText = useMemo(() => {
+    if (loading) return "Loading...";
+    return "Reload";
+  }, [loading]);
 
   return (
     <div className={containerCls}>
@@ -154,7 +242,7 @@ const AffNavbarColorController = () => {
                 disabled={loading || saving}
                 className={reloadBtn}
               >
-                {loading ? "Loading..." : "Reload"}
+                {headerLoadingText}
               </button>
               <button
                 onClick={save}
@@ -171,56 +259,159 @@ const AffNavbarColorController = () => {
       {/* Main Content - Responsive Grid */}
       <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Navbar Section */}
-        <Section title="Navbar">
+        <Section
+          title="Navbar"
+          cardCls={cardCls}
+          headerCls={headerCls}
+          sectionTitleCls={sectionTitleCls}
+        >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <ColorField label="Navbar Background" name="navBg" />
-            <ColorField label="Navbar Border" name="navBorder" />
-            <ColorField label="Menu Text Color" name="textColor" />
-            <ColorField label="Menu Hover Text Color" name="hoverTextColor" />
-            <ColorField label="Menu Active Text Color" name="activeTextColor" />
+            <ColorField
+              label="Navbar Background"
+              name="navBg"
+              value={form.navBg}
+              setField={setField}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
+            />
+            <ColorField
+              label="Navbar Border"
+              name="navBorder"
+              value={form.navBorder}
+              setField={setField}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
+            />
+            <ColorField
+              label="Menu Text Color"
+              name="textColor"
+              value={form.textColor}
+              setField={setField}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
+            />
+            <ColorField
+              label="Menu Hover Text Color"
+              name="hoverTextColor"
+              value={form.hoverTextColor}
+              setField={setField}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
+            />
+            <ColorField
+              label="Menu Active Text Color"
+              name="activeTextColor"
+              value={form.activeTextColor}
+              setField={setField}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
+            />
             <NumberField
               label="Menu Text Size (px)"
               name="menuTextSize"
+              value={form.menuTextSize}
+              setField={setField}
               min={10}
               max={40}
+              labelCls={labelCls}
+              inputBase={inputBase}
             />
           </div>
         </Section>
 
         {/* Logo Section */}
-        <Section title="Logo">
+        <Section
+          title="Logo"
+          cardCls={cardCls}
+          headerCls={headerCls}
+          sectionTitleCls={sectionTitleCls}
+        >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <NumberField
               label="Logo Width (px)"
               name="logoWidth"
+              value={form.logoWidth}
+              setField={setField}
               min={50}
               max={600}
+              labelCls={labelCls}
+              inputBase={inputBase}
             />
             <NumberField
               label="Logo Height (px)"
               name="logoHeight"
+              value={form.logoHeight}
+              setField={setField}
               min={20}
               max={200}
+              labelCls={labelCls}
+              inputBase={inputBase}
             />
           </div>
         </Section>
 
         {/* Buttons Section */}
-        <Section title="Buttons">
+        <Section
+          title="Buttons"
+          cardCls={cardCls}
+          headerCls={headerCls}
+          sectionTitleCls={sectionTitleCls}
+        >
           <div className="space-y-8">
             <div>
               <h4 className="text-lg font-semibold text-yellow-300 mb-4">
                 Login Button
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <ColorField label="Background" name="loginBg" />
-                <ColorField label="Hover Background" name="loginHoverBg" />
-                <ColorField label="Text Color" name="loginTextColor" />
+                <ColorField
+                  label="Background"
+                  name="loginBg"
+                  value={form.loginBg}
+                  setField={setField}
+                  labelCls={labelCls}
+                  inputBase={inputBase}
+                  colorInputWrapper={colorInputWrapper}
+                  colorPickerCls={colorPickerCls}
+                />
+                <ColorField
+                  label="Hover Background"
+                  name="loginHoverBg"
+                  value={form.loginHoverBg}
+                  setField={setField}
+                  labelCls={labelCls}
+                  inputBase={inputBase}
+                  colorInputWrapper={colorInputWrapper}
+                  colorPickerCls={colorPickerCls}
+                />
+                <ColorField
+                  label="Text Color"
+                  name="loginTextColor"
+                  value={form.loginTextColor}
+                  setField={setField}
+                  labelCls={labelCls}
+                  inputBase={inputBase}
+                  colorInputWrapper={colorInputWrapper}
+                  colorPickerCls={colorPickerCls}
+                />
                 <NumberField
                   label="Text Size (px)"
                   name="loginTextSize"
+                  value={form.loginTextSize}
+                  setField={setField}
                   min={10}
                   max={30}
+                  labelCls={labelCls}
+                  inputBase={inputBase}
                 />
               </div>
             </div>
@@ -230,14 +421,45 @@ const AffNavbarColorController = () => {
                 Join Button
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <ColorField label="Background" name="joinBg" />
-                <ColorField label="Hover Background" name="joinHoverBg" />
-                <ColorField label="Text Color" name="joinTextColor" />
+                <ColorField
+                  label="Background"
+                  name="joinBg"
+                  value={form.joinBg}
+                  setField={setField}
+                  labelCls={labelCls}
+                  inputBase={inputBase}
+                  colorInputWrapper={colorInputWrapper}
+                  colorPickerCls={colorPickerCls}
+                />
+                <ColorField
+                  label="Hover Background"
+                  name="joinHoverBg"
+                  value={form.joinHoverBg}
+                  setField={setField}
+                  labelCls={labelCls}
+                  inputBase={inputBase}
+                  colorInputWrapper={colorInputWrapper}
+                  colorPickerCls={colorPickerCls}
+                />
+                <ColorField
+                  label="Text Color"
+                  name="joinTextColor"
+                  value={form.joinTextColor}
+                  setField={setField}
+                  labelCls={labelCls}
+                  inputBase={inputBase}
+                  colorInputWrapper={colorInputWrapper}
+                  colorPickerCls={colorPickerCls}
+                />
                 <NumberField
                   label="Text Size (px)"
                   name="joinTextSize"
+                  value={form.joinTextSize}
+                  setField={setField}
                   min={10}
                   max={30}
+                  labelCls={labelCls}
+                  inputBase={inputBase}
                 />
               </div>
             </div>
@@ -245,21 +467,57 @@ const AffNavbarColorController = () => {
         </Section>
 
         {/* Language + Dropdown Section */}
-        <Section title="Language & Dropdown">
+        <Section
+          title="Language & Dropdown"
+          cardCls={cardCls}
+          headerCls={headerCls}
+          sectionTitleCls={sectionTitleCls}
+        >
           <div className="space-y-8">
             <div>
               <h4 className="text-lg font-semibold text-yellow-300 mb-4">
                 Language Button
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <ColorField label="Background" name="langBtnBg" />
-                <ColorField label="Hover Background" name="langBtnHoverBg" />
-                <ColorField label="Text Color" name="langBtnTextColor" />
+                <ColorField
+                  label="Background"
+                  name="langBtnBg"
+                  value={form.langBtnBg}
+                  setField={setField}
+                  labelCls={labelCls}
+                  inputBase={inputBase}
+                  colorInputWrapper={colorInputWrapper}
+                  colorPickerCls={colorPickerCls}
+                />
+                <ColorField
+                  label="Hover Background"
+                  name="langBtnHoverBg"
+                  value={form.langBtnHoverBg}
+                  setField={setField}
+                  labelCls={labelCls}
+                  inputBase={inputBase}
+                  colorInputWrapper={colorInputWrapper}
+                  colorPickerCls={colorPickerCls}
+                />
+                <ColorField
+                  label="Text Color"
+                  name="langBtnTextColor"
+                  value={form.langBtnTextColor}
+                  setField={setField}
+                  labelCls={labelCls}
+                  inputBase={inputBase}
+                  colorInputWrapper={colorInputWrapper}
+                  colorPickerCls={colorPickerCls}
+                />
                 <NumberField
                   label="Text Size (px)"
                   name="langBtnTextSize"
+                  value={form.langBtnTextSize}
+                  setField={setField}
                   min={10}
                   max={30}
+                  labelCls={labelCls}
+                  inputBase={inputBase}
                 />
               </div>
             </div>
@@ -269,10 +527,46 @@ const AffNavbarColorController = () => {
                 Dropdown Menu
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <ColorField label="Background" name="dropdownBg" />
-                <ColorField label="Hover Background" name="dropdownHoverBg" />
-                <ColorField label="Text Color" name="dropdownTextColor" />
-                <ColorField label="Border Color" name="dropdownBorder" />
+                <ColorField
+                  label="Background"
+                  name="dropdownBg"
+                  value={form.dropdownBg}
+                  setField={setField}
+                  labelCls={labelCls}
+                  inputBase={inputBase}
+                  colorInputWrapper={colorInputWrapper}
+                  colorPickerCls={colorPickerCls}
+                />
+                <ColorField
+                  label="Hover Background"
+                  name="dropdownHoverBg"
+                  value={form.dropdownHoverBg}
+                  setField={setField}
+                  labelCls={labelCls}
+                  inputBase={inputBase}
+                  colorInputWrapper={colorInputWrapper}
+                  colorPickerCls={colorPickerCls}
+                />
+                <ColorField
+                  label="Text Color"
+                  name="dropdownTextColor"
+                  value={form.dropdownTextColor}
+                  setField={setField}
+                  labelCls={labelCls}
+                  inputBase={inputBase}
+                  colorInputWrapper={colorInputWrapper}
+                  colorPickerCls={colorPickerCls}
+                />
+                <ColorField
+                  label="Border Color"
+                  name="dropdownBorder"
+                  value={form.dropdownBorder}
+                  setField={setField}
+                  labelCls={labelCls}
+                  inputBase={inputBase}
+                  colorInputWrapper={colorInputWrapper}
+                  colorPickerCls={colorPickerCls}
+                />
               </div>
             </div>
           </div>

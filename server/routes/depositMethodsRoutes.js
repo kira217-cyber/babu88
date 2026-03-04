@@ -10,6 +10,38 @@ const toPublicUrl = (req, file) => {
   return `/uploads/${file.filename}`;
 };
 
+// ✅ helper: safe JSON parse
+const safeJsonParse = (v, fallback) => {
+  try {
+    if (v == null) return fallback;
+    if (typeof v === "object") return v;
+    return JSON.parse(v);
+  } catch {
+    return fallback;
+  }
+};
+
+// ✅ sanitize contacts
+const sanitizeContacts = (contactsRaw) => {
+  let contacts = contactsRaw;
+  if (!Array.isArray(contacts)) contacts = [];
+
+  contacts = contacts
+    .map((c, idx) => ({
+      id: String(c?.id || "").trim(),
+      label: {
+        bn: String(c?.label?.bn || "").trim(),
+        en: String(c?.label?.en || "").trim(),
+      },
+      number: String(c?.number || "").trim(),
+      isActive: c?.isActive !== false,
+      sort: Number.isNaN(Number(c?.sort)) ? idx : Number(c?.sort),
+    }))
+    .filter((c) => c.number || c.label.bn || c.label.en); // keep meaningful rows
+
+  return contacts;
+};
+
 // ✅ GET all
 router.get("/deposit-methods", async (req, res) => {
   try {
@@ -36,39 +68,54 @@ router.post("/deposit-methods", upload.single("logo"), async (req, res) => {
   try {
     const body = req.body || {};
 
+    const detailsObj = safeJsonParse(body.details, {});
+    const contacts = sanitizeContacts(detailsObj?.contacts);
+
     const parsed = {
       methodId: (body.methodId || "").toLowerCase().trim(),
       methodName: body.methodName
-        ? JSON.parse(body.methodName)
+        ? safeJsonParse(body.methodName, { bn: "", en: "" })
         : { bn: "", en: "" },
       isActive: body.isActive === "true" || body.isActive === true,
 
-      // ✅ NEW
       minDepositAmount: Number(body.minDepositAmount ?? 0),
       maxDepositAmount: Number(body.maxDepositAmount ?? 0),
 
       turnoverMultiplier: Number(body.turnoverMultiplier ?? 1),
       baseBonusTitle: body.baseBonusTitle
-        ? JSON.parse(body.baseBonusTitle)
+        ? safeJsonParse(body.baseBonusTitle, { bn: "", en: "" })
         : { bn: "", en: "" },
       baseBonusPercent: Number(body.baseBonusPercent ?? 0),
-      channels: body.channels ? JSON.parse(body.channels) : [],
-      promotions: body.promotions ? JSON.parse(body.promotions) : [],
-      details: body.details ? JSON.parse(body.details) : {},
+      channels: body.channels ? safeJsonParse(body.channels, []) : [],
+      promotions: body.promotions ? safeJsonParse(body.promotions, []) : [],
+
+      details: {
+        // ✅ NEW
+        contacts,
+
+        // ✅ LEGACY keep if someone still sends
+        agentNumber: String(detailsObj?.agentNumber || "").trim(),
+        personalNumber: String(detailsObj?.personalNumber || "").trim(),
+
+        instructions: {
+          bn: String(detailsObj?.instructions?.bn || "").trim(),
+          en: String(detailsObj?.instructions?.en || "").trim(),
+        },
+        inputs: Array.isArray(detailsObj?.inputs) ? detailsObj.inputs : [],
+      },
     };
 
     if (!parsed.methodId) {
       return res.status(400).json({ message: "methodId is required" });
     }
 
-    // ✅ sanitize min/max (optional safe-guard)
+    // ✅ sanitize min/max
     if (Number.isNaN(parsed.minDepositAmount) || parsed.minDepositAmount < 0) {
       parsed.minDepositAmount = 0;
     }
     if (Number.isNaN(parsed.maxDepositAmount) || parsed.maxDepositAmount < 0) {
       parsed.maxDepositAmount = 0;
     }
-    // (No hard validation required; but you can add if you want later)
 
     // ✅ sanitize promotions
     if (Array.isArray(parsed.promotions)) {
@@ -116,11 +163,12 @@ router.put("/deposit-methods/:id", upload.single("logo"), async (req, res) => {
 
     if (body.methodId != null)
       patch.methodId = String(body.methodId).toLowerCase().trim();
-    if (body.methodName != null) patch.methodName = JSON.parse(body.methodName);
+    if (body.methodName != null)
+      patch.methodName = safeJsonParse(body.methodName, { bn: "", en: "" });
     if (body.isActive != null)
       patch.isActive = body.isActive === "true" || body.isActive === true;
 
-    // ✅ NEW
+    // ✅ Min/Max
     if (body.minDepositAmount != null) {
       const v = Number(body.minDepositAmount);
       patch.minDepositAmount = Number.isNaN(v) ? 0 : v;
@@ -133,14 +181,18 @@ router.put("/deposit-methods/:id", upload.single("logo"), async (req, res) => {
     if (body.turnoverMultiplier != null)
       patch.turnoverMultiplier = Number(body.turnoverMultiplier);
     if (body.baseBonusTitle != null)
-      patch.baseBonusTitle = JSON.parse(body.baseBonusTitle);
+      patch.baseBonusTitle = safeJsonParse(body.baseBonusTitle, {
+        bn: "",
+        en: "",
+      });
     if (body.baseBonusPercent != null)
       patch.baseBonusPercent = Number(body.baseBonusPercent);
-    if (body.channels != null) patch.channels = JSON.parse(body.channels);
+    if (body.channels != null)
+      patch.channels = safeJsonParse(body.channels, []);
 
     // ✅ promotions
     if (body.promotions != null) {
-      let promotions = JSON.parse(body.promotions);
+      let promotions = safeJsonParse(body.promotions, []);
       if (!Array.isArray(promotions)) promotions = [];
       promotions = promotions
         .map((p) => ({
@@ -157,7 +209,28 @@ router.put("/deposit-methods/:id", upload.single("logo"), async (req, res) => {
       patch.promotions = promotions;
     }
 
-    if (body.details != null) patch.details = JSON.parse(body.details);
+    // ✅ details (contacts + instructions + inputs)
+    if (body.details != null) {
+      const detailsObj = safeJsonParse(body.details, {});
+      const contacts = sanitizeContacts(detailsObj?.contacts);
+
+      patch.details = {
+        // keep existing unless overwritten
+        ...(doc.details?.toObject?.() || doc.details || {}),
+
+        contacts,
+
+        // legacy support (optional)
+        agentNumber: String(detailsObj?.agentNumber || "").trim(),
+        personalNumber: String(detailsObj?.personalNumber || "").trim(),
+
+        instructions: {
+          bn: String(detailsObj?.instructions?.bn || "").trim(),
+          en: String(detailsObj?.instructions?.en || "").trim(),
+        },
+        inputs: Array.isArray(detailsObj?.inputs) ? detailsObj.inputs : [],
+      };
+    }
 
     if (req.file) patch.logoUrl = toPublicUrl(req, req.file);
 

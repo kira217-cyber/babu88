@@ -1,4 +1,6 @@
 // routes/gameRoutes.js
+
+
 import express from "express";
 import path from "path";
 import fs from "fs";
@@ -25,6 +27,15 @@ const safeUnlink = (filePath) => {
   } catch (_) {}
 };
 
+// ✅ helper: parse bool from multipart/form-data safely
+const parseBool = (v, def = false) => {
+  if (v === undefined || v === null || v === "") return def;
+  const s = String(v).trim().toLowerCase();
+  if (["true", "1", "yes", "on"].includes(s)) return true;
+  if (["false", "0", "no", "off"].includes(s)) return false;
+  return def;
+};
+
 // ✅ Create (select game)
 // ✅ FIXED: now supports saving remote oracle image url when no upload
 router.post("/", upload.single("image"), async (req, res) => {
@@ -37,8 +48,9 @@ router.post("/", upload.single("image"), async (req, res) => {
       gameName,
       isHot,
       isNew,
+      isJackpot, // ✅ NEW
       status,
-      imageUrl, // ✅ NEW: oracle remote image url (string)
+      imageUrl, // ✅ oracle remote image url (string)
     } = req.body;
 
     if (!categoryId || !providerDbId) {
@@ -71,8 +83,13 @@ router.post("/", upload.single("image"), async (req, res) => {
       gameUuid: gameUuid || "",
       gameName: (gameName || "").trim(),
       image,
-      isHot: String(isHot) === "true",
-      isNew: String(isNew) === "true",
+
+      isHot: parseBool(isHot, false),
+      isNew: parseBool(isNew, false),
+
+      // ✅ NEW
+      isJackpot: parseBool(isJackpot, false),
+
       status: status || "active",
     });
 
@@ -107,7 +124,7 @@ router.get("/", async (req, res) => {
 });
 
 // ✅ Update
-// ✅ FIXED: remote url থাকলে unlink skip করবে
+// ✅ remote url থাকলে unlink skip করবে
 // ✅ upload করলে: image becomes "/uploads/xxx.png"
 // ✅ upload না করলে: image unchanged
 router.put("/:id", upload.single("image"), async (req, res) => {
@@ -118,10 +135,15 @@ router.put("/:id", upload.single("image"), async (req, res) => {
         .status(404)
         .json({ success: false, message: "Game not found" });
 
-    const { isHot, isNew, status, gameName } = req.body;
+    const { isHot, isNew, isJackpot, status, gameName } = req.body;
 
-    if (typeof isHot !== "undefined") doc.isHot = String(isHot) === "true";
-    if (typeof isNew !== "undefined") doc.isNew = String(isNew) === "true";
+    if (typeof isHot !== "undefined") doc.isHot = parseBool(isHot, doc.isHot);
+    if (typeof isNew !== "undefined") doc.isNew = parseBool(isNew, doc.isNew);
+
+    // ✅ NEW
+    if (typeof isJackpot !== "undefined")
+      doc.isJackpot = parseBool(isJackpot, doc.isJackpot);
+
     if (status) doc.status = status;
     if (gameName !== undefined) doc.gameName = String(gameName || "").trim();
 

@@ -10,7 +10,8 @@ const emptyForm = {
   categoryTitleEn: "",
   bannerImage: null,
   iconImage: null,
-  order: "", // ✅ NEW
+  order: "",
+  jackpot: false,
   status: "active",
 };
 
@@ -70,7 +71,8 @@ const AddGameCategory = () => {
       categoryTitleEn: category?.categoryTitle?.en || "",
       bannerImage: null,
       iconImage: null,
-      order: category?.order ? String(category.order) : "", // ✅ NEW
+      order: category?.order ? String(category.order) : "",
+      jackpot: !!category?.jackpot,
       status: category?.status || "active",
     });
   };
@@ -85,7 +87,6 @@ const AddGameCategory = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       const fd = new FormData();
       fd.append("categoryNameBn", form.categoryNameBn);
@@ -93,8 +94,8 @@ const AddGameCategory = () => {
       fd.append("categoryTitleBn", form.categoryTitleBn);
       fd.append("categoryTitleEn", form.categoryTitleEn);
       fd.append("status", form.status);
+      fd.append("jackpot", form.jackpot);
 
-      // ✅ NEW: order (optional — backend auto sets if empty)
       if (String(form.order || "").trim() !== "") {
         fd.append("order", String(form.order).trim());
       }
@@ -131,7 +132,6 @@ const AddGameCategory = () => {
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this category?"))
       return;
-
     try {
       await api.delete(`/api/game-categories/${id}`);
       toast.success("Category deleted");
@@ -143,7 +143,7 @@ const AddGameCategory = () => {
   };
 
   // ────────────────────────────────────────────────
-  //                   STYLES
+  // STYLES
   // ────────────────────────────────────────────────
   const cardBg = "bg-gradient-to-br from-black via-yellow-950/30 to-black";
   const inputBase =
@@ -186,7 +186,6 @@ const AddGameCategory = () => {
                 placeholder="যেমন: স্লট গেম"
               />
             </div>
-
             <div>
               <label className="block text-sm font-semibold text-yellow-300/90 mb-2">
                 Category Name (English)
@@ -201,7 +200,6 @@ const AddGameCategory = () => {
                 placeholder="e.g. Slot Games"
               />
             </div>
-
             <div>
               <label className="block text-sm font-semibold text-yellow-300/90 mb-2">
                 Category Title (Bangla)
@@ -216,7 +214,6 @@ const AddGameCategory = () => {
                 placeholder="যেমন: সবচেয়ে জনপ্রিয় স্লট গেমস"
               />
             </div>
-
             <div>
               <label className="block text-sm font-semibold text-yellow-300/90 mb-2">
                 Category Title (English)
@@ -232,7 +229,7 @@ const AddGameCategory = () => {
               />
             </div>
 
-            {/* ✅ ORDER — NEW */}
+            {/* Order */}
             <div className="md:col-span-2">
               <label className="block text-sm font-semibold text-yellow-300/90 mb-2">
                 Order Number (1, 2, 3...)
@@ -247,6 +244,33 @@ const AddGameCategory = () => {
               />
               <p className="mt-2 text-xs text-yellow-300/60">
                 If you keep it empty, server will set next order automatically.
+              </p>
+            </div>
+
+            {/* JACKPOT */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-semibold text-yellow-300/90 mb-2">
+                Jackpot Category
+              </label>
+              <div className="flex items-center gap-4">
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.jackpot}
+                    onChange={(e) =>
+                      setForm({ ...form, jackpot: e.target.checked })
+                    }
+                    className="sr-only peer"
+                  />
+                  <div className="w-14 h-7 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-400/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-yellow-500 peer-checked:to-amber-500"></div>
+                </label>
+                <span className="text-yellow-200/90 font-medium">
+                  {form.jackpot ? "Yes – this is a Jackpot category" : "No"}
+                </span>
+              </div>
+              <p className="mt-2 text-xs text-yellow-300/60">
+                Mark if this category contains progressive jackpot or big-win
+                games
               </p>
             </div>
 
@@ -327,7 +351,6 @@ const AddGameCategory = () => {
                     ? "Update Category"
                     : "Create Category"}
               </button>
-
               {editing && (
                 <button
                   type="button"
@@ -341,7 +364,7 @@ const AddGameCategory = () => {
           </form>
         </div>
 
-        {/* LIST */}
+        {/* LIST OF CATEGORIES */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {categories.map((cat) => (
             <div
@@ -370,12 +393,21 @@ const AddGameCategory = () => {
                   </div>
                 )}
 
-                {/* ✅ Order badge (top-right) */}
-                <div className="absolute top-3 right-3">
+                {/* Order badge */}
+                <div className="absolute top-3 right-12 flex items-center">
                   <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black bg-yellow-500/90 text-black shadow-lg">
                     #{cat.order || 0}
                   </span>
                 </div>
+
+                {/* Jackpot badge */}
+                {cat.jackpot && (
+                  <div className="absolute top-12 right-3">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-gradient-to-r from-yellow-600 to-amber-600 text-white shadow-lg shadow-yellow-900/40">
+                      <span className="text-base">★</span> JACKPOT
+                    </span>
+                  </div>
+                )}
 
                 {/* Status badge */}
                 <div className="absolute bottom-3 left-3">

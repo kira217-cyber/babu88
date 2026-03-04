@@ -1,3 +1,4 @@
+// src/components/GameCategory/GameCategory.jsx
 import React, {
   useEffect,
   useMemo,
@@ -12,11 +13,16 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/axios";
 import { toast } from "react-toastify";
 
-// ✅ NEW: use your overlay loading component
 import Loading from "../../components/Loading/Loading";
+import Jackpot from "../Jackpot/Jackpot";
 
 const HOT_ICON = "https://babu88.gold/static/image/other/hot-icon.png";
 const NEW_ICON = "https://babu88.gold/static/svg/game-icon-new.svg";
+
+const JACKPOT_CATEGORY_ICON =
+  "https://babu88.gold/static/svg/mobileMenu/icon_rng.svg";
+const HOT_CATEGORY_ICON =
+  "https://babu88.gold/static/svg/gameTabHolder/homepageHot.svg";
 
 const PAGE_SIZE = 21;
 
@@ -48,41 +54,50 @@ const fetchCategories = async () => {
   return data?.data || [];
 };
 
-// ✅ Fetch games (supports server pagination if backend honors it; otherwise slices client-side safely)
-const fetchGamesByCategory = async (categoryId, page, limit) => {
+// ✅ all games under one category (public)
+const fetchAllGamesByCategory = async (categoryId) => {
   const qs = new URLSearchParams();
   qs.set("categoryId", categoryId);
-  qs.set("page", String(page));
-  qs.set("limit", String(limit));
-
   const { data } = await api.get(`/api/public/all-games?${qs.toString()}`);
+  return Array.isArray(data?.data) ? data.data : [];
+};
 
-  const raw = data?.data;
+// ✅ providers of one category (public)
+const fetchProviders = async (categoryId) => {
+  const { data } = await api.get(
+    `/api/public/game-categories/${categoryId}/providers`,
+  );
+  return data?.data || [];
+};
 
-  // pattern: { data: { items: [], total, page, limit } }
-  if (raw && typeof raw === "object" && Array.isArray(raw.items)) {
-    const items = raw.items || [];
-    const total = Number(raw.total) || items.length || 0;
-    const pg = Number(raw.page) || page;
-    const lim = Number(raw.limit) || limit;
-    return { items, total, page: pg, limit: lim };
+// ✅ merge all games across all categories (client side)
+const fetchAllGamesAcrossCategories = async (categoryIds = []) => {
+  const ids = Array.isArray(categoryIds) ? categoryIds.filter(Boolean) : [];
+  if (!ids.length) return [];
+
+  const results = await Promise.all(
+    ids.map(async (id) => {
+      try {
+        return await fetchAllGamesByCategory(id);
+      } catch {
+        return [];
+      }
+    }),
+  );
+
+  const merged = results.flat();
+
+  // de-dup
+  const map = new Map();
+  for (const g of merged) {
+    if (g && g._id) map.set(String(g._id), g);
   }
 
-  // pattern: { data: [...] }
-  const list = Array.isArray(raw) ? raw : [];
-
-  const totalFromApi = Number(data?.total) || Number(data?.pagination?.total);
-
-  const total =
-    Number.isFinite(totalFromApi) && totalFromApi > 0
-      ? totalFromApi
-      : list.length;
-
-  // If backend returns full list, do client-side slice (safe even if backend already paginates)
-  const start = (page - 1) * limit;
-  const items = list.slice(start, start + limit);
-
-  return { items, total, page, limit };
+  return Array.from(map.values()).sort((a, b) => {
+    const at = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const bt = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return bt - at;
+  });
 };
 
 const GameCard = ({ game, onClick, ui, apiBase }) => {
@@ -117,6 +132,7 @@ const GameCard = ({ game, onClick, ui, apiBase }) => {
         />
       </div>
 
+      {/* ✅ game badges */}
       <div className="absolute top-0 right-0 flex flex-col gap-1 items-end">
         {game?.isHot === true && (
           <img
@@ -134,6 +150,88 @@ const GameCard = ({ game, onClick, ui, apiBase }) => {
             loading="lazy"
           />
         )}
+      </div>
+    </motion.button>
+  );
+};
+
+/**
+ * ✅ Provider Card (UPDATED to match your screenshot style)
+ * - rounded "poster" look
+ * - image cover
+ * - bottom gradient overlay
+ * - badges top corners (HOT/NEW)
+ */
+const ProviderCard = ({ provider, onClick, apiBase }) => {
+  const img = provider?.providerImage || provider?.providerIcon || "";
+  const imgSrc =
+    img && String(img).trim()
+      ? /^https?:\/\//i.test(String(img).trim())
+        ? String(img).trim()
+        : `${apiBase}${String(img).trim()}`
+      : "/no-image.png";
+
+  // const name = provider?.providerName || "";
+
+  return (
+    <motion.button
+      whileTap={{ scale: 0.98 }}
+      whileHover={{ y: -2 }}
+      onClick={onClick}
+      type="button"
+      className="relative overflow-hidden rounded-2xl shadow-[0_10px_22px_rgba(0,0,0,0.22)]"
+      style={{
+        border: "1px solid rgba(0,0,0,0.08)",
+        background: "#fff",
+      }}
+      title={name}
+    >
+      {/* image */}
+      <div className="aspect-[4/5] w-full overflow-hidden bg-black/5">
+        <img
+          src={imgSrc}
+          alt={name || "provider"}
+          className="w-full h-full object-cover"
+          loading="lazy"
+          onError={(e) => (e.currentTarget.src = "/no-image.png")}
+        />
+      </div>
+
+      {/* ✅ bottom overlay like screenshot */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-black/65 via-black/15 to-transparent" />
+
+      {/* provider name (subtle, like poster) */}
+      {name ? (
+        <div className="absolute inset-x-0 bottom-2 px-2 text-center">
+          <div className="text-white font-extrabold text-[12px] drop-shadow line-clamp-1">
+            {name}
+          </div>
+        </div>
+      ) : null}
+
+      {/* ✅ badges (HOT/NEW) */}
+      <div className="absolute top-1 right-1 flex flex-col gap-1 items-end">
+        {provider?.isHot === true && (
+          <img
+            src={HOT_ICON}
+            alt="hot"
+            className="h-7 w-auto drop-shadow"
+            loading="lazy"
+          />
+        )}
+        {provider?.isNew === true && (
+          <img
+            src={NEW_ICON}
+            alt="new"
+            className="h-7 w-auto drop-shadow"
+            loading="lazy"
+          />
+        )}
+      </div>
+
+      {/* soft highlight */}
+      <div className="pointer-events-none absolute inset-0 opacity-0 hover:opacity-100 transition">
+        <div className="absolute -inset-8 bg-[radial-gradient(circle_at_center,rgba(245,180,0,0.18),transparent_60%)]" />
       </div>
     </motion.button>
   );
@@ -193,8 +291,8 @@ const GameCategory = () => {
     retry: 1,
   });
 
-  // ✅ sort categories by order ASC (1 first)
-  const categories = useMemo(() => {
+  // ✅ DB categories sort by order ASC
+  const dbCategories = useMemo(() => {
     const arr = Array.isArray(categoriesRaw) ? [...categoriesRaw] : [];
     arr.sort((a, b) => {
       const aRaw = parseInt(a?.order, 10);
@@ -204,11 +302,10 @@ const GameCategory = () => {
       const bHas = Number.isFinite(bRaw) && bRaw > 0;
 
       if (aHas && bHas) {
-        if (aRaw !== bRaw) return aRaw - bRaw; // ASC
+        if (aRaw !== bRaw) return aRaw - bRaw;
       } else if (aHas && !bHas) return -1;
       else if (!aHas && bHas) return 1;
 
-      // fallback stable
       const at = new Date(a?.createdAt || 0).getTime();
       const bt = new Date(b?.createdAt || 0).getTime();
       return at - bt;
@@ -216,43 +313,88 @@ const GameCategory = () => {
     return arr;
   }, [categoriesRaw]);
 
-  const [active, setActive] = useState("");
+  // ✅ virtual tabs
+  const virtualCats = useMemo(() => {
+    return [
+      {
+        _id: "jackpot",
+        isVirtual: true,
+        iconUrl: JACKPOT_CATEGORY_ICON,
+        categoryName: { bn: "জ্যাকপট", en: "Jackpot" },
+      },
+      {
+        _id: "hot",
+        isVirtual: true,
+        iconUrl: HOT_CATEGORY_ICON,
+        categoryName: { bn: "হট", en: "Hot" },
+      },
+    ];
+  }, []);
+
+  const categories = useMemo(() => {
+    return [...virtualCats, ...(dbCategories || [])];
+  }, [virtualCats, dbCategories]);
+
+  // ✅ default active jackpot
+  const [active, setActive] = useState("jackpot");
   const [page, setPage] = useState(1);
 
-  // ✅ initial active = first category (after sorting)
-  useEffect(() => {
-    if (!active && categories?.length) {
-      setActive(categories[0]._id);
-      setPage(1);
-    }
-  }, [categories, active]);
+  useEffect(() => setPage(1), [active]);
 
-  // ✅ when active category changes => reset page = 1
-  useEffect(() => {
-    if (active) setPage(1);
-  }, [active]);
+  const dbCategoryIds = useMemo(
+    () => (dbCategories || []).map((c) => c._id).filter(Boolean),
+    [dbCategories],
+  );
 
+  const isVirtual = active === "jackpot" || active === "hot";
+  const isDbCategory = !!active && !isVirtual;
+
+  // ✅ All games across categories only for Jackpot/Hot tabs
   const {
-    data: gameResp,
-    isLoading: loadingGames,
-    isFetching: fetchingGames,
+    data: allGames = [],
+    isLoading: loadingAllGames,
+    isFetching: fetchingAllGames,
   } = useQuery({
-    queryKey: ["public-mobile-games", active, page],
-    queryFn: () => fetchGamesByCategory(active, page, PAGE_SIZE),
-    enabled: !!active,
-    staleTime: 30000,
+    queryKey: ["public-all-games-across-cats", dbCategoryIds],
+    queryFn: () => fetchAllGamesAcrossCategories(dbCategoryIds),
+    enabled: isVirtual && dbCategoryIds.length > 0,
+    staleTime: 30_000,
     retry: 1,
-    keepPreviousData: true,
   });
 
-  const games = gameResp?.items || [];
-  const totalGames = Number(gameResp?.total) || 0;
-  const totalPages = Math.max(1, Math.ceil(totalGames / PAGE_SIZE));
+  const virtualGames = useMemo(() => {
+    const list = Array.isArray(allGames) ? allGames : [];
+    if (active === "jackpot") return list.filter((g) => g?.isJackpot === true);
+    if (active === "hot") return list.filter((g) => g?.isHot === true);
+    return [];
+  }, [allGames, active]);
 
+  const totalVirtual = virtualGames.length;
+  const totalPages = Math.max(1, Math.ceil(totalVirtual / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const start = (safePage - 1) * PAGE_SIZE;
+  const pagedVirtualGames = useMemo(
+    () => virtualGames.slice(start, start + PAGE_SIZE),
+    [virtualGames, start],
+  );
+
+  // ✅ providers for active DB category
+  const {
+    data: providers = [],
+    isLoading: loadingProviders,
+    isFetching: fetchingProviders,
+  } = useQuery({
+    queryKey: ["public-category-providers-home", active],
+    queryFn: () => fetchProviders(active),
+    enabled: isDbCategory,
+    staleTime: 60_000,
+    retry: 1,
+  });
+
+  // scroll indicator refs
   const scrollerRef = useRef(null);
   const trackRef = useRef(null);
   const btnRefs = useRef({});
-
   const [thumb, setThumb] = useState({ width: 40, x: 0 });
 
   const updateThumb = useCallback(() => {
@@ -310,25 +452,27 @@ const GameCategory = () => {
 
   const handlePlay = (game) => {
     const gameId = game?.gameId;
-
     if (!gameId) {
       toast.error(isBangla ? "গেম আইডি পাওয়া যায়নি" : "Game ID not found");
       return;
     }
-
     navigate(`/playgame/${gameId}`, { state: { game } });
   };
 
-  // ✅ pagination controls
+  const handleProviderOpen = (categoryId, providerDbId) => {
+    if (!categoryId || !providerDbId) return;
+    navigate(`/games-mobile/${categoryId}?provider=${providerDbId}`);
+  };
+
+  // pagination buttons (only for virtual games view)
   const goPrev = () => setPage((p) => Math.max(1, p - 1));
   const goNext = () => setPage((p) => Math.min(totalPages, p + 1));
   const goPage = (p) => setPage(() => Math.min(totalPages, Math.max(1, p)));
 
   const pageButtons = useMemo(() => {
-    const p = page;
+    const p = safePage;
     const tp = totalPages;
     const out = [];
-
     const push = (v) => out.push(v);
 
     if (tp <= 5) {
@@ -337,27 +481,25 @@ const GameCategory = () => {
     }
 
     push(1);
-
     if (p > 3) push("...");
 
-    const start = Math.max(2, p - 1);
-    const end = Math.min(tp - 1, p + 1);
-    for (let i = start; i <= end; i++) push(i);
+    const s = Math.max(2, p - 1);
+    const e = Math.min(tp - 1, p + 1);
+    for (let i = s; i <= e; i++) push(i);
 
     if (p < tp - 2) push("...");
-
     push(tp);
-
     return out;
-  }, [page, totalPages]);
+  }, [safePage, totalPages]);
 
-  // ✅ show loading overlay until games are ready
   const overlayLoading =
-    loadingUi || loadingCats || loadingGames || fetchingGames;
+    loadingUi ||
+    loadingCats ||
+    (isVirtual ? loadingAllGames || fetchingAllGames : false) ||
+    (isDbCategory ? loadingProviders || fetchingProviders : false);
 
   return (
     <div className="w-full">
-      {/* ✅ Your Loading Overlay (shows until games load) */}
       <Loading open={overlayLoading} />
 
       {/* Category Bar */}
@@ -387,7 +529,19 @@ const GameCategory = () => {
           ) : (
             categories.map((c) => {
               const isActive = active === c._id;
-              const label = isBangla ? c.categoryName?.bn : c.categoryName?.en;
+              const label = c?.isVirtual
+                ? isBangla
+                  ? c.categoryName?.bn
+                  : c.categoryName?.en
+                : isBangla
+                  ? c.categoryName?.bn
+                  : c.categoryName?.en;
+
+              const iconSrc = c?.isVirtual
+                ? c.iconUrl
+                : c.iconImage
+                  ? `${API_URL}${c.iconImage}`
+                  : "";
 
               return (
                 <button
@@ -413,9 +567,9 @@ const GameCategory = () => {
                     color: isActive ? ui.btnActiveText : ui.btnInactiveTextRgba,
                   }}
                 >
-                  {c.iconImage ? (
+                  {iconSrc ? (
                     <img
-                      src={`${API_URL}${c.iconImage}`}
+                      src={iconSrc}
                       alt={label}
                       className="w-5 h-5 object-contain"
                       onError={(e) => (e.currentTarget.style.display = "none")}
@@ -430,6 +584,7 @@ const GameCategory = () => {
           )}
         </div>
 
+        {/* Scroll indicator */}
         <div className="px-3 pb-2">
           <div
             ref={trackRef}
@@ -446,9 +601,101 @@ const GameCategory = () => {
         </div>
       </div>
 
-      {/* Games Grid */}
+      {/* ✅ ONLY show Jackpot component when jackpot tab active */}
+      {active === "jackpot" ? <Jackpot /> : null}
+
+      {/* Content */}
       <div className="mt-4">
-        {loadingGames && !games.length ? (
+        {/* ✅ Virtual tabs (Jackpot/Hot) => show games */}
+        {isVirtual ? (
+          totalVirtual === 0 ? (
+            <div
+              className="text-center py-10 font-semibold"
+              style={{
+                color: ui.emptyTextRgba,
+                fontSize: `${ui.emptyTextSize}px`,
+              }}
+            >
+              {active === "jackpot"
+                ? isBangla
+                  ? "জ্যাকপট গেম নেই"
+                  : "No jackpot games"
+                : isBangla
+                  ? "হট গেম নেই"
+                  : "No hot games"}
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-3 gap-3 px-2">
+                {pagedVirtualGames.map((game) => (
+                  <GameCard
+                    key={game._id}
+                    game={game}
+                    onClick={() => handlePlay(game)}
+                    ui={ui}
+                    apiBase={API_URL}
+                  />
+                ))}
+              </div>
+
+              {/* ✅ Pagination for virtual games */}
+              {totalPages > 1 && (
+                <>
+                  <div className="mt-5 px-2 flex items-center justify-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={goPrev}
+                      disabled={page <= 1}
+                      className="px-3 py-2 rounded-lg font-bold border border-black/10 bg-white hover:bg-black/5 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isBangla ? "পূর্বের" : "Prev"}
+                    </button>
+
+                    {pageButtons.map((p, idx) =>
+                      p === "..." ? (
+                        <span
+                          key={`dots-${idx}`}
+                          className="px-2 text-black/50"
+                        >
+                          ...
+                        </span>
+                      ) : (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => goPage(p)}
+                          className={`px-3 py-2 rounded-lg font-extrabold border border-black/10 ${
+                            p === page
+                              ? "bg-[#F5B400] text-black"
+                              : "bg-white hover:bg-black/5"
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      ),
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={goNext}
+                      disabled={page >= totalPages}
+                      className="px-3 py-2 rounded-lg font-bold border border-black/10 bg-white hover:bg-black/5 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isBangla ? "পরের" : "Next"}
+                    </button>
+                  </div>
+
+                  <div className="mt-2 text-center text-[12px] text-black/50">
+                    {`${isBangla ? "মোট" : "Total"} ${totalVirtual} ${
+                      isBangla ? "গেম" : "games"
+                    } • ${isBangla ? "পেজ" : "Page"} ${page}/${totalPages}`}
+                  </div>
+                </>
+              )}
+            </>
+          )
+        ) : /* ✅ DB category tabs => show providers under that category */
+        providers.length === 0 ? (
           <div
             className="text-center py-10 font-semibold"
             style={{
@@ -456,86 +703,20 @@ const GameCategory = () => {
               fontSize: `${ui.emptyTextSize}px`,
             }}
           >
-            {isBangla ? "গেম লোড হচ্ছে..." : "Loading games..."}
-          </div>
-        ) : games.length === 0 ? (
-          <div
-            className="text-center py-10 font-semibold"
-            style={{
-              color: ui.emptyTextRgba,
-              fontSize: `${ui.emptyTextSize}px`,
-            }}
-          >
-            {isBangla
-              ? "এই ক্যাটাগরিতে কোনো গেম নেই"
-              : "No games in this category"}
+            {isBangla ? "কোনো প্রোভাইডার নেই" : "No providers"}
           </div>
         ) : (
-          <>
-            <div className="grid grid-cols-3 gap-3 px-2">
-              {games.map((game) => (
-                <GameCard
-                  key={game._id}
-                  game={game}
-                  onClick={() => handlePlay(game)}
-                  ui={ui}
-                  apiBase={API_URL}
-                />
-              ))}
-            </div>
-
-            {/* ✅ Pagination */}
-            {totalPages > 1 && (
-              <>
-                <div className="mt-5 px-2 flex items-center justify-center gap-2 flex-wrap">
-                  <button
-                    type="button"
-                    onClick={goPrev}
-                    disabled={page <= 1}
-                    className="px-3 py-2 rounded-lg font-bold border border-black/10 bg-white hover:bg-black/5 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isBangla ? "পূর্বের" : "Prev"}
-                  </button>
-
-                  {pageButtons.map((p, idx) =>
-                    p === "..." ? (
-                      <span key={`dots-${idx}`} className="px-2 text-black/50">
-                        ...
-                      </span>
-                    ) : (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => goPage(p)}
-                        className={`px-3 py-2 rounded-lg font-extrabold border border-black/10 ${
-                          p === page
-                            ? "bg-[#F5B400] text-black"
-                            : "bg-white hover:bg-black/5"
-                        }`}
-                      >
-                        {p}
-                      </button>
-                    ),
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={goNext}
-                    disabled={page >= totalPages}
-                    className="px-3 py-2 rounded-lg font-bold border border-black/10 bg-white hover:bg-black/5 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isBangla ? "পরের" : "Next"}
-                  </button>
-                </div>
-
-                <div className="mt-2 text-center text-[12px] text-black/50">
-                  {`${isBangla ? "মোট" : "Total"} ${totalGames} ${
-                    isBangla ? "গেম" : "games"
-                  } • ${isBangla ? "পেজ" : "Page"} ${page}/${totalPages}`}
-                </div>
-              </>
-            )}
-          </>
+          // ✅ Provider posters like your screenshot
+          <div className="grid grid-cols-4 gap-2 px-1">
+            {providers.map((p) => (
+              <ProviderCard
+                key={p._id}
+                provider={p}
+                apiBase={API_URL}
+                onClick={() => handleProviderOpen(active, p._id)}
+              />
+            ))}
+          </div>
         )}
       </div>
     </div>

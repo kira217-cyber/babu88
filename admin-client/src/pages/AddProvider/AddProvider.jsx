@@ -10,11 +10,15 @@ const ORACLE_PROVIDER_KEY = import.meta.env.VITE_ORACLE_TOKEN;
 
 const emptyForm = {
   categoryId: "",
-  providerId: "", // ✅ we will store providerCode here (ex: "TBC")
-  providerName: "", // ✅ providerName (ex: "2BC")
+  providerId: "", // ✅ providerCode here
+  providerName: "", // ✅ providerName
   providerImage: null,
   providerIcon: null,
   status: "active",
+
+  // ✅ NEW
+  isHot: false,
+  isNew: false,
 };
 
 const AddProvider = () => {
@@ -43,12 +47,10 @@ const AddProvider = () => {
     try {
       const res = await axios.get(ORACLE_PROVIDER_API, {
         headers: {
-          "x-api-key": ORACLE_PROVIDER_KEY, // ✅ correct header
+          "x-api-key": ORACLE_PROVIDER_KEY,
         },
       });
 
-      // response:
-      // { success, count, data: [...] }
       setOracleProviders(res.data?.data || []);
     } catch (err) {
       console.error(err);
@@ -113,8 +115,8 @@ const AddProvider = () => {
 
     setForm((prev) => ({
       ...prev,
-      providerId: selected?.providerCode || "", // ✅ save providerCode in DB field providerId
-      providerName: selected?.providerName || "", // ✅ save providerName
+      providerId: selected?.providerCode || "",
+      providerName: selected?.providerName || "",
     }));
   };
 
@@ -122,11 +124,15 @@ const AddProvider = () => {
     setEditing(provider);
     setForm({
       categoryId: provider.categoryId || "",
-      providerId: provider.providerId || "", // already saved providerCode
+      providerId: provider.providerId || "",
       providerName: provider.providerName || "",
       providerImage: null,
       providerIcon: null,
       status: provider.status || "active",
+
+      // ✅ NEW
+      isHot: !!provider.isHot,
+      isNew: !!provider.isNew,
     });
   };
 
@@ -149,14 +155,13 @@ const AddProvider = () => {
     try {
       const fd = new FormData();
       fd.append("categoryId", form.categoryId);
-
-      // ✅ providerId = providerCode (TBC, WIN568S etc.)
       fd.append("providerId", form.providerId);
-
-      // ✅ providerName = 2BC, "568WIN SPORTS (PHP ONLY)" etc.
       fd.append("providerName", form.providerName);
-
       fd.append("status", form.status);
+
+      // ✅ NEW (send as "true"/"false")
+      fd.append("isHot", String(!!form.isHot));
+      fd.append("isNew", String(!!form.isNew));
 
       if (form.providerImage instanceof File)
         fd.append("providerImage", form.providerImage);
@@ -217,6 +222,12 @@ const AddProvider = () => {
   const btnDanger =
     "bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-medium py-2.5 px-5 rounded-xl transition-all duration-200 shadow-sm hover:shadow-red-500/40";
 
+  // ✅ Small checkbox style that matches theme
+  const checkWrap =
+    "flex items-center justify-between gap-4 bg-black/60 border border-yellow-700/50 rounded-xl px-5 py-4";
+  const checkLabel = "text-sm font-semibold text-yellow-300/90";
+  const checkBox = "h-5 w-5 accent-yellow-400 cursor-pointer";
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-yellow-950/20 to-black text-white p-5 md:p-8">
       <div className="max-w-7xl mx-auto">
@@ -272,7 +283,7 @@ const AddProvider = () => {
               </label>
               <select
                 className={inputBase}
-                value={form.providerId} // ✅ providerCode stored here
+                value={form.providerId}
                 onChange={(e) => handleProviderSelect(e.target.value)}
                 required
               >
@@ -293,6 +304,41 @@ const AddProvider = () => {
                   </span>
                 </div>
               )}
+            </div>
+
+            {/* ✅ NEW: HOT / NEW toggles */}
+            <div className={checkWrap}>
+              <div>
+                <div className={checkLabel}>Mark as HOT</div>
+                <div className="text-xs text-yellow-400/60">
+                  Show HOT badge on provider card
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                className={checkBox}
+                checked={!!form.isHot}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, isHot: e.target.checked }))
+                }
+              />
+            </div>
+
+            <div className={checkWrap}>
+              <div>
+                <div className={checkLabel}>Mark as NEW</div>
+                <div className="text-xs text-yellow-400/60">
+                  Show NEW badge on provider card
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                className={checkBox}
+                checked={!!form.isNew}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, isNew: e.target.checked }))
+                }
+              />
             </div>
 
             {/* Provider Image */}
@@ -426,6 +472,22 @@ const AddProvider = () => {
                   className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+
+                {/* ✅ HOT/NEW BADGES (left) */}
+                <div className="absolute top-3 left-3 flex flex-col gap-2">
+                  {prov.isHot && (
+                    <span className="px-3 py-1 rounded-full text-xs font-black bg-orange-500/90 text-black shadow-sm">
+                      HOT
+                    </span>
+                  )}
+                  {prov.isNew && (
+                    <span className="px-3 py-1 rounded-full text-xs font-black bg-cyan-400/90 text-black shadow-sm">
+                      NEW
+                    </span>
+                  )}
+                </div>
+
+                {/* Status badge (right) */}
                 <div className="absolute top-3 right-3">
                   <span
                     className={`px-3 py-1 rounded-full text-xs font-bold ${
@@ -450,7 +512,6 @@ const AddProvider = () => {
                     <h3 className="font-bold text-lg text-yellow-100 group-hover:text-yellow-300 transition-colors truncate">
                       {prov.providerName}
                     </h3>
-                    {/* ✅ prov.providerId now contains providerCode */}
                     <p className="text-xs text-yellow-400/70 font-mono truncate">
                       {prov.providerId}
                     </p>

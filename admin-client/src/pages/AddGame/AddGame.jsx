@@ -37,6 +37,9 @@ const AddGame = () => {
     image: null,
     isHot: false,
     isNew: false,
+
+    // ✅ NEW
+    isJackpot: false,
   });
   const [imagePreview, setImagePreview] = useState("");
 
@@ -45,6 +48,9 @@ const AddGame = () => {
     image: null,
     isHot: false,
     isNew: false,
+
+    // ✅ NEW
+    isJackpot: false,
   });
   const [editPreview, setEditPreview] = useState("");
 
@@ -175,7 +181,7 @@ const AddGame = () => {
     selectedGames.find((sg) => sg.gameId === oracleGameId);
 
   const resetAddForm = () => {
-    setForm({ image: null, isHot: false, isNew: false });
+    setForm({ image: null, isHot: false, isNew: false, isJackpot: false });
     setImagePreview("");
   };
 
@@ -215,6 +221,9 @@ const AddGame = () => {
 
       fd.append("isHot", String(form.isHot));
       fd.append("isNew", String(form.isNew));
+
+      // ✅ NEW
+      fd.append("isJackpot", String(form.isJackpot));
 
       if (form.image instanceof File) {
         fd.append("image", form.image);
@@ -263,6 +272,9 @@ const AddGame = () => {
         // bulk uses current form flags
         fd.append("isHot", String(form.isHot));
         fd.append("isNew", String(form.isNew));
+
+        // ✅ NEW
+        fd.append("isJackpot", String(form.isJackpot));
 
         // bulk does NOT upload per-card image; saves oracle URL
         fd.append("imageUrl", game.image || "");
@@ -327,6 +339,9 @@ const AddGame = () => {
       image: null,
       isHot: !!selectedDoc.isHot,
       isNew: !!selectedDoc.isNew,
+
+      // ✅ NEW
+      isJackpot: !!selectedDoc.isJackpot,
     });
 
     const img = selectedDoc.image || "";
@@ -340,7 +355,7 @@ const AddGame = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingGame(null);
-    setEditForm({ image: null, isHot: false, isNew: false });
+    setEditForm({ image: null, isHot: false, isNew: false, isJackpot: false });
     setEditPreview("");
   };
 
@@ -352,6 +367,10 @@ const AddGame = () => {
       const fd = new FormData();
       fd.append("isHot", String(editForm.isHot));
       fd.append("isNew", String(editForm.isNew));
+
+      // ✅ NEW
+      fd.append("isJackpot", String(editForm.isJackpot));
+
       if (editForm.image instanceof File) fd.append("image", editForm.image);
 
       const res = await api.put(`/api/games/${editingGame._id}`, fd, {
@@ -475,7 +494,7 @@ const AddGame = () => {
           </div>
         </div>
 
-        {/* ✅ NEW: Bulk action bar */}
+        {/* ✅ Bulk action bar */}
         {selectedProviderDbId && providerGames.length > 0 && !loadingGames && (
           <div
             className={`${cardBg} border border-yellow-700/30 rounded-2xl p-5 md:p-6 shadow-xl shadow-black/60 mb-10`}
@@ -489,35 +508,34 @@ const AddGame = () => {
                 selected
               </div>
 
-             
-
               <div className="grid grid-cols-1 items-center md:grid-cols-2 lg:grid-cols-3 flex-wrap gap-3">
                 <div>
-                   {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className="flex flex-wrap justify-center items-center gap-3 mt-12">
-                <button
-                  onClick={() => goToPage(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="px-5 py-2.5 bg-black/70 border border-yellow-700/50 rounded-lg text-yellow-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-yellow-900/40 transition"
-                >
-                  Previous
-                </button>
+                  {/* Pagination Controls (inside bar - kept as your structure) */}
+                  {totalPages > 1 && (
+                    <div className="flex flex-wrap justify-center items-center gap-3">
+                      <button
+                        onClick={() => goToPage(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="px-5 py-2.5 bg-black/70 border border-yellow-700/50 rounded-lg text-yellow-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-yellow-900/40 transition"
+                      >
+                        Previous
+                      </button>
 
-                <span className="px-4 py-2 text-yellow-200 font-medium">
-                  Page {currentPage} of {totalPages}
-                </span>
+                      <span className="px-4 py-2 text-yellow-200 font-medium">
+                        Page {currentPage} of {totalPages}
+                      </span>
 
-                <button
-                  onClick={() => goToPage(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="px-5 py-2.5 bg-black/70 border border-yellow-700/50 rounded-lg text-yellow-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-yellow-900/40 transition"
-                >
-                  Next
-                </button>
-              </div>
-            )}
+                      <button
+                        onClick={() => goToPage(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="px-5 py-2.5 bg-black/70 border border-yellow-700/50 rounded-lg text-yellow-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-yellow-900/40 transition"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  )}
                 </div>
+
                 <button
                   onClick={handleSelectAllThisPage}
                   disabled={bulkLoading || allSelectedThisPage}
@@ -537,8 +555,8 @@ const AddGame = () => {
             </div>
 
             <div className="mt-3 text-xs text-yellow-400/70">
-              Bulk add uses current Hot/New flags (from the left form state) and
-              saves Oracle image URL (no custom uploads).
+              Bulk add uses current Hot/New/Jackpot flags (from the left form
+              state) and saves Oracle image URL (no custom uploads).
             </div>
           </div>
         )}
@@ -620,7 +638,7 @@ const AddGame = () => {
                         <div>gameId: {game._id}</div>
                         <div>game_code: {game.game_code}</div>
 
-                        {/* ✅ Hot / New badges */}
+                        {/* ✅ Hot / New / Jackpot badges */}
                         <div className="flex flex-wrap gap-2 pt-1 font-sans">
                           {(selected ? selectedDoc?.isHot : form.isHot) && (
                             <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-500/20 text-red-200 border border-red-400/30">
@@ -632,6 +650,13 @@ const AddGame = () => {
                               NEW
                             </span>
                           )}
+                          {(selected
+                            ? selectedDoc?.isJackpot
+                            : form.isJackpot) && (
+                            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-yellow-500/15 text-yellow-200 border border-yellow-400/30">
+                              JACKPOT
+                            </span>
+                          )}
                         </div>
 
                         {selectedDoc?.gameName && (
@@ -640,6 +665,7 @@ const AddGame = () => {
                           </div>
                         )}
                       </div>
+
                       <label className="flex items-center gap-3 mb-4 cursor-pointer">
                         <input
                           type="checkbox"
@@ -685,7 +711,7 @@ const AddGame = () => {
                             )}
                           </div>
 
-                          <div className="flex gap-6">
+                          <div className="flex gap-6 flex-wrap">
                             <label className="flex items-center gap-2 text-yellow-200">
                               <input
                                 type="checkbox"
@@ -707,6 +733,22 @@ const AddGame = () => {
                                 className="accent-yellow-500"
                               />
                               New
+                            </label>
+
+                            {/* ✅ NEW */}
+                            <label className="flex items-center gap-2 text-yellow-200">
+                              <input
+                                type="checkbox"
+                                checked={form.isJackpot}
+                                onChange={(e) =>
+                                  setForm({
+                                    ...form,
+                                    isJackpot: e.target.checked,
+                                  })
+                                }
+                                className="accent-yellow-500"
+                              />
+                              Jackpot
                             </label>
                           </div>
                         </div>
@@ -793,7 +835,7 @@ const AddGame = () => {
                 </div>
               </div>
 
-              <div className="flex gap-8 justify-center">
+              <div className="flex gap-8 justify-center flex-wrap">
                 <label className="flex items-center gap-3 text-yellow-200 text-lg">
                   <input
                     type="checkbox"
@@ -816,6 +858,22 @@ const AddGame = () => {
                     className="w-6 h-6 accent-yellow-500"
                   />
                   Mark as New
+                </label>
+
+                {/* ✅ NEW */}
+                <label className="flex items-center gap-3 text-yellow-200 text-lg">
+                  <input
+                    type="checkbox"
+                    checked={editForm.isJackpot}
+                    onChange={(e) =>
+                      setEditForm({
+                        ...editForm,
+                        isJackpot: e.target.checked,
+                      })
+                    }
+                    className="w-6 h-6 accent-yellow-500"
+                  />
+                  Mark as Jackpot
                 </label>
               </div>
 

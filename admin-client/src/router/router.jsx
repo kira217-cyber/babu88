@@ -52,6 +52,7 @@ import AddAffiliateWithdraw from "../pages/AddAffiliateWithdraw/AddAffiliateWith
 import AffiliateWithdrawRequest from "../pages/AffiliateWithdrawRequest/AffiliateWithdrawRequest";
 import AffiliateWithdrawRequestDetails from "../pages/AffiliateWithdrawRequestDetails/AffiliateWithdrawRequestDetails";
 import AddRedeem from "../pages/AddRedeem/AddRedeem";
+import JackpotController from "../pages/JackpotController/JackpotController";
 
 export const routes = createBrowserRouter([
   {
@@ -350,6 +351,14 @@ export const routes = createBrowserRouter([
         element: (
           <PrivateRoute permKey="add-promotion">
             <AddPromotion />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "jackpot-controller",
+        element: (
+          <PrivateRoute permKey="jackpot-controller">
+            <JackpotController />
           </PrivateRoute>
         ),
       },

@@ -24,10 +24,13 @@ const GameSchema = new mongoose.Schema(
     gameName: { type: String, trim: true, default: "" },
 
     // optional admin overrides
-    image: { type: String, default: "" }, // "/uploads/xxx.png"
+    image: { type: String, default: "" }, // "/uploads/xxx.png" OR remote url
 
     isHot: { type: Boolean, default: false },
     isNew: { type: Boolean, default: false },
+
+    // ✅ NEW: Jackpot flag
+    isJackpot: { type: Boolean, default: false },
 
     status: { type: String, enum: ["active", "inactive"], default: "active" },
   },

@@ -37,6 +37,8 @@ router.get("/game-menu", async (req, res) => {
         providerId: p.providerId, // oracle provider id
         providerIcon: p.providerIcon,
         providerImage: p.providerImage,
+        isNew: p.isNew,
+        isHot: p.isHot,
       });
     }
 
@@ -47,6 +49,7 @@ router.get("/game-menu", async (req, res) => {
       bannerImage: c.bannerImage,
       iconImage: c.iconImage,
       order: c.order, // ✅ NEW: send order
+      jackpot: c.jackpot,
       providers: providerMap[String(c._id)] || [],
     }));
 
@@ -88,6 +91,8 @@ router.get("/game-categories/:id", async (req, res) => {
           providerId: p.providerId,
           providerIcon: p.providerIcon,
           providerImage: p.providerImage,
+          isNew: p.isNew,
+          isHot: p.isHot,
         })),
       },
     });
@@ -129,6 +134,8 @@ router.get("/game-categories/:id/providers", async (req, res) => {
         providerId: p.providerId, // oracle provider id
         providerIcon: p.providerIcon,
         providerImage: p.providerImage,
+        isNew: p.isNew,
+        isHot: p.isHot,
       })),
     });
   } catch (err) {
@@ -189,7 +196,7 @@ router.get("/game-categories", async (req, res) => {
   try {
     const list = await GameCategory.find({ status: "active" })
       .sort({ createdAt: -1 })
-      .select("categoryName iconImage status createdAt order")
+      .select("categoryName iconImage status createdAt order jackpot")
       .lean();
 
     res.json({ success: true, data: list });
@@ -204,21 +211,44 @@ router.get("/game-categories", async (req, res) => {
 router.get("/all-games", async (req, res) => {
   try {
     const { categoryId } = req.query;
+
     if (!categoryId) {
-      return res
-        .status(400)
-        .json({ success: false, message: "categoryId is required" });
+      return res.status(400).json({
+        success: false,
+        message: "categoryId is required",
+      });
     }
+
+    // ✅ optional: validate objectId (recommended)
+    // if you use mongoose:
+    // import mongoose from "mongoose";
+    // if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+    //   return res.status(400).json({ success: false, message: "Invalid categoryId" });
+    // }
 
     const games = await Game.find({ categoryId })
       .sort({ createdAt: -1 })
+      .populate(
+        "providerDbId",
+        "providerName providerId providerIcon providerImage",
+      ) // ✅ optional
       .lean();
 
-    res.json({ success: true, data: games });
+    // ✅ Ensure isJackpot exists in every document (old docs won't have it)
+    const normalized = games.map((g) => ({
+      ...g,
+      isHot: !!g.isHot,
+      isNew: !!g.isNew,
+      isJackpot: !!g.isJackpot, // ✅ FIXED
+      status: g.status || "active",
+    }));
+
+    return res.json({ success: true, data: normalized });
   } catch (err) {
-    res
-      .status(500)
-      .json({ success: false, message: err?.message || "Server error" });
+    return res.status(500).json({
+      success: false,
+      message: err?.message || "Server error",
+    });
   }
 });
 

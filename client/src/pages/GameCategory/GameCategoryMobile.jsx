@@ -1,10 +1,12 @@
+// src/pages/GameCategoryMobile.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/axios";
 import { useLanguage } from "../../Context/LanguageProvider";
 import { toast } from "react-toastify";
 import Loading from "../../components/Loading/Loading";
+import Jackpot from "../../components/Jackpot/Jackpot";
 
 const HOT_ICON = "https://babu88.gold/static/image/other/hot-icon.png";
 const NEW_ICON = "https://babu88.gold/static/svg/game-icon-new.svg";
@@ -35,6 +37,7 @@ const fetchGames = async ({ categoryId, providerDbId, q }) => {
 const GameCategoryMobile = () => {
   const navigate = useNavigate();
   const { categoryId } = useParams();
+  const [sp] = useSearchParams(); // ✅ NEW
   const { isBangla } = useLanguage();
 
   const API_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
@@ -45,6 +48,13 @@ const GameCategoryMobile = () => {
 
   // ✅ Pagination state
   const [page, setPage] = useState(1);
+
+  // ✅ set provider from query param (?provider=...)
+  useEffect(() => {
+    const qp = sp.get("provider") || "";
+    setActiveProviderDbId(qp);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categoryId]);
 
   // Debounce search
   const [debouncedQ, setDebouncedQ] = useState(q);
@@ -98,6 +108,11 @@ const GameCategoryMobile = () => {
       ? activeCategory.categoryName?.bn
       : activeCategory.categoryName?.en;
   }, [activeCategory, isBangla]);
+
+  // ✅ NEW: show jackpot component only if active category has jackpot: true
+  const showJackpot = useMemo(() => {
+    return activeCategory?.jackpot === true;
+  }, [activeCategory]);
 
   const { data: providers = [], isLoading: loadingProviders } = useQuery({
     queryKey: ["mob-providers", activeCategoryId],
@@ -310,7 +325,10 @@ const GameCategoryMobile = () => {
             ? null
             : providers.map((p) => {
                 const active = activeProviderDbId === p._id;
-                const iconSrc = resolveImg(p.providerIcon);
+
+                // ✅ provider image first, icon fallback
+                const imgPath = p.providerIcon || "";
+                const iconSrc = resolveImg(imgPath);
 
                 return (
                   <button
@@ -318,7 +336,7 @@ const GameCategoryMobile = () => {
                     type="button"
                     onClick={() => setActiveProviderDbId(p._id)}
                     className={[
-                      "shrink-0 w-[64px] h-[64px] rounded-xl border flex flex-col items-center justify-center",
+                      "relative shrink-0 w-[64px] h-[64px] rounded-xl border flex flex-col items-center justify-center",
                       active ? "border-[#f5b400]" : "border-black/15",
                     ].join(" ")}
                     title={p.providerName}
@@ -336,6 +354,7 @@ const GameCategoryMobile = () => {
                     ) : (
                       <div className="w-9 h-9 rounded bg-black/5" />
                     )}
+
                     <div className="mt-1 text-[10px] font-extrabold text-black/70 truncate w-[58px] text-center">
                       {p.providerName}
                     </div>
@@ -373,6 +392,9 @@ const GameCategoryMobile = () => {
           </div>
         </div>
       </div>
+
+      {/* ✅ Jackpot Component ONLY if active category has jackpot:true */}
+      {showJackpot ? <Jackpot /> : null}
 
       {/* Games */}
       <div className="mx-3 mt-3 pb-10">
@@ -446,7 +468,7 @@ const GameCategoryMobile = () => {
               })}
             </div>
 
-            {/* ✅ Pagination */}
+            {/* Pagination */}
             {totalPages > 1 && (
               <div className="mt-6 flex items-center justify-center gap-2 flex-wrap">
                 <button
@@ -490,7 +512,6 @@ const GameCategoryMobile = () => {
               </div>
             )}
 
-            {/* ✅ Page info */}
             <div className="mt-3 text-center text-[12px] font-bold text-black/45">
               {isBangla ? "পেজ" : "Page"} {safePage}/{totalPages} •{" "}
               {isBangla ? "মোট" : "Total"} {total}

@@ -1,6 +1,168 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { api } from "../../api/axios";
+
+/* -------------------- Helpers (OUTSIDE = stable, fixes picker close) -------------------- */
+
+const safeHex = (v, fallback = "#000000") => {
+  const s = String(v || "").trim();
+  if (!s) return fallback;
+  const ok = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(s);
+  return ok ? s : fallback;
+};
+
+const isValidHex = (v) =>
+  /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(String(v || "").trim());
+
+const isValidRgba = (v) =>
+  /^rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(,\s*(0(\.\d+)?|1(\.0+)?|\.\d+)\s*)?\)\s*$/i.test(
+    String(v || "").trim(),
+  );
+
+const ColorField = React.memo(function ColorField({
+  label,
+  name,
+  value,
+  setField,
+  allowRgba = true,
+  labelCls,
+  inputBase,
+  colorInputWrapper,
+  colorPickerCls,
+}) {
+  const [draft, setDraft] = useState(value || "");
+  const rafRef = useRef(null);
+
+  useEffect(() => {
+    setDraft(value || "");
+  }, [value]);
+
+  const commitDraft = useCallback(() => {
+    const next = String(draft || "").trim();
+    if (!next) return;
+
+    if (isValidHex(next) || (allowRgba && isValidRgba(next))) {
+      setField(name, next);
+    }
+  }, [draft, name, setField, allowRgba]);
+
+  const onColorChange = useCallback(
+    (hex) => {
+      setDraft(hex);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(() => {
+        setField(name, hex);
+      });
+    },
+    [name, setField],
+  );
+
+  const pickerValue = (() => {
+    const v = String(value || "");
+    // picker only accepts hex; if rgba -> fallback (#000000) like before
+    return safeHex(v.startsWith("#") ? v : "", "#000000");
+  })();
+
+  return (
+    <div>
+      <label className={labelCls}>{label}</label>
+      <div className={colorInputWrapper}>
+        <input
+          type="color"
+          value={pickerValue}
+          onChange={(e) => onColorChange(e.target.value)}
+          className={colorPickerCls}
+          title="Pick color"
+        />
+        <input
+          type="text"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commitDraft}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.currentTarget.blur();
+          }}
+          placeholder={allowRgba ? "#ffffff or rgba(...)" : "#ffffff"}
+          className={inputBase}
+        />
+      </div>
+      {allowRgba && (
+        <p className="mt-1.5 text-xs text-yellow-400/60">
+          Use rgba(...) for transparency — color picker works only with #hex
+        </p>
+      )}
+    </div>
+  );
+});
+
+const NumberField = React.memo(function NumberField({
+  label,
+  name,
+  value,
+  setField,
+  min = 0,
+  max = 999,
+  step = 1,
+  labelCls,
+  inputBase,
+}) {
+  return (
+    <div>
+      <label className={labelCls}>{label}</label>
+      <input
+        type="number"
+        min={min}
+        max={max}
+        step={step}
+        value={Number(value ?? min)}
+        onChange={(e) => setField(name, Number(e.target.value))}
+        className={inputBase}
+      />
+    </div>
+  );
+});
+
+const ShadowField = React.memo(function ShadowField({
+  label,
+  name,
+  value,
+  setField,
+  placeholder,
+  labelCls,
+  inputBase,
+}) {
+  return (
+    <div>
+      <label className={labelCls}>{label}</label>
+      <input
+        type="text"
+        value={value || ""}
+        onChange={(e) => setField(name, e.target.value)}
+        placeholder={placeholder}
+        className={`${inputBase} mt-2`}
+      />
+    </div>
+  );
+});
+
+const Section = React.memo(function Section({
+  title,
+  children,
+  cardCls,
+  headerCls,
+  sectionTitleCls,
+}) {
+  return (
+    <div className={cardCls}>
+      <div className={headerCls}>
+        <h3 className={sectionTitleCls}>{title}</h3>
+      </div>
+      <div className="p-5 sm:p-6 lg:p-8">{children}</div>
+    </div>
+  );
+});
+
+/* -------------------- Main Component -------------------- */
 
 const AffCommissionColorController = () => {
   const [loading, setLoading] = useState(true);
@@ -65,7 +227,7 @@ const AffCommissionColorController = () => {
     exTotalText: "#000000",
   });
 
-  // Consistent styling classes (same as other color controllers)
+  // Consistent styling classes (UNCHANGED)
   const containerCls =
     "min-h-screen bg-gradient-to-br from-black via-yellow-950/20 to-black text-white p-4 sm:p-6 lg:p-8";
   const cardCls =
@@ -87,7 +249,9 @@ const AffCommissionColorController = () => {
   const reloadBtn = `${btnBase} border border-yellow-700/60 bg-yellow-950/40 hover:bg-yellow-900/50 text-yellow-100`;
   const saveBtn = `${btnBase} bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 text-black shadow-md shadow-yellow-900/40 font-semibold`;
 
-  const setField = (k, v) => setForm((p) => ({ ...p, [k]: v }));
+  const setField = useCallback((k, v) => {
+    setForm((p) => ({ ...p, [k]: v }));
+  }, []);
 
   const load = async () => {
     try {
@@ -117,79 +281,6 @@ const AffCommissionColorController = () => {
       setSaving(false);
     }
   };
-
-  const ColorField = ({ label, name, allowRgba = true }) => {
-    const val = String(form[name] || "");
-    const isHex =
-      val.startsWith("#") &&
-      (val.length === 7 ||
-        val.length === 4 ||
-        val.length === 9 ||
-        val.length === 5);
-    return (
-      <div>
-        <label className={labelCls}>{label}</label>
-        <div className={colorInputWrapper}>
-          <input
-            type="color"
-            value={isHex ? val : "#000000"}
-            onChange={(e) => setField(name, e.target.value)}
-            className={colorPickerCls}
-            title="Pick color"
-          />
-          <input
-            type="text"
-            value={form[name] || ""}
-            onChange={(e) => setField(name, e.target.value)}
-            placeholder={allowRgba ? "#ffffff or rgba(...)" : "#ffffff"}
-            className={inputBase}
-          />
-        </div>
-        {allowRgba && (
-          <p className="mt-1.5 text-xs text-yellow-400/60">
-            Use rgba(...) for transparency — color picker works only with #hex
-          </p>
-        )}
-      </div>
-    );
-  };
-
-  const NumberField = ({ label, name, min = 0, max = 999, step = 1 }) => (
-    <div>
-      <label className={labelCls}>{label}</label>
-      <input
-        type="number"
-        min={min}
-        max={max}
-        step={step}
-        value={Number(form[name] ?? min)}
-        onChange={(e) => setField(name, Number(e.target.value))}
-        className={inputBase}
-      />
-    </div>
-  );
-
-  const ShadowField = ({ label, name, placeholder }) => (
-    <div>
-      <label className={labelCls}>{label}</label>
-      <input
-        type="text"
-        value={form[name] || ""}
-        onChange={(e) => setField(name, e.target.value)}
-        placeholder={placeholder}
-        className={`${inputBase} mt-2`}
-      />
-    </div>
-  );
-
-  const Section = ({ title, children }) => (
-    <div className={cardCls}>
-      <div className={headerCls}>
-        <h3 className={sectionTitleCls}>{title}</h3>
-      </div>
-      <div className="p-5 sm:p-6 lg:p-8">{children}</div>
-    </div>
-  );
 
   return (
     <div className={containerCls}>
@@ -229,242 +320,538 @@ const AffCommissionColorController = () => {
       {/* Main Content */}
       <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Section + Title */}
-        <Section title="Main Section & Title">
+        <Section
+          title="Main Section & Title"
+          cardCls={cardCls}
+          headerCls={headerCls}
+          sectionTitleCls={sectionTitleCls}
+        >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <ColorField
               label="Section Background"
               name="sectionBg"
+              value={form.sectionBg}
+              setField={setField}
               allowRgba={false}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
             />
             <ColorField
               label="Section Text Color"
               name="sectionText"
+              value={form.sectionText}
+              setField={setField}
               allowRgba={false}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
             />
             <ColorField
               label="Title Color"
               name="titleColor"
+              value={form.titleColor}
+              setField={setField}
               allowRgba={false}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
             />
             <NumberField
               label="Title Size (px)"
               name="titleSize"
+              value={form.titleSize}
+              setField={setField}
               min={18}
               max={60}
+              labelCls={labelCls}
+              inputBase={inputBase}
             />
           </div>
         </Section>
 
         {/* Main Table */}
-        <Section title="Commission Table">
+        <Section
+          title="Commission Table"
+          cardCls={cardCls}
+          headerCls={headerCls}
+          sectionTitleCls={sectionTitleCls}
+        >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <ColorField label="Table Border" name="tableBorder" />
+            <ColorField
+              label="Table Border"
+              name="tableBorder"
+              value={form.tableBorder}
+              setField={setField}
+              allowRgba={true}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
+            />
             <ColorField
               label="Header Background"
               name="tableHeaderBg"
+              value={form.tableHeaderBg}
+              setField={setField}
               allowRgba={false}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
             />
             <ColorField
               label="Header Text Color"
               name="tableHeaderText"
+              value={form.tableHeaderText}
+              setField={setField}
               allowRgba={false}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
             />
             <NumberField
               label="Header Text Size (px)"
               name="tableHeaderTextSize"
+              value={form.tableHeaderTextSize}
+              setField={setField}
               min={12}
               max={28}
+              labelCls={labelCls}
+              inputBase={inputBase}
             />
             <ColorField
               label="Row Background"
               name="tableRowBg"
+              value={form.tableRowBg}
+              setField={setField}
               allowRgba={false}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
             />
             <ColorField
               label="Row Text Color"
               name="tableRowText"
+              value={form.tableRowText}
+              setField={setField}
               allowRgba={false}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
             />
             <NumberField
               label="Row Text Size (px)"
               name="tableRowTextSize"
+              value={form.tableRowTextSize}
+              setField={setField}
               min={12}
               max={24}
+              labelCls={labelCls}
+              inputBase={inputBase}
             />
-            <ColorField label="Cell Border" name="tableCellBorder" />
+            <ColorField
+              label="Cell Border"
+              name="tableCellBorder"
+              value={form.tableCellBorder}
+              setField={setField}
+              allowRgba={true}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
+            />
           </div>
         </Section>
 
         {/* Buttons */}
-        <Section title="Action Buttons">
+        <Section
+          title="Action Buttons"
+          cardCls={cardCls}
+          headerCls={headerCls}
+          sectionTitleCls={sectionTitleCls}
+        >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <ColorField
               label="Button Background"
               name="btnBg"
+              value={form.btnBg}
+              setField={setField}
               allowRgba={false}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
             />
             <ColorField
               label="Button Hover Background"
               name="btnHoverBg"
+              value={form.btnHoverBg}
+              setField={setField}
               allowRgba={false}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
             />
             <ColorField
               label="Button Text Color"
               name="btnText"
+              value={form.btnText}
+              setField={setField}
               allowRgba={false}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
             />
             <NumberField
               label="Button Text Size (px)"
               name="btnTextSize"
+              value={form.btnTextSize}
+              setField={setField}
               min={12}
               max={24}
+              labelCls={labelCls}
+              inputBase={inputBase}
             />
             <NumberField
               label="Button Radius (px)"
               name="btnRadius"
+              value={form.btnRadius}
+              setField={setField}
               min={0}
               max={24}
+              labelCls={labelCls}
+              inputBase={inputBase}
             />
           </div>
         </Section>
 
         {/* Modal */}
-        <Section title="Commission Details Modal">
+        <Section
+          title="Commission Details Modal"
+          cardCls={cardCls}
+          headerCls={headerCls}
+          sectionTitleCls={sectionTitleCls}
+        >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <NumberField
               label="Overlay Opacity (0–1)"
               name="overlayOpacity"
+              value={form.overlayOpacity}
+              setField={setField}
               min={0}
               max={1}
               step={0.05}
+              labelCls={labelCls}
+              inputBase={inputBase}
             />
             <ColorField
               label="Modal Background"
               name="modalBg"
+              value={form.modalBg}
+              setField={setField}
               allowRgba={false}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
             />
             <ColorField
               label="Modal Text Color"
               name="modalText"
+              value={form.modalText}
+              setField={setField}
               allowRgba={false}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
             />
             <NumberField
               label="Modal Radius (px)"
               name="modalRadius"
+              value={form.modalRadius}
+              setField={setField}
               min={0}
               max={30}
+              labelCls={labelCls}
+              inputBase={inputBase}
             />
             <ShadowField
               label="Modal Shadow (CSS)"
               name="modalShadow"
+              value={form.modalShadow}
+              setField={setField}
               placeholder="0 18px 50px rgba(0,0,0,0.65)"
+              labelCls={labelCls}
+              inputBase={inputBase}
             />
             <ColorField
               label="Modal Title Color"
               name="modalTitleColor"
+              value={form.modalTitleColor}
+              setField={setField}
               allowRgba={false}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
             />
             <NumberField
               label="Modal Title Size (px)"
               name="modalTitleSize"
+              value={form.modalTitleSize}
+              setField={setField}
               min={18}
               max={70}
+              labelCls={labelCls}
+              inputBase={inputBase}
             />
-            <ColorField label="Close Hover Background" name="closeHoverBg" />
+            <ColorField
+              label="Close Hover Background"
+              name="closeHoverBg"
+              value={form.closeHoverBg}
+              setField={setField}
+              allowRgba={true}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
+            />
             <ColorField
               label="Close Icon Color"
               name="closeIconColor"
+              value={form.closeIconColor}
+              setField={setField}
               allowRgba={false}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
             />
-            <ColorField label="Bullet Point Color" name="bulletColor" />
+            <ColorField
+              label="Bullet Point Color"
+              name="bulletColor"
+              value={form.bulletColor}
+              setField={setField}
+              allowRgba={true}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
+            />
             <NumberField
               label="Bullet Size (px)"
               name="bulletSize"
+              value={form.bulletSize}
+              setField={setField}
               min={12}
               max={22}
+              labelCls={labelCls}
+              inputBase={inputBase}
             />
           </div>
         </Section>
 
         {/* Formula Section */}
-        <Section title="Commission Formula">
+        <Section
+          title="Commission Formula"
+          cardCls={cardCls}
+          headerCls={headerCls}
+          sectionTitleCls={sectionTitleCls}
+        >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <ColorField
               label="Formula Title Color"
               name="formulaTitleColor"
+              value={form.formulaTitleColor}
+              setField={setField}
               allowRgba={false}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
             />
             <NumberField
               label="Formula Title Size (px)"
               name="formulaTitleSize"
+              value={form.formulaTitleSize}
+              setField={setField}
               min={16}
               max={60}
+              labelCls={labelCls}
+              inputBase={inputBase}
             />
             <ColorField
               label="Formula Icon Background"
               name="formulaIconBg"
+              value={form.formulaIconBg}
+              setField={setField}
               allowRgba={false}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
             />
             <ColorField
               label="Formula Icon Color"
               name="formulaIconColor"
+              value={form.formulaIconColor}
+              setField={setField}
               allowRgba={false}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
             />
             <ColorField
               label="Formula Label Color"
               name="formulaLabelColor"
+              value={form.formulaLabelColor}
+              setField={setField}
               allowRgba={false}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
             />
             <NumberField
               label="Formula Label Size (px)"
               name="formulaLabelSize"
+              value={form.formulaLabelSize}
+              setField={setField}
               min={10}
               max={22}
+              labelCls={labelCls}
+              inputBase={inputBase}
             />
-            <ColorField label="Sign Color" name="signColor" allowRgba={false} />
+            <ColorField
+              label="Sign Color"
+              name="signColor"
+              value={form.signColor}
+              setField={setField}
+              allowRgba={false}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
+            />
             <NumberField
               label="Sign Size (px)"
               name="signSize"
+              value={form.signSize}
+              setField={setField}
               min={18}
               max={70}
+              labelCls={labelCls}
+              inputBase={inputBase}
             />
           </div>
         </Section>
 
         {/* Example Table (inside modal) */}
-        <Section title="Example Table (in Modal)">
+        <Section
+          title="Example Table (in Modal)"
+          cardCls={cardCls}
+          headerCls={headerCls}
+          sectionTitleCls={sectionTitleCls}
+        >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <ColorField label="Table Border" name="exTableBorder" />
+            <ColorField
+              label="Table Border"
+              name="exTableBorder"
+              value={form.exTableBorder}
+              setField={setField}
+              allowRgba={true}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
+            />
             <ColorField
               label="Header Background"
               name="exHeaderBg"
+              value={form.exHeaderBg}
+              setField={setField}
               allowRgba={false}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
             />
             <ColorField
               label="Header Text Color"
               name="exHeaderText"
+              value={form.exHeaderText}
+              setField={setField}
               allowRgba={false}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
             />
-            <ColorField label="Cell Border" name="exCellBorder" />
+            <ColorField
+              label="Cell Border"
+              name="exCellBorder"
+              value={form.exCellBorder}
+              setField={setField}
+              allowRgba={true}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
+            />
             <ColorField
               label="Row Background"
               name="exRowBg"
+              value={form.exRowBg}
+              setField={setField}
               allowRgba={false}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
             />
             <ColorField
               label="Row Text Color"
               name="exRowText"
+              value={form.exRowText}
+              setField={setField}
               allowRgba={false}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
             />
             <ColorField
               label="Total Row Background"
               name="exTotalBg"
+              value={form.exTotalBg}
+              setField={setField}
               allowRgba={false}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
             />
             <ColorField
               label="Total Row Text Color"
               name="exTotalText"
+              value={form.exTotalText}
+              setField={setField}
               allowRgba={false}
+              labelCls={labelCls}
+              inputBase={inputBase}
+              colorInputWrapper={colorInputWrapper}
+              colorPickerCls={colorPickerCls}
             />
           </div>
         </Section>

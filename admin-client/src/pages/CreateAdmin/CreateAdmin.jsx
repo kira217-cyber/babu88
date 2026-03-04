@@ -95,6 +95,10 @@ const CreateAdmin = () => {
         label: "Footer Controller ( /footer-controller )",
       },
       {
+        key: "jackpot-controller",
+        label: "Jackpot Controller ( /jackpot-controller )",
+      },
+      {
         key: "notice-controller",
         label: "Notice Controller ( /notice-controller )",
       },

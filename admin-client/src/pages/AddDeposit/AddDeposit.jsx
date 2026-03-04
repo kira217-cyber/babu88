@@ -35,6 +35,15 @@ const defaultInput = () => ({
   maxLength: 0,
 });
 
+// ✅ NEW: Label (BN/EN) + Number (multiple)
+const defaultContact = () => ({
+  id: "",
+  label: { ...emptyBi },
+  number: "",
+  isActive: true,
+  sort: 0,
+});
+
 // ────────────────────────────────────────────────
 // Shared styling classes
 // ────────────────────────────────────────────────
@@ -134,6 +143,10 @@ const AddDeposit = () => {
 
   const [channels, setChannels] = useState([defaultChannel()]);
   const [promotions, setPromotions] = useState([defaultPromotion()]);
+
+  // ✅ NEW: contacts list
+  const [contacts, setContacts] = useState([defaultContact()]);
+
   const [inputs, setInputs] = useState([
     {
       key: "amount",
@@ -186,7 +199,7 @@ const AddDeposit = () => {
       methodName_en: "",
       isActive: true,
 
-      // ✅ NEW
+      // ✅ Min/Max
       minDepositAmount: 0,
       maxDepositAmount: 0,
 
@@ -194,8 +207,7 @@ const AddDeposit = () => {
       baseBonusTitle_bn: "",
       baseBonusTitle_en: "",
       baseBonusPercent: 0,
-      agentNumber: "",
-      personalNumber: "",
+
       instructions_bn: "",
       instructions_en: "",
     },
@@ -207,6 +219,7 @@ const AddDeposit = () => {
       if (isCreateMode) {
         setChannels([defaultChannel()]);
         setPromotions([defaultPromotion()]);
+        setContacts([defaultContact()]);
         setInputs([
           {
             key: "amount",
@@ -230,7 +243,6 @@ const AddDeposit = () => {
       methodName_en: selected.methodName?.en || "",
       isActive: selected.isActive ?? true,
 
-      // ✅ NEW
       minDepositAmount: selected.minDepositAmount ?? 0,
       maxDepositAmount: selected.maxDepositAmount ?? 0,
 
@@ -238,8 +250,7 @@ const AddDeposit = () => {
       baseBonusTitle_bn: selected.baseBonusTitle?.bn || "",
       baseBonusTitle_en: selected.baseBonusTitle?.en || "",
       baseBonusPercent: selected.baseBonusPercent ?? 0,
-      agentNumber: selected.details?.agentNumber || "",
-      personalNumber: selected.details?.personalNumber || "",
+
       instructions_bn: selected.details?.instructions?.bn || "",
       instructions_en: selected.details?.instructions?.en || "",
     });
@@ -255,6 +266,47 @@ const AddDeposit = () => {
         ? selected.promotions
         : [defaultPromotion()],
     );
+
+    // ✅ contacts: prefer new details.contacts; fallback legacy agent/personal -> convert
+    const incomingContacts =
+      Array.isArray(selected.details?.contacts) &&
+      selected.details.contacts.length
+        ? selected.details.contacts
+        : [];
+
+    if (incomingContacts.length) {
+      setContacts(incomingContacts);
+    } else {
+      const legacyAgent = String(selected.details?.agentNumber || "").trim();
+      const legacyPersonal = String(
+        selected.details?.personalNumber || "",
+      ).trim();
+      const legacyList = [];
+
+      if (legacyAgent) {
+        legacyList.push({
+          id: "agent",
+          label: { bn: "এজেন্ট নাম্বার", en: "Agent Number" },
+          number: legacyAgent,
+          isActive: true,
+          sort: 0,
+        });
+      }
+      if (legacyPersonal) {
+        legacyList.push({
+          id: "personal",
+          label: {
+            bn: "পার্সোনাল/মার্চেন্ট নাম্বার",
+            en: "Personal/Merchant Number",
+          },
+          number: legacyPersonal,
+          isActive: true,
+          sort: 1,
+        });
+      }
+
+      setContacts(legacyList.length ? legacyList : [defaultContact()]);
+    }
 
     setInputs(
       Array.isArray(selected.details?.inputs) && selected.details.inputs.length
@@ -283,7 +335,6 @@ const AddDeposit = () => {
       methodName_en: "",
       isActive: true,
 
-      // ✅ NEW
       minDepositAmount: 0,
       maxDepositAmount: 0,
 
@@ -291,13 +342,13 @@ const AddDeposit = () => {
       baseBonusTitle_bn: "",
       baseBonusTitle_en: "",
       baseBonusPercent: 0,
-      agentNumber: "",
-      personalNumber: "",
+
       instructions_bn: "",
       instructions_en: "",
     });
     setChannels([defaultChannel()]);
     setPromotions([defaultPromotion()]);
+    setContacts([defaultContact()]);
     setInputs([
       {
         key: "amount",
@@ -344,6 +395,21 @@ const AddDeposit = () => {
       ),
     );
 
+  // ─── Contact Handlers (NEW) ───
+  const addContact = () => setContacts((p) => [...p, defaultContact()]);
+  const removeContact = (idx) =>
+    setContacts((p) => p.filter((_, i) => i !== idx));
+  const patchContact = (idx, key, val) =>
+    setContacts((p) => p.map((x, i) => (i === idx ? { ...x, [key]: val } : x)));
+  const patchContactBi = (idx, key, lang, val) =>
+    setContacts((p) =>
+      p.map((x, i) =>
+        i === idx
+          ? { ...x, [key]: { ...(x[key] || emptyBi), [lang]: val } }
+          : x,
+      ),
+    );
+
   // ─── Input Field Handlers ───
   const addInput = () => setInputs((p) => [...p, defaultInput()]);
   const removeInput = (idx) => setInputs((p) => p.filter((_, i) => i !== idx));
@@ -366,7 +432,6 @@ const AddDeposit = () => {
     if (!values.methodName_bn?.trim() || !values.methodName_en?.trim())
       return "Both BN & EN method names are required";
 
-    // ✅ NEW basic sanity (no breaking changes)
     const minA = Number(values.minDepositAmount ?? 0);
     const maxA = Number(values.maxDepositAmount ?? 0);
     if (Number.isNaN(minA) || minA < 0) return "Min deposit must be >= 0";
@@ -388,6 +453,16 @@ const AddDeposit = () => {
       if (Number.isNaN(v) || v < 0) return "Promotion bonusValue must be >= 0";
       if (p.bonusType === "percent" && v > 100)
         return "Promotion percent cannot be more than 100";
+    }
+
+    // ✅ NEW: validate contacts
+    for (const n of contacts) {
+      const num = String(n.number || "").trim();
+      const bn = String(n.label?.bn || "").trim();
+      const en = String(n.label?.en || "").trim();
+
+      if (!num) return "Number cannot be empty in Numbers section";
+      if (!bn || !en) return "Number label (BN/EN) both required";
     }
 
     for (const f of inputs) {
@@ -422,7 +497,6 @@ const AddDeposit = () => {
       );
       payload.append("isActive", String(!!values.isActive));
 
-      // ✅ NEW
       payload.append("minDepositAmount", String(values.minDepositAmount ?? 0));
       payload.append("maxDepositAmount", String(values.maxDepositAmount ?? 0));
 
@@ -444,8 +518,12 @@ const AddDeposit = () => {
       payload.append(
         "details",
         JSON.stringify({
-          agentNumber: values.agentNumber || "",
-          personalNumber: values.personalNumber || "",
+          // ✅ NEW
+          contacts: contacts.map((c, idx) => ({
+            ...c,
+            sort: Number(c.sort ?? idx),
+          })),
+
           instructions: {
             bn: values.instructions_bn || "",
             en: values.instructions_en || "",
@@ -614,7 +692,7 @@ const AddDeposit = () => {
               </div>
             </div>
 
-            {/* ✅ NEW: Min/Max Deposit Amount */}
+            {/* Min/Max Deposit Amount */}
             <div>
               <label className={labelCls}>Minimum Deposit Amount (৳)</label>
               <input
@@ -672,22 +750,100 @@ const AddDeposit = () => {
           {/* Deposit Details */}
           <div className="mb-8">
             <h3 className={subheadCls}>Deposit Details (per method)</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
-              <div>
-                <label className={labelCls}>Agent Number</label>
-                <input
-                  className={inputBase}
-                  placeholder="013XXXXXXXX"
-                  {...register("agentNumber")}
-                />
+
+            {/* ✅ NEW: Multiple Label+Number */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={subheadCls}>Numbers (Label + Number)</h3>
+                <button type="button" onClick={addContact} className={btnGhost}>
+                  + Add Number
+                </button>
               </div>
-              <div>
-                <label className={labelCls}>Personal / Merchant Number</label>
-                <input
-                  className={inputBase}
-                  placeholder="01XXXXXXXXX"
-                  {...register("personalNumber")}
-                />
+
+              <div className="space-y-5">
+                {contacts.map((n, idx) => (
+                  <div
+                    key={idx}
+                    className="p-5 bg-black/40 rounded-xl border border-yellow-800/30"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="text-yellow-200 font-medium">
+                        Number #{idx + 1}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeContact(idx)}
+                        disabled={contacts.length === 1}
+                        className={`${btnDanger} ${btnSmall}`}
+                      >
+                        Remove
+                      </button>
+                    </div>
+
+                    <BiInput
+                      title="Label"
+                      bnProps={{
+                        value: n.label?.bn || "",
+                        onChange: (e) =>
+                          patchContactBi(idx, "label", "bn", e.target.value),
+                        placeholder: "যেমন: এজেন্ট নাম্বার",
+                      }}
+                      enProps={{
+                        value: n.label?.en || "",
+                        onChange: (e) =>
+                          patchContactBi(idx, "label", "en", e.target.value),
+                        placeholder: "e.g. Agent Number",
+                      }}
+                    />
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                      <div>
+                        <label className={labelCls}>Number</label>
+                        <input
+                          className={inputBase}
+                          value={n.number || ""}
+                          onChange={(e) =>
+                            patchContact(idx, "number", e.target.value)
+                          }
+                          placeholder="01XXXXXXXXX / 013XXXXXXXX"
+                        />
+                      </div>
+
+                      <div className="flex items-end pt-6 justify-between gap-4">
+                        <label className="flex items-center gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="w-5 h-5 accent-yellow-500"
+                            checked={n.isActive ?? true}
+                            onChange={(e) =>
+                              patchContact(idx, "isActive", e.target.checked)
+                            }
+                          />
+                          <span className="text-yellow-100 font-medium">
+                            Active
+                          </span>
+                        </label>
+
+                        <div className="w-[140px]">
+                          <label className={labelCls}>Sort</label>
+                          <input
+                            type="number"
+                            step="1"
+                            className={inputBase}
+                            value={Number(n.sort ?? 0)}
+                            onChange={(e) =>
+                              patchContact(
+                                idx,
+                                "sort",
+                                Number(e.target.value || 0),
+                              )
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
