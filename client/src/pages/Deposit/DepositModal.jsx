@@ -455,7 +455,7 @@ const DepositModal = ({
                   disabled={!canSubmit || submitting}
                   className={`
                     mt-4 w-full cursor-pointer h-[46px] rounded-md text-[15px] font-extrabold transition
-                    ${canSubmit && !submitting ? "bg-[#8a8a8a] text-white hover:brightness-95" : "bg-[#bdbdbd] text-white/90 cursor-not-allowed"}
+                    ${canSubmit && !submitting ? "bg-[#1F6B57] text-white hover:brightness-95" : "bg-[#bdbdbd] text-white/90 cursor-not-allowed"}
                   `}
                 >
                   {submitting

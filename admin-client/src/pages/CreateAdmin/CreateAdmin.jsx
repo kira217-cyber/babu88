@@ -180,6 +180,10 @@ const CreateAdmin = () => {
         key: "live-controller",
         label: "Live Game Controller ( /live-controller )",
       },
+      {
+        key: "all-bet-logs",
+        label: "All Bet Logs ( /all-bet-logs )",
+      },
     ],
     [],
   );

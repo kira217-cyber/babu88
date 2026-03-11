@@ -12,6 +12,11 @@ import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import { api } from "../../api/axios";
 
+// ✅ asset path তোমার project অনুযায়ী adjust করে নিও
+import officialBrandPartnerImg from "../../assets/official-brand-partner.png";
+import gamingLicenseImg1 from "../../assets/gaming-license-1.png";
+import gamingLicenseImg2 from "../../assets/gaming-license-2.png";
+
 const BASE_URL = import.meta.env.VITE_API_URL;
 
 const fetchFooterData = async () => {
@@ -27,18 +32,21 @@ const fetchFooterColor = async () => {
 const hexToRgba = (hex, alpha = 1) => {
   if (!hex || typeof hex !== "string") return `rgba(255,255,255,${alpha})`;
   const h = hex.replace("#", "").trim();
+
   if (h.length === 3) {
     const r = parseInt(h[0] + h[0], 16);
     const g = parseInt(h[1] + h[1], 16);
     const b = parseInt(h[2] + h[2], 16);
     return `rgba(${r},${g},${b},${alpha})`;
   }
+
   if (h.length === 6) {
     const r = parseInt(h.slice(0, 2), 16);
     const g = parseInt(h.slice(2, 4), 16);
     const b = parseInt(h.slice(4, 6), 16);
     return `rgba(${r},${g},${b},${alpha})`;
   }
+
   return `rgba(255,255,255,${alpha})`;
 };
 
@@ -119,6 +127,10 @@ const Footer = () => {
       sponsorship: isBangla ? "স্পনসরশিপ" : "Sponsorship",
       paymentMethods: isBangla ? "মূল্যপরিশোধ পদ্ধতি" : "Payment Methods",
       responsibleGaming: isBangla ? "দায়বদ্ধ গেমিং" : "Responsible Gaming",
+      officialBrandPartner: isBangla
+        ? "অফিশিয়াল ব্র্যান্ড পার্টনার"
+        : "Official Brand Partner",
+      gamingLicense: isBangla ? "গেমিং লাইসেন্স" : "Gaming License",
       followUs: isBangla ? "আমাদের অনুসরণ করো" : "Follow Us",
       tagline: isBangla
         ? "বাংলাদেশের নং.১ - সবচেয়ে বড় এবং সবচেয়ে বিশ্বস্ত"
@@ -151,7 +163,7 @@ const Footer = () => {
       <footer className="w-full bg-transparent text-white mb-8 md:mb-0">
         <div className="mx-auto max-w-[1500px] px-4 sm:px-6 py-10">
           <div className="border-t border-dotted border-white/25 mb-10" />
-          {/* skeleton unchanged */}
+
           <div className="py-10">
             <Skeleton width={220} height={28} className="mb-6" />
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -178,7 +190,19 @@ const Footer = () => {
 
           <div className="border-t border-dotted border-white/25 my-10" />
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+          <div className="grid grid-cols-1 gap-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {[...Array(2)].map((_, i) => (
+                <div key={i} className="text-center">
+                  <Skeleton width={180} height={24} className="mb-6 mx-auto" />
+                  <div className="flex justify-center gap-3">
+                    <Skeleton width={100} height={42} />
+                    {i === 1 && <Skeleton width={100} height={42} />}
+                  </div>
+                </div>
+              ))}
+            </div>
+
             <div>
               <Skeleton width={180} height={28} className="mb-6" />
               <div className="flex flex-wrap gap-6">
@@ -187,11 +211,12 @@ const Footer = () => {
                 ))}
               </div>
             </div>
+
             <div>
               <Skeleton width={220} height={28} className="mb-6" />
               <div className="flex gap-4">
-                {[...Array(2)].map((_, i) => (
-                  <Skeleton key={i} width={112} height={48} />
+                {[...Array(3)].map((_, i) => (
+                  <Skeleton key={i} width={90} height={48} />
                 ))}
               </div>
             </div>
@@ -351,7 +376,69 @@ const Footer = () => {
             style={{ borderColor: "var(--footer-border)" }}
           />
 
-          {/* Payments + Responsible gaming */}
+          {/* Official Brand Partner + Gaming License */}
+          <section className="py-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
+              {/* Official Brand Partner */}
+              <div>
+                <h3
+                  className="font-extrabold mb-6"
+                  style={{
+                    color: "var(--footer-accent)",
+                    fontSize: `${c.sectionTitleSize}px`,
+                  }}
+                >
+                  {footerData?.texts?.[isBangla ? "bn" : "en"]
+                    ?.officialBrandPartner || t.officialBrandPartner}
+                </h3>
+
+                <div className="flex items-center">
+                  <img
+                    src={officialBrandPartnerImg}
+                    alt="Official Brand Partner"
+                    className="max-h-8 w-auto object-contain opacity-95"
+                    loading="lazy"
+                  />
+                </div>
+              </div>
+
+              {/* Gaming License */}
+              <div>
+                <h3
+                  className="font-extrabold mb-6"
+                  style={{
+                    color: "var(--footer-accent)",
+                    fontSize: `${c.sectionTitleSize}px`,
+                  }}
+                >
+                  {footerData?.texts?.[isBangla ? "bn" : "en"]?.gamingLicense ||
+                    t.gamingLicense}
+                </h3>
+
+                <div className="flex items-center gap-4 flex-wrap">
+                  <img
+                    src={gamingLicenseImg1}
+                    alt="Gaming License 1"
+                    className="max-h-8 w-auto object-contain opacity-95"
+                    loading="lazy"
+                  />
+                  <img
+                    src={gamingLicenseImg2}
+                    alt="Gaming License 2"
+                    className="max-h-8 w-auto object-contain opacity-95"
+                    loading="lazy"
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <div
+            className="border-t border-dotted"
+            style={{ borderColor: "var(--footer-border)" }}
+          />
+
+          {/* Payment Methods + Responsible gaming */}
           <section className="py-10">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
               {/* Payments */}
@@ -398,11 +485,11 @@ const Footer = () => {
                     ?.responsibleGaming || t.responsibleGaming}
                 </h3>
 
-                <div className="flex items-center justify-start lg:justify-start">
+                <div className="flex items-center justify-start lg:justify-start gap-4 flex-wrap">
                   {responsible.map((r) => (
                     <div
                       key={r._id || r.name}
-                      className="h-12 w-28 flex items-center justify-start opacity-70 hover:opacity-100 transition"
+                      className="h-12 flex items-center justify-start opacity-70 hover:opacity-100 transition"
                       title={r.name}
                     >
                       <img

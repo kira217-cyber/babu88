@@ -30,6 +30,7 @@ import {
   FaHistory,
 } from "react-icons/fa";
 import { PiBridgeBold } from "react-icons/pi";
+import { HiMiniCubeTransparent } from "react-icons/hi2";
 import { GiCardJackClubs } from "react-icons/gi";
 import { IoAppsSharp } from "react-icons/io5";
 import { GrAnnounce, GrUserAdmin } from "react-icons/gr";
@@ -122,6 +123,12 @@ const Sidebar = () => {
         to: "/live-controller",
         icon: <FaStream className="text-rose-400" />,
         text: "Live Controller",
+      },
+      {
+        key: "all-bet-logs",
+        to: "/all-bet-logs",
+        icon: <HiMiniCubeTransparent className="text-rose-400" />,
+        text: "All Bet Logs",
       },
     ],
     [],

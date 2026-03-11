@@ -53,6 +53,7 @@ import AffiliateWithdrawRequest from "../pages/AffiliateWithdrawRequest/Affiliat
 import AffiliateWithdrawRequestDetails from "../pages/AffiliateWithdrawRequestDetails/AffiliateWithdrawRequestDetails";
 import AddRedeem from "../pages/AddRedeem/AddRedeem";
 import JackpotController from "../pages/JackpotController/JackpotController";
+import BetLogAllUser from "../pages/BetLogAllUser/BetLogAllUser";
 
 export const routes = createBrowserRouter([
   {
@@ -342,6 +343,14 @@ export const routes = createBrowserRouter([
         element: (
           <PrivateRoute permKey="add-game">
             <AddGame />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "all-bet-logs",
+        element: (
+          <PrivateRoute permKey="all-bet-logs">
+            <BetLogAllUser />
           </PrivateRoute>
         ),
       },

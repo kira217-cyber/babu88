@@ -1,14 +1,37 @@
-import React from "react";
-import loading from "../../assets/Loading.gif"
-/**
- * Loading Component
- * Usage:
- *  <Loading open={loading} />
- *  <Loading open text="Processing..." />
- */
+import React, { useEffect, useState } from "react";
+import loading from "../../assets/Loading.gif";
+import loading2 from "../../assets/Loading2.png";
+
 const Loading = ({ open = false, text = "" }) => {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkDevice = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    checkDevice();
+    window.addEventListener("resize", checkDevice);
+    return () => window.removeEventListener("resize", checkDevice);
+  }, []);
+
   if (!open) return null;
 
+  /* 📱 MOBILE LOADER */
+  if (isMobile) {
+    return (
+      <div className="fixed inset-0 z-[999999]">
+        <img
+          src={loading2}
+          alt="Loading"
+          className="w-full h-full object-cover"
+          draggable={false}
+        />
+      </div>
+    );
+  }
+
+  /* 💻 DESKTOP LOADER */
   return (
     <div className="fixed inset-0 z-[999999] flex items-center justify-center">
       {/* Backdrop */}
@@ -16,13 +39,10 @@ const Loading = ({ open = false, text = "" }) => {
 
       {/* Loader */}
       <div className="relative flex flex-col items-center justify-center">
-        {/* ROUND WRAPPER */}
         <div className="loader-wrap">
-          {/* pulse layers */}
           <span className="pulse-ring pulse-1" />
           <span className="pulse-ring pulse-2" />
 
-          {/* main circle */}
           <div className="loader-core">
             <img
               src={loading}
@@ -32,28 +52,19 @@ const Loading = ({ open = false, text = "" }) => {
             />
           </div>
         </div>
-
-        {/* Optional text */}
-        {/* {text && (
-          <div className="mt-5 text-[13px] font-extrabold text-yellow-200/90">
-            {text}
-          </div>
-        )} */}
       </div>
 
-      {/* Component CSS */}
       <style>{`
-        /* wrapper keeps center, but MUST allow overflow so pulse can spread */
         .loader-wrap{
           position: relative;
           width: 210px;
           height: 210px;
           border-radius: 9999px;
-          overflow: visible; /* ✅ allow pulse spread */
+          overflow: visible;
           display: flex;
           align-items: center;
           justify-content: center;
-          isolation: isolate; /* ✅ keeps glow layering clean */
+          isolation: isolate;
         }
 
         .loader-core{
@@ -73,7 +84,6 @@ const Loading = ({ open = false, text = "" }) => {
             0 0 36px rgba(245,196,0,0.25);
         }
 
-        /* Pulse rings start at core size then expand outward */
         .pulse-ring{
           position:absolute;
           top: 50%;
@@ -87,11 +97,9 @@ const Loading = ({ open = false, text = "" }) => {
           z-index: 1;
           pointer-events: none;
 
-          /* extra glow for visibility */
           box-shadow:
             0 0 14px rgba(245,196,0,0.35),
             0 0 30px rgba(245,196,0,0.22);
-          filter: blur(0.2px);
         }
 
         .pulse-1{
@@ -115,7 +123,7 @@ const Loading = ({ open = false, text = "" }) => {
             opacity: 0.28;
           }
           100% {
-            transform: translate(-50%, -50%) scale(1.32); /* ✅ spread outward */
+            transform: translate(-50%, -50%) scale(1.32);
             opacity: 0;
           }
         }

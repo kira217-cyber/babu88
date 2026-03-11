@@ -19,6 +19,7 @@ import {
   FaLayerGroup,
   FaLock,
 } from "react-icons/fa";
+import BetLogSingleUser from "../../components/BetLogSingleUser/BetLogSingleUser";
 
 const fetchUser = async (id) => {
   const { data } = await api.get(`/api/admin/users/${id}`);
@@ -338,421 +339,426 @@ const UserDetails = () => {
         : "Custom Levels";
 
   return (
-    <div className="min-h-screen p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-black via-amber-950/10 to-black text-white">
-      <div className={card + " p-5 sm:p-7"}>
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-amber-900/30">
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-amber-100">
-              User Details
-            </h2>
-            <p className="text-amber-200/70 mt-1 text-sm font-mono">
-              ID: {user._id}
-            </p>
+    <>
+      {" "}
+      <div className="min-h-screen p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-black via-amber-950/10 to-black text-white">
+        <div className={card + " p-5 sm:p-7"}>
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-amber-900/30">
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-amber-100">
+                User Details
+              </h2>
+              <p className="text-amber-200/70 mt-1 text-sm font-mono">
+                ID: {user._id}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2.5">
+              <button className={secondaryBtn} onClick={() => navigate(-1)}>
+                <FaArrowLeft /> Back
+              </button>
+              <button
+                className={secondaryBtn}
+                onClick={refetch}
+                disabled={isFetching}
+              >
+                <FaSyncAlt className={isFetching ? "animate-spin" : ""} />
+                Refresh
+              </button>
+              <button
+                className={`${primaryBtn} min-w-[140px]`}
+                onClick={handleSaveAll}
+                disabled={saving}
+              >
+                <FaSave /> {saving ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
           </div>
 
-          <div className="flex flex-wrap gap-2.5">
-            <button className={secondaryBtn} onClick={() => navigate(-1)}>
-              <FaArrowLeft /> Back
-            </button>
-            <button
-              className={secondaryBtn}
-              onClick={refetch}
-              disabled={isFetching}
+          {/* Status */}
+          <div className="mt-5 flex items-center gap-4 flex-wrap">
+            <span
+              className={`inline-flex px-4 py-1.5 rounded-full text-sm font-bold border ${
+                user.isActive
+                  ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+                  : "bg-rose-500/20 text-rose-300 border-rose-500/30"
+              }`}
             >
-              <FaSyncAlt className={isFetching ? "animate-spin" : ""} />
-              Refresh
-            </button>
+              {user.isActive ? "Active" : "Inactive"}
+            </span>
+
             <button
-              className={`${primaryBtn} min-w-[140px]`}
-              onClick={handleSaveAll}
+              className={user.isActive ? dangerBtn : primaryBtn}
+              onClick={() => openStatusConfirm(!user.isActive)}
               disabled={saving}
             >
-              <FaSave /> {saving ? "Saving..." : "Save Changes"}
+              {user.isActive ? (
+                <>
+                  <FaUserSlash /> Deactivate
+                </>
+              ) : (
+                <>
+                  <FaUserCheck /> Activate
+                </>
+              )}
             </button>
-          </div>
-        </div>
 
-        {/* Status */}
-        <div className="mt-5 flex items-center gap-4 flex-wrap">
-          <span
-            className={`inline-flex px-4 py-1.5 rounded-full text-sm font-bold border ${
-              user.isActive
-                ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
-                : "bg-rose-500/20 text-rose-300 border-rose-500/30"
-            }`}
-          >
-            {user.isActive ? "Active" : "Inactive"}
-          </span>
-
-          <button
-            className={user.isActive ? dangerBtn : primaryBtn}
-            onClick={() => openStatusConfirm(!user.isActive)}
-            disabled={saving}
-          >
-            {user.isActive ? (
-              <>
-                <FaUserSlash /> Deactivate
-              </>
-            ) : (
-              <>
-                <FaUserCheck /> Activate
-              </>
+            {isFetching && (
+              <span className="text-amber-300/70 text-sm animate-pulse">
+                Refreshing...
+              </span>
             )}
-          </button>
+          </div>
 
-          {isFetching && (
-            <span className="text-amber-300/70 text-sm animate-pulse">
-              Refreshing...
-            </span>
-          )}
-        </div>
+          {/* Editable Fields */}
+          <div className="mt-8">
+            <h3 className={sectionTitle}>
+              <FaInfoCircle /> Basic Information
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {[
+                { label: "Username", key: "username" },
+                { label: "Phone", key: "phone" },
+                { label: "Email (optional)", key: "email" },
+                {
+                  label: "Currency",
+                  key: "currency",
+                  type: "select",
+                  options: ["BDT", "USDT"],
+                },
+                { label: "Balance", key: "balance", type: "number" },
+                { label: "First Name", key: "firstName" },
+                { label: "Last Name", key: "lastName" },
+                {
+                  label: "New Password (optional)",
+                  key: "password",
+                  type: "password",
+                },
+              ].map((field) => (
+                <div key={field.key}>
+                  <label className={label}>{field.label}</label>
 
-        {/* Editable Fields */}
-        <div className="mt-8">
-          <h3 className={sectionTitle}>
-            <FaInfoCircle /> Basic Information
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {[
-              { label: "Username", key: "username" },
-              { label: "Phone", key: "phone" },
-              { label: "Email (optional)", key: "email" },
-              {
-                label: "Currency",
-                key: "currency",
-                type: "select",
-                options: ["BDT", "USDT"],
-              },
-              { label: "Balance", key: "balance", type: "number" },
-              { label: "First Name", key: "firstName" },
-              { label: "Last Name", key: "lastName" },
-              {
-                label: "New Password (optional)",
-                key: "password",
-                type: "password",
-              },
-            ].map((field) => (
-              <div key={field.key}>
-                <label className={label}>{field.label}</label>
-
-                {field.type === "select" ? (
-                  <select
-                    className={inputBase}
-                    value={form[field.key] || ""}
-                    onChange={handleChange(field.key)}
-                  >
-                    {field.options.map((opt) => (
-                      <option key={opt} value={opt}>
-                        {opt}
-                      </option>
-                    ))}
-                  </select>
-                ) : field.type === "password" ? (
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      className={inputBase + " pr-10"}
+                  {field.type === "select" ? (
+                    <select
+                      className={inputBase}
                       value={form[field.key] || ""}
                       onChange={handleChange(field.key)}
-                      placeholder="Leave blank to keep current"
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-400 hover:text-amber-300"
-                      onClick={() => setShowPassword(!showPassword)}
                     >
-                      {showPassword ? <FaEyeSlash /> : <FaEye />}
-                    </button>
-                  </div>
-                ) : (
-                  <input
-                    type={field.type === "number" ? "number" : "text"}
-                    step={field.type === "number" ? "0.01" : undefined}
-                    className={inputBase}
-                    value={form[field.key] ?? ""}
-                    onChange={handleChange(field.key)}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Read-only Info */}
-        <div className="mt-10">
-          <h3 className={sectionTitle}>
-            <FaUserTag /> Account Information
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {[
-              { label: "Role", value: user.role || "user" },
-              { label: "Referral Code", value: user.referralCode || "—" },
-              { label: "Referred By", value: referredByText },
-              {
-                label: "Created Users Count",
-                value: String(user.createdUsers?.length || 0),
-              },
-              {
-                label: "Referral Count (safe)",
-                value: String(user.referralCount ?? 0),
-              },
-              {
-                label: "Refer Commission Balance",
-                value: String(user.referCommissionBalance ?? 0),
-              },
-              {
-                label: "Created At",
-                value: user.createdAt
-                  ? new Date(user.createdAt).toLocaleString("en-US")
-                  : "—",
-              },
-              {
-                label: "Last Updated",
-                value: user.updatedAt
-                  ? new Date(user.updatedAt).toLocaleString("en-US")
-                  : "—",
-              },
-            ].map((item) => (
-              <div key={item.label}>
-                <label className={label}>{item.label}</label>
-                <input className={inputBase} value={item.value} readOnly />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ✅ Referral Levels (Admin Controls) */}
-        <div className="mt-10">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
-            <h3 className={sectionTitle + " mb-0"}>
-              <FaLayerGroup /> Referral Levels
-            </h3>
-
-            <div className="flex flex-wrap gap-2">
-              <span className="px-3 py-2 rounded-lg text-xs font-bold border border-amber-900/50 bg-black/30 text-amber-200">
-                {tiersModeText}
-              </span>
-
-              <button
-                type="button"
-                className={smallBtn}
-                onClick={addTier}
-                disabled={tiersSaving || saving}
-              >
-                <FaPlus /> Add Level
-              </button>
-
-              <button
-                type="button"
-                className={smallBtn}
-                onClick={resetTiersToDefault}
-                disabled={tiersSaving || saving}
-                title="Set tiers to null (use default)"
-              >
-                <FaTimes /> Reset Default
-              </button>
-
-              <button
-                type="button"
-                className={smallBtn}
-                onClick={disableTiers}
-                disabled={tiersSaving || saving}
-                title="Set tiers to [] (disable payouts)"
-              >
-                <FaLock /> Disable
-              </button>
-
-              <button
-                type="button"
-                className={smallBtn}
-                onClick={handleSaveTiers}
-                disabled={tiersSaving || saving || !tiersDirty}
-              >
-                <FaSave /> {tiersSaving ? "Saving..." : "Update Levels"}
-              </button>
-            </div>
-          </div>
-
-          {/* Table */}
-          <div className="bg-black/25 border border-amber-900/40 rounded-xl overflow-hidden">
-            <div className="grid grid-cols-12 gap-0 text-xs font-bold text-amber-200/90 bg-black/30 border-b border-amber-900/30">
-              <div className="col-span-2 px-4 py-3">From</div>
-              <div className="col-span-2 px-4 py-3">To</div>
-              <div className="col-span-3 px-4 py-3">Amount</div>
-              <div className="col-span-3 px-4 py-3">Label</div>
-              <div className="col-span-1 px-4 py-3 text-center">On</div>
-              <div className="col-span-1 px-4 py-3 text-center">Del</div>
-            </div>
-
-            {Array.isArray(tiers) && tiers.length > 0 ? (
-              <div className="divide-y divide-amber-900/20">
-                {tiers.map((t, idx) => (
-                  <div key={idx} className="grid grid-cols-12 gap-0">
-                    <div className="col-span-2 p-3">
+                      {field.options.map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                  ) : field.type === "password" ? (
+                    <div className="relative">
                       <input
-                        type="number"
-                        min={1}
-                        className={inputBase}
-                        value={t.from}
-                        onChange={(e) =>
-                          updateTierField(idx, "from", e.target.value)
-                        }
+                        type={showPassword ? "text" : "password"}
+                        className={inputBase + " pr-10"}
+                        value={form[field.key] || ""}
+                        onChange={handleChange(field.key)}
+                        placeholder="Leave blank to keep current"
                       />
-                    </div>
-
-                    <div className="col-span-2 p-3">
-                      <input
-                        type="number"
-                        min={1}
-                        className={inputBase}
-                        value={t.to}
-                        onChange={(e) =>
-                          updateTierField(idx, "to", e.target.value)
-                        }
-                      />
-                    </div>
-
-                    <div className="col-span-3 p-3">
-                      <input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        className={inputBase}
-                        value={t.amount}
-                        onChange={(e) =>
-                          updateTierField(idx, "amount", e.target.value)
-                        }
-                        placeholder="Per referral payout"
-                      />
-                    </div>
-
-                    <div className="col-span-3 p-3">
-                      <input
-                        type="text"
-                        className={inputBase}
-                        value={t.label || ""}
-                        onChange={(e) =>
-                          updateTierField(idx, "label", e.target.value)
-                        }
-                        placeholder="Optional"
-                      />
-                    </div>
-
-                    <div className="col-span-1 p-3 flex items-center justify-center">
-                      <input
-                        type="checkbox"
-                        className="h-5 w-5 accent-amber-500"
-                        checked={t.isActive !== false}
-                        onChange={(e) =>
-                          updateTierField(idx, "isActive", e.target.checked)
-                        }
-                      />
-                    </div>
-
-                    <div className="col-span-1 p-3 flex items-center justify-center">
                       <button
                         type="button"
-                        className={smallDanger}
-                        onClick={() => removeTier(idx)}
-                        disabled={tiersSaving || saving}
-                        title="Delete level"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-400 hover:text-amber-300"
+                        onClick={() => setShowPassword(!showPassword)}
                       >
-                        <FaTrash />
+                        {showPassword ? <FaEyeSlash /> : <FaEye />}
                       </button>
                     </div>
-                  </div>
-                ))}
+                  ) : (
+                    <input
+                      type={field.type === "number" ? "number" : "text"}
+                      step={field.type === "number" ? "0.01" : undefined}
+                      className={inputBase}
+                      value={form[field.key] ?? ""}
+                      onChange={handleChange(field.key)}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Read-only Info */}
+          <div className="mt-10">
+            <h3 className={sectionTitle}>
+              <FaUserTag /> Account Information
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {[
+                { label: "Role", value: user.role || "user" },
+                { label: "Referral Code", value: user.referralCode || "—" },
+                { label: "Referred By", value: referredByText },
+                {
+                  label: "Created Users Count",
+                  value: String(user.createdUsers?.length || 0),
+                },
+                {
+                  label: "Referral Count (safe)",
+                  value: String(user.referralCount ?? 0),
+                },
+                {
+                  label: "Refer Commission Balance",
+                  value: String(user.referCommissionBalance ?? 0),
+                },
+                {
+                  label: "Created At",
+                  value: user.createdAt
+                    ? new Date(user.createdAt).toLocaleString("en-US")
+                    : "—",
+                },
+                {
+                  label: "Last Updated",
+                  value: user.updatedAt
+                    ? new Date(user.updatedAt).toLocaleString("en-US")
+                    : "—",
+                },
+              ].map((item) => (
+                <div key={item.label}>
+                  <label className={label}>{item.label}</label>
+                  <input className={inputBase} value={item.value} readOnly />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ✅ Referral Levels (Admin Controls) */}
+          <div className="mt-10">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+              <h3 className={sectionTitle + " mb-0"}>
+                <FaLayerGroup /> Referral Levels
+              </h3>
+
+              <div className="flex flex-wrap gap-2">
+                <span className="px-3 py-2 rounded-lg text-xs font-bold border border-amber-900/50 bg-black/30 text-amber-200">
+                  {tiersModeText}
+                </span>
+
+                <button
+                  type="button"
+                  className={smallBtn}
+                  onClick={addTier}
+                  disabled={tiersSaving || saving}
+                >
+                  <FaPlus /> Add Level
+                </button>
+
+                <button
+                  type="button"
+                  className={smallBtn}
+                  onClick={resetTiersToDefault}
+                  disabled={tiersSaving || saving}
+                  title="Set tiers to null (use default)"
+                >
+                  <FaTimes /> Reset Default
+                </button>
+
+                <button
+                  type="button"
+                  className={smallBtn}
+                  onClick={disableTiers}
+                  disabled={tiersSaving || saving}
+                  title="Set tiers to [] (disable payouts)"
+                >
+                  <FaLock /> Disable
+                </button>
+
+                <button
+                  type="button"
+                  className={smallBtn}
+                  onClick={handleSaveTiers}
+                  disabled={tiersSaving || saving || !tiersDirty}
+                >
+                  <FaSave /> {tiersSaving ? "Saving..." : "Update Levels"}
+                </button>
               </div>
-            ) : (
-              <div className="p-5 text-sm text-amber-200/80">
-                {tiers === null ? (
-                  <>
-                    This user is using <strong>Default Levels</strong>. Click{" "}
-                    <strong>Add Level</strong> to create a custom override, or{" "}
-                    <strong>Disable</strong> to set payout off.
-                  </>
-                ) : (
-                  <>
-                    Levels are <strong>Disabled</strong> for this user (tiers =
-                    []). Click <strong>Add Level</strong> to enable custom tiers
-                    again, or <strong>Reset Default</strong>.
-                  </>
-                )}
+            </div>
+
+            {/* Table */}
+            <div className="bg-black/25 border border-amber-900/40 rounded-xl overflow-hidden">
+              <div className="grid grid-cols-12 gap-0 text-xs font-bold text-amber-200/90 bg-black/30 border-b border-amber-900/30">
+                <div className="col-span-2 px-4 py-3">From</div>
+                <div className="col-span-2 px-4 py-3">To</div>
+                <div className="col-span-3 px-4 py-3">Amount</div>
+                <div className="col-span-3 px-4 py-3">Label</div>
+                <div className="col-span-1 px-4 py-3 text-center">On</div>
+                <div className="col-span-1 px-4 py-3 text-center">Del</div>
+              </div>
+
+              {Array.isArray(tiers) && tiers.length > 0 ? (
+                <div className="divide-y divide-amber-900/20">
+                  {tiers.map((t, idx) => (
+                    <div key={idx} className="grid grid-cols-12 gap-0">
+                      <div className="col-span-2 p-3">
+                        <input
+                          type="number"
+                          min={1}
+                          className={inputBase}
+                          value={t.from}
+                          onChange={(e) =>
+                            updateTierField(idx, "from", e.target.value)
+                          }
+                        />
+                      </div>
+
+                      <div className="col-span-2 p-3">
+                        <input
+                          type="number"
+                          min={1}
+                          className={inputBase}
+                          value={t.to}
+                          onChange={(e) =>
+                            updateTierField(idx, "to", e.target.value)
+                          }
+                        />
+                      </div>
+
+                      <div className="col-span-3 p-3">
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          className={inputBase}
+                          value={t.amount}
+                          onChange={(e) =>
+                            updateTierField(idx, "amount", e.target.value)
+                          }
+                          placeholder="Per referral payout"
+                        />
+                      </div>
+
+                      <div className="col-span-3 p-3">
+                        <input
+                          type="text"
+                          className={inputBase}
+                          value={t.label || ""}
+                          onChange={(e) =>
+                            updateTierField(idx, "label", e.target.value)
+                          }
+                          placeholder="Optional"
+                        />
+                      </div>
+
+                      <div className="col-span-1 p-3 flex items-center justify-center">
+                        <input
+                          type="checkbox"
+                          className="h-5 w-5 accent-amber-500"
+                          checked={t.isActive !== false}
+                          onChange={(e) =>
+                            updateTierField(idx, "isActive", e.target.checked)
+                          }
+                        />
+                      </div>
+
+                      <div className="col-span-1 p-3 flex items-center justify-center">
+                        <button
+                          type="button"
+                          className={smallDanger}
+                          onClick={() => removeTier(idx)}
+                          disabled={tiersSaving || saving}
+                          title="Delete level"
+                        >
+                          <FaTrash />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-5 text-sm text-amber-200/80">
+                  {tiers === null ? (
+                    <>
+                      This user is using <strong>Default Levels</strong>. Click{" "}
+                      <strong>Add Level</strong> to create a custom override, or{" "}
+                      <strong>Disable</strong> to set payout off.
+                    </>
+                  ) : (
+                    <>
+                      Levels are <strong>Disabled</strong> for this user (tiers
+                      = []). Click <strong>Add Level</strong> to enable custom
+                      tiers again, or <strong>Reset Default</strong>.
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {tiersDirty && (
+              <div className="mt-4 p-4 bg-amber-950/30 rounded-lg border border-amber-800/40 text-amber-200/90 text-sm">
+                <strong>Note:</strong> Referral levels changed. Click{" "}
+                <strong>Update Levels</strong> to save.
               </div>
             )}
           </div>
 
-          {tiersDirty && (
-            <div className="mt-4 p-4 bg-amber-950/30 rounded-lg border border-amber-800/40 text-amber-200/90 text-sm">
-              <strong>Note:</strong> Referral levels changed. Click{" "}
-              <strong>Update Levels</strong> to save.
+          {/* Save hint when password is set */}
+          {form.password.trim().length > 0 && (
+            <div className="mt-6 p-4 bg-amber-950/30 rounded-lg border border-amber-800/40 text-amber-200/90 text-sm">
+              <strong>Note:</strong> New password will be set on save (min 6
+              characters).
             </div>
           )}
         </div>
 
-        {/* Save hint when password is set */}
-        {form.password.trim().length > 0 && (
-          <div className="mt-6 p-4 bg-amber-950/30 rounded-lg border border-amber-800/40 text-amber-200/90 text-sm">
-            <strong>Note:</strong> New password will be set on save (min 6
-            characters).
+        {/* Status Confirmation Modal */}
+        {confirmOpen && (
+          <div
+            className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={closeConfirm}
+          >
+            <div
+              className="w-full max-w-md bg-gradient-to-b from-[#111] to-[#1a1200] border border-amber-800/50 rounded-2xl p-6 shadow-2xl shadow-amber-900/30"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-2xl font-bold text-amber-300">
+                {pendingStatus ? "Activate" : "Deactivate"} User?
+              </h3>
+              <p className="mt-3 text-amber-200/80">
+                Are you sure you want to{" "}
+                <strong>{pendingStatus ? "ACTIVATE" : "DEACTIVATE"}</strong>{" "}
+                this account?
+              </p>
+
+              <div className="mt-4 text-amber-200/90 text-sm space-y-1.5">
+                <div>
+                  Username:{" "}
+                  <span className="font-semibold">{user.username}</span>
+                </div>
+                <div>
+                  Phone:{" "}
+                  <span className="font-semibold">{user.phone || "—"}</span>
+                </div>
+              </div>
+
+              <div className="mt-8 flex justify-end gap-4">
+                <button
+                  onClick={closeConfirm}
+                  className={secondaryBtn}
+                  disabled={saving}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveStatusOnly}
+                  disabled={saving}
+                  className={pendingStatus ? primaryBtn : dangerBtn}
+                >
+                  {saving
+                    ? "Processing..."
+                    : pendingStatus
+                      ? "Activate"
+                      : "Deactivate"}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
-
-      {/* Status Confirmation Modal */}
-      {confirmOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
-          onClick={closeConfirm}
-        >
-          <div
-            className="w-full max-w-md bg-gradient-to-b from-[#111] to-[#1a1200] border border-amber-800/50 rounded-2xl p-6 shadow-2xl shadow-amber-900/30"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-2xl font-bold text-amber-300">
-              {pendingStatus ? "Activate" : "Deactivate"} User?
-            </h3>
-            <p className="mt-3 text-amber-200/80">
-              Are you sure you want to{" "}
-              <strong>{pendingStatus ? "ACTIVATE" : "DEACTIVATE"}</strong> this
-              account?
-            </p>
-
-            <div className="mt-4 text-amber-200/90 text-sm space-y-1.5">
-              <div>
-                Username: <span className="font-semibold">{user.username}</span>
-              </div>
-              <div>
-                Phone:{" "}
-                <span className="font-semibold">{user.phone || "—"}</span>
-              </div>
-            </div>
-
-            <div className="mt-8 flex justify-end gap-4">
-              <button
-                onClick={closeConfirm}
-                className={secondaryBtn}
-                disabled={saving}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveStatusOnly}
-                disabled={saving}
-                className={pendingStatus ? primaryBtn : dangerBtn}
-              >
-                {saving
-                  ? "Processing..."
-                  : pendingStatus
-                    ? "Activate"
-                    : "Deactivate"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      <BetLogSingleUser userId={id} />
+    </>
   );
 };
 
