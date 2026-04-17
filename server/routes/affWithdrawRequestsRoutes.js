@@ -69,7 +69,6 @@ router.get(
  * - deduct balance immediately
  */
 router.post("/affiliate-withdraw-requests", requireAuth, async (req, res) => {
-  const session = await mongoose.startSession();
   try {
     const aff = await requireAffUser(req);
 
@@ -129,58 +128,92 @@ router.post("/affiliate-withdraw-requests", requireAuth, async (req, res) => {
       }
     }
 
-    await session.withTransaction(async () => {
-      // re-check inside transaction
-      const user = await User.findById(aff._id).session(session);
+    // re-check user
+    const user = await User.findById(aff._id);
 
-      if (!user)
-        throw Object.assign(new Error("User not found"), { statusCode: 404 });
-      if (user.role !== "aff-user")
-        throw Object.assign(new Error("Forbidden (affiliate only)"), {
-          statusCode: 403,
-        });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
 
-      if (user.isActive === false)
-        throw Object.assign(new Error("User is inactive"), { statusCode: 403 });
+    if (user.role !== "aff-user") {
+      return res.status(403).json({
+        success: false,
+        message: "Forbidden (affiliate only)",
+      });
+    }
 
-      const currentBalance = Number(user.balance || 0);
-      if (currentBalance < amt) {
-        throw Object.assign(new Error("Insufficient balance"), {
-          statusCode: 400,
-        });
-      }
+    if (user.isActive === false) {
+      return res.status(403).json({
+        success: false,
+        message: "User is inactive",
+      });
+    }
 
-      const balanceAfter = currentBalance - amt;
+    const currentBalance = Number(user.balance || 0);
+    if (currentBalance < amt) {
+      return res.status(400).json({
+        success: false,
+        message: "Insufficient balance",
+      });
+    }
 
-      // ✅ create request
-      const doc = await AffWithdrawRequest.create(
-        [
-          {
-            user: user._id, // ✅ affiliate stored as user id
-            methodId: String(method.methodId),
-            amount: amt,
-            fields: payloadFields,
-            status: "pending",
-            balanceBefore: currentBalance,
-            balanceAfter,
-          },
-        ],
-        { session },
-      );
+    // ✅ extra re-check to reduce race condition
+    const freshUser = await User.findById(user._id);
 
-      // ✅ deduct balance immediately (HOLD)
-      await User.updateOne(
-        { _id: user._id },
-        { $set: { balance: balanceAfter } },
-      ).session(session);
+    if (!freshUser) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
 
-      res.locals.__created = doc?.[0];
+    if (freshUser.role !== "aff-user") {
+      return res.status(403).json({
+        success: false,
+        message: "Forbidden (affiliate only)",
+      });
+    }
+
+    if (freshUser.isActive === false) {
+      return res.status(403).json({
+        success: false,
+        message: "User is inactive",
+      });
+    }
+
+    const freshBalance = Number(freshUser.balance || 0);
+
+    if (freshBalance < amt) {
+      return res.status(400).json({
+        success: false,
+        message: "Insufficient balance",
+      });
+    }
+
+    const balanceAfter = freshBalance - amt;
+
+    // ✅ create request
+    const doc = await AffWithdrawRequest.create({
+      user: freshUser._id, // ✅ affiliate stored as user id
+      methodId: String(method.methodId),
+      amount: amt,
+      fields: payloadFields,
+      status: "pending",
+      balanceBefore: freshBalance,
+      balanceAfter,
     });
+
+    // ✅ deduct balance immediately (HOLD)
+    freshUser.balance = balanceAfter;
+    await freshUser.save();
 
     return res.json({
       success: true,
       message: "Affiliate withdraw request created (balance held).",
-      data: res.locals.__created,
+      data: doc,
     });
   } catch (e) {
     const status = e?.statusCode || 500;
@@ -188,8 +221,6 @@ router.post("/affiliate-withdraw-requests", requireAuth, async (req, res) => {
       success: false,
       message: e?.message || "Server error",
     });
-  } finally {
-    session.endSession();
   }
 });
 
@@ -368,50 +399,53 @@ router.patch(
   "/affiliate-withdraw-requests/:id/reject",
   requireAuth,
   async (req, res) => {
-    const session = await mongoose.startSession();
     try {
       const { adminNote } = req.body || {};
 
-      await session.withTransaction(async () => {
-        const doc = await AffWithdrawRequest.findById(req.params.id).session(
-          session,
-        );
+      const doc = await AffWithdrawRequest.findById(req.params.id);
 
-        if (!doc)
-          throw Object.assign(new Error("Not found"), { statusCode: 404 });
-        if (doc.status !== "pending") {
-          throw Object.assign(new Error("Only pending can be rejected"), {
-            statusCode: 400,
-          });
-        }
+      if (!doc) {
+        return res.status(404).json({
+          success: false,
+          message: "Not found",
+        });
+      }
 
-        // ✅ refund held amount
-        await User.updateOne(
-          { _id: doc.user },
-          { $inc: { balance: Number(doc.amount || 0) } },
-        ).session(session);
+      if (doc.status !== "pending") {
+        return res.status(400).json({
+          success: false,
+          message: "Only pending can be rejected",
+        });
+      }
 
-        doc.status = "rejected";
-        doc.rejectedAt = new Date();
-        doc.adminNote = adminNote || "";
-        await doc.save({ session });
+      const user = await User.findById(doc.user);
 
-        res.locals.__doc = doc;
-      });
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found",
+        });
+      }
+
+      // ✅ refund held amount
+      user.balance = Number(user.balance || 0) + Number(doc.amount || 0);
+      await user.save();
+
+      doc.status = "rejected";
+      doc.rejectedAt = new Date();
+      doc.adminNote = adminNote || "";
+      await doc.save();
 
       return res.json({
         success: true,
         message: "Rejected successfully (balance refunded).",
-        data: res.locals.__doc,
+        data: doc,
       });
     } catch (e) {
-      const status = e?.statusCode || 500;
-      return res.status(status).json({
+      return res.status(e?.statusCode || 500).json({
         success: false,
         message: e?.message || "Reject failed",
       });
-    } finally {
-      session.endSession();
     }
   },
 );

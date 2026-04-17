@@ -252,174 +252,206 @@ router.post(
   "/admin/deposit-requests/:id/approve",
   requireAuth,
   async (req, res) => {
-    const session = await mongoose.startSession();
     try {
       const adminNote = String(req.body.adminNote || "");
 
-      await session.withTransaction(async () => {
-        const doc = await DepositRequest.findById(req.params.id).session(
-          session,
-        );
-        if (!doc) throw new Error("Not found");
+      const doc = await DepositRequest.findById(req.params.id);
+      if (!doc) {
+        return res.status(404).json({
+          success: false,
+          message: "Not found",
+        });
+      }
 
-        // ✅ if already approved -> ensure turnover exists (idempotent)
-        if (doc.status === "approved") {
-          const exists = await TurnOver.findOne({
+      // ✅ if already approved -> ensure turnover exists (idempotent)
+      if (doc.status === "approved") {
+        const exists = await TurnOver.findOne({
+          user: doc.user,
+          sourceType: "deposit",
+          sourceId: doc._id,
+        });
+
+        if (!exists) {
+          const creditedAmount = Number(
+            doc?.calc?.creditedAmount || doc.amount || 0,
+          );
+          const targetTurnover = Number(doc?.calc?.targetTurnover || 0);
+
+          await TurnOver.create({
             user: doc.user,
             sourceType: "deposit",
             sourceId: doc._id,
-          }).session(session);
-
-          if (!exists) {
-            const creditedAmount = Number(
-              doc?.calc?.creditedAmount || doc.amount || 0,
-            );
-            const targetTurnover = Number(doc?.calc?.targetTurnover || 0);
-
-            await TurnOver.create(
-              [
-                {
-                  user: doc.user,
-                  sourceType: "deposit",
-                  sourceId: doc._id,
-                  required: targetTurnover,
-                  progress: 0,
-                  status: targetTurnover <= 0 ? "completed" : "running",
-                  creditedAmount,
-                  completedAt: targetTurnover <= 0 ? new Date() : null,
-                },
-              ],
-              { session },
-            );
-          }
-
-          return;
+            required: targetTurnover,
+            progress: 0,
+            status: targetTurnover <= 0 ? "completed" : "running",
+            creditedAmount,
+            completedAt: targetTurnover <= 0 ? new Date() : null,
+          });
         }
 
-        if (doc.status !== "pending") throw new Error("Already processed");
-
-        // ✅ re-check method config + recalc (prevent tampering)
-        const methodDoc = await DepositMethod.findOne({
-          methodId: String(doc.methodId),
-        }).session(session);
-
-        if (!methodDoc || methodDoc.isActive === false) {
-          throw new Error("Invalid deposit method");
-        }
-
-        const depositAmount = Number(doc.amount || 0);
-        if (!Number.isFinite(depositAmount) || depositAmount <= 0) {
-          throw new Error("Invalid amount");
-        }
-
-        const calc = computeBonuses({
-          amount: depositAmount,
-          methodDoc,
-          channelId: doc.channelId,
-          promoId: doc.promoId,
+        return res.json({
+          success: true,
+          message: "Already approved, turnover checked",
         });
+      }
 
-        const creditedAmount = depositAmount + Number(calc.totalBonus || 0);
+      if (doc.status !== "pending") {
+        return res.status(400).json({
+          success: false,
+          message: "Already processed",
+        });
+      }
 
-        // ✅ update user balance
-        const user = await User.findById(doc.user).session(session);
-        if (!user) throw new Error("User not found");
-        if (user.isActive === false) throw new Error("User not active");
+      // ✅ re-check method config + recalc (prevent tampering)
+      const methodDoc = await DepositMethod.findOne({
+        methodId: String(doc.methodId),
+      });
 
-        user.balance = Number(user.balance || 0) + creditedAmount;
-        await user.save({ session });
+      if (!methodDoc || methodDoc.isActive === false) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid deposit method",
+        });
+      }
 
-        // ✅ Affiliate deposit commission (your logic)
-        let affiliateCommissionInfo = null;
+      const depositAmount = Number(doc.amount || 0);
+      if (!Number.isFinite(depositAmount) || depositAmount <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid amount",
+        });
+      }
 
-        if (user.referredBy) {
-          const affiliator = await User.findById(user.referredBy).session(
-            session,
-          );
+      const calc = computeBonuses({
+        amount: depositAmount,
+        methodDoc,
+        channelId: doc.channelId,
+        promoId: doc.promoId,
+      });
 
-          if (
-            affiliator &&
-            affiliator.role === "aff-user" &&
-            affiliator.isActive
-          ) {
-            const pct = Number(affiliator.depositCommission || 0);
-            if (Number.isFinite(pct) && pct > 0) {
-              const commissionBase = depositAmount; // bonus ছাড়া
-              const commissionAmount = (commissionBase * pct) / 100;
+      const creditedAmount = depositAmount + Number(calc.totalBonus || 0);
 
-              if (commissionAmount > 0) {
-                affiliator.depositCommissionBalance =
-                  Number(affiliator.depositCommissionBalance || 0) +
-                  commissionAmount;
+      // ✅ update user balance
+      const user = await User.findById(doc.user);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found",
+        });
+      }
 
-                await affiliator.save({ session });
+      if (user.isActive === false) {
+        return res.status(400).json({
+          success: false,
+          message: "User not active",
+        });
+      }
 
-                affiliateCommissionInfo = {
-                  affiliatorId: String(affiliator._id),
-                  affiliatorUsername: affiliator.username,
-                  percent: pct,
-                  baseAmount: commissionBase,
-                  commissionAmount,
-                };
-              }
+      // ✅ extra re-check to reduce duplicate/race condition
+      const freshDoc = await DepositRequest.findById(req.params.id);
+      if (!freshDoc) {
+        return res.status(404).json({
+          success: false,
+          message: "Not found",
+        });
+      }
+
+      if (freshDoc.status !== "pending") {
+        return res.status(400).json({
+          success: false,
+          message: "Already processed",
+        });
+      }
+
+      user.balance = Number(user.balance || 0) + creditedAmount;
+      await user.save();
+
+      // ✅ Affiliate deposit commission (your logic)
+      let affiliateCommissionInfo = null;
+
+      if (user.referredBy) {
+        const affiliator = await User.findById(user.referredBy);
+
+        if (
+          affiliator &&
+          affiliator.role === "aff-user" &&
+          affiliator.isActive
+        ) {
+          const pct = Number(affiliator.depositCommission || 0);
+
+          if (Number.isFinite(pct) && pct > 0) {
+            const commissionBase = depositAmount; // bonus ছাড়া
+            const commissionAmount = (commissionBase * pct) / 100;
+
+            if (commissionAmount > 0) {
+              affiliator.depositCommissionBalance =
+                Number(affiliator.depositCommissionBalance || 0) +
+                commissionAmount;
+
+              await affiliator.save();
+
+              affiliateCommissionInfo = {
+                affiliatorId: String(affiliator._id),
+                affiliatorUsername: affiliator.username,
+                percent: pct,
+                baseAmount: commissionBase,
+                commissionAmount,
+              };
             }
           }
         }
+      }
 
-        // ✅ approve request
-        doc.status = "approved";
-        doc.adminNote = adminNote;
-        doc.approvedBy = req.user.id;
-        doc.approvedAt = new Date();
+      // ✅ approve request
+      freshDoc.status = "approved";
+      freshDoc.adminNote = adminNote;
+      freshDoc.approvedBy = req.user.id;
+      freshDoc.approvedAt = new Date();
 
-        doc.calc = {
-          channelPercent: calc.channelPercent,
-          percentBonus: calc.percentBonus,
-          promoBonus: calc.promoBonus,
-          totalBonus: calc.totalBonus,
-          turnoverMultiplier: calc.turnoverMultiplier,
-          targetTurnover: calc.targetTurnover,
-          creditedAmount,
-          affiliateDepositCommission: affiliateCommissionInfo,
-        };
+      freshDoc.calc = {
+        channelPercent: calc.channelPercent,
+        percentBonus: calc.percentBonus,
+        promoBonus: calc.promoBonus,
+        totalBonus: calc.totalBonus,
+        turnoverMultiplier: calc.turnoverMultiplier,
+        targetTurnover: calc.targetTurnover,
+        creditedAmount,
+        affiliateDepositCommission: affiliateCommissionInfo,
+      };
 
-        await doc.save({ session });
+      await freshDoc.save();
 
-        // ✅ create turnover (NEW schema) - safe against duplicate
-        const existingTo = await TurnOver.findOne({
-          user: user._id,
-          sourceType: "deposit",
-          sourceId: doc._id,
-        }).session(session);
-
-        if (!existingTo) {
-          const target = Number(calc.targetTurnover || 0);
-
-          await TurnOver.create(
-            [
-              {
-                user: user._id,
-                sourceType: "deposit",
-                sourceId: doc._id,
-                required: target,
-                progress: 0,
-                status: target <= 0 ? "completed" : "running",
-                creditedAmount,
-                completedAt: target <= 0 ? new Date() : null,
-              },
-            ],
-            { session },
-          );
-        }
+      // ✅ create turnover (NEW schema) - safe against duplicate
+      const existingTo = await TurnOver.findOne({
+        user: user._id,
+        sourceType: "deposit",
+        sourceId: freshDoc._id,
       });
 
-      return res.json({ success: true, message: "Approved" });
+      if (!existingTo) {
+        const target = Number(calc.targetTurnover || 0);
+
+        await TurnOver.create({
+          user: user._id,
+          sourceType: "deposit",
+          sourceId: freshDoc._id,
+          required: target,
+          progress: 0,
+          status: target <= 0 ? "completed" : "running",
+          creditedAmount,
+          completedAt: target <= 0 ? new Date() : null,
+        });
+      }
+
+      return res.json({
+        success: true,
+        message: "Approved",
+      });
     } catch (e) {
-      return res
-        .status(400)
-        .json({ success: false, message: e?.message || "Approve failed" });
-    } finally {
-      session.endSession();
+      return res.status(400).json({
+        success: false,
+        message: e?.message || "Approve failed",
+      });
     }
   },
 );

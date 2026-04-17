@@ -15,6 +15,8 @@ const router = express.Router();
  *  verification_key, bet_type, transaction_id, times
  * }
  *
+
+/**
  * ✅ Logic:
  * - only process bet_type === "REFUND" (optional strict)
  * - add +amount to user balance
@@ -22,8 +24,6 @@ const router = express.Router();
  * - idempotency: if transaction_id already exists in refundHistory -> skip
  */
 router.post("/", async (req, res) => {
-  const session = await mongoose.startSession();
-
   try {
     const {
       account_id,
@@ -83,92 +83,102 @@ router.post("/", async (req, res) => {
       });
     }
 
-    await session.withTransaction(async () => {
-      // ✅ Find user
-      const player = await User.findOne({ username: cleanUsername }).session(
-        session,
-      );
+    // ✅ Find user
+    const player = await User.findOne({ username: cleanUsername });
 
-      if (!player) {
-        throw Object.assign(new Error("User not found"), { statusCode: 404 });
+    if (!player) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // ✅ Optional: block inactive users
+    if (player.isActive === false) {
+      return res.status(403).json({
+        success: false,
+        message: "User is inactive",
+      });
+    }
+
+    // ✅ Idempotency: if same transaction_id already refunded, skip
+    if (transaction_id) {
+      const already = await User.findOne({
+        _id: player._id,
+        "refundHistory.transaction_id": transaction_id,
+      });
+
+      if (already) {
+        return res.json({
+          success: true,
+          message: "Already processed (duplicate refund transaction_id)",
+          data: {
+            transaction_id: req.body?.transaction_id || null,
+            current_balance: Number(player.balance || 0),
+          },
+        });
       }
+    }
 
-      // ✅ Optional: block inactive users
-      if (player.isActive === false) {
-        throw Object.assign(new Error("User is inactive"), { statusCode: 403 });
+    const currentBalance = Number(player.balance || 0);
+    const newBalance = currentBalance + amountFloat;
+
+    const refundRecord = {
+      provider_code,
+      game_code,
+      bet_type: "REFUND",
+      amount: amountFloat,
+      transaction_id: transaction_id || null,
+      verification_key: verification_key || null,
+      times: times || null,
+      status: "refunded",
+      balance_after: newBalance,
+      refundedAt: new Date(),
+    };
+
+    // ✅ extra re-check to reduce duplicate/race condition
+    if (transaction_id) {
+      const duplicateAgain = await User.findOne({
+        _id: player._id,
+        "refundHistory.transaction_id": transaction_id,
+      });
+
+      if (duplicateAgain) {
+        return res.json({
+          success: true,
+          message: "Already processed (duplicate refund transaction_id)",
+          data: {
+            transaction_id: req.body?.transaction_id || null,
+            current_balance: Number(player.balance || 0),
+          },
+        });
       }
+    }
 
-      // ✅ Idempotency: if same transaction_id already refunded, skip
-      if (transaction_id) {
-        const already = await User.findOne({
-          _id: player._id,
-          "refundHistory.transaction_id": transaction_id,
-        }).session(session);
+    // ✅ Update balance + push refundHistory
+    player.balance = newBalance;
+    if (!Array.isArray(player.refundHistory)) {
+      player.refundHistory = [];
+    }
+    player.refundHistory.push(refundRecord);
+    await player.save();
 
-        if (already) {
-          // return "success true" but no double-credit
-          throw Object.assign(new Error("DUPLICATE_REFUND_TX"), {
-            statusCode: 200,
-            duplicate: true,
-            currentBalance: player.balance || 0,
-          });
-        }
-      }
-
-      const currentBalance = Number(player.balance || 0);
-      const newBalance = currentBalance + amountFloat;
-
-      const refundRecord = {
-        provider_code,
-        game_code,
-        bet_type: "REFUND",
-        amount: amountFloat,
-        transaction_id: transaction_id || null,
-        verification_key: verification_key || null,
-        times: times || null,
-        status: "refunded",
-        balance_after: newBalance,
-        refundedAt: new Date(),
-      };
-
-      // ✅ Update balance + push refundHistory
-      await User.updateOne(
-        { _id: player._id },
-        {
-          $set: { balance: newBalance },
-          $push: { refundHistory: refundRecord },
-        },
-      ).session(session);
-
-      res.locals.__result = {
-        playerUsername: player.username,
-        newBalance,
-        refundAmount: amountFloat,
-        transaction_id: transaction_id || null,
-      };
-    });
+    const result = {
+      playerUsername: player.username,
+      newBalance,
+      refundAmount: amountFloat,
+      transaction_id: transaction_id || null,
+    };
 
     return res.json({
       success: true,
       message: "Refund processed successfully",
-      data: res.locals.__result,
+      data: result,
     });
   } catch (err) {
-    // ✅ Duplicate safe response
-    if (err?.message === "DUPLICATE_REFUND_TX" && err?.duplicate) {
-      return res.json({
-        success: true,
-        message: "Already processed (duplicate refund transaction_id)",
-        data: {
-          transaction_id: req.body?.transaction_id || null,
-          current_balance: err.currentBalance,
-        },
-      });
-    }
+    console.error("Refund callback error:", err);
 
     const status = err?.statusCode || 500;
-
-    console.error("Refund callback error:", err);
 
     return res.status(status).json({
       success: false,
@@ -176,8 +186,6 @@ router.post("/", async (req, res) => {
         status === 404 ? "User not found" : err.message || "Server error",
       error: process.env.NODE_ENV === "development" ? err.message : undefined,
     });
-  } finally {
-    session.endSession();
   }
 });
 

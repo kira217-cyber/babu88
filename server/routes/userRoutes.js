@@ -316,6 +316,7 @@ router.post("/register-aff", async (req, res) => {
  * POST /api/users/register
  * body: { username, phone, password, currency?, referral? }
  *
+/**
  * ✅ New logic:
  * - referral code may belong to aff-user OR user
  * - new user gets default referralTierOverride auto saved
@@ -323,107 +324,100 @@ router.post("/register-aff", async (req, res) => {
  * ============================
  */
 router.post("/register", async (req, res) => {
-  const session = await mongoose.startSession();
-
   try {
-    const { username, phone, password, currency = "BDT", referral = "" } = req.body;
+    const { username, phone, password, currency = "BDT", referral = "" } =
+      req.body;
 
     if (!username || !phone || !password) {
-      return res.status(400).json({ message: "username, phone, password required" });
+      return res.status(400).json({
+        message: "username, phone, password required",
+      });
     }
 
     const hash = await bcrypt.hash(password, 10);
-    let createdUserDoc = null;
 
-    await session.withTransaction(async () => {
-      let referrer = null;
+    let referrer = null;
+    const ref = String(referral || "")
+      .trim()
+      .toUpperCase();
 
-      const ref = String(referral || "").trim().toUpperCase();
+    // ✅ referral code can be user or aff-user
+    if (ref) {
+      referrer = await User.findOne({
+        referralCode: ref,
+        isActive: true,
+        role: { $in: ["user", "aff-user"] },
+      });
 
-      // ✅ referral code can be user or aff-user
-      if (ref) {
-        referrer = await User.findOne({
-          referralCode: ref,
-          isActive: true,
-          role: { $in: ["user", "aff-user"] },
-        }).session(session);
-
-        if (!referrer) throw new Error("INVALID_REFERRAL");
+      if (!referrer) {
+        return res.status(400).json({
+          message: "Invalid referral code",
+        });
       }
+    }
 
-      // ✅ new user's referralCode generated inside transaction
-      const myRef = await makeUniqueReferralCode(session);
+    // ✅ new user's referralCode generated
+    const myRef = await makeUniqueReferralCode();
 
-      // ✅ create new normal user (auto save default tiers)
-      createdUserDoc = await User.create(
-        [
-          {
-            username: String(username).trim(),
-            phone: String(phone).trim(),
-            password: hash,
-            currency,
-            role: "user",
-            isActive: true,
-            referredBy: referrer?._id || null,
-            referralCode: myRef,
+    // ✅ create new normal user (auto save default tiers)
+    const newUser = await User.create({
+      username: String(username).trim(),
+      phone: String(phone).trim(),
+      password: hash,
+      currency,
+      role: "user",
+      isActive: true,
+      referredBy: referrer?._id || null,
+      referralCode: myRef,
 
-            // ✅ default tiers auto save for every new normal user
-            referralTierOverride: DEFAULT_USER_TIERS.map((x) => ({ ...x })),
-          },
-        ],
-        { session },
-      );
-
-      const newUser = createdUserDoc[0];
-
-      // ✅ if referral used, update referrer with payout
-      if (referrer) {
-        const currentCount = Number(referrer.referralCount || 0);
-        const nextCount = currentCount + 1;
-
-        let payout = 0;
-
-        if (referrer.role === "aff-user") {
-          payout = Number(referrer.referCommission || 0);
-        } else if (referrer.role === "user") {
-          const override = getUserTiers(referrer);
-
-          // if override === null => use DEFAULT_USER_TIERS for payout decision
-          // if override === []   => payout 0
-          const tiersForPayout =
-            override === null ? DEFAULT_USER_TIERS : override;
-
-          payout = getTierPayout(tiersForPayout, nextCount);
-        }
-
-        await User.updateOne(
-          { _id: referrer._id },
-          {
-            $addToSet: { createdUsers: newUser._id },
-            $inc: {
-              referralCount: 1,
-              referCommissionBalance: payout,
-            },
-          },
-          { session },
-        );
-      }
+      // ✅ default tiers auto save for every new normal user
+      referralTierOverride: DEFAULT_USER_TIERS.map((x) => ({ ...x })),
     });
 
-    const newUser = createdUserDoc?.[0];
+    // ✅ if referral used, update referrer with payout
+    if (referrer) {
+      const currentCount = Number(referrer.referralCount || 0);
+      const nextCount = currentCount + 1;
+
+      let payout = 0;
+
+      if (referrer.role === "aff-user") {
+        payout = Number(referrer.referCommission || 0);
+      } else if (referrer.role === "user") {
+        const override = getUserTiers(referrer);
+
+        // if override === null => use DEFAULT_USER_TIERS for payout decision
+        // if override === []   => payout 0
+        const tiersForPayout =
+          override === null ? DEFAULT_USER_TIERS : override;
+
+        payout = getTierPayout(tiersForPayout, nextCount);
+      }
+
+      await User.updateOne(
+        { _id: referrer._id },
+        {
+          $addToSet: { createdUsers: newUser._id },
+          $inc: {
+            referralCount: 1,
+            referCommissionBalance: payout,
+          },
+        },
+      );
+    }
+
     const token = signToken(newUser);
     return res.json({ token, user: safeUser(newUser) });
   } catch (err) {
-    if (err.message === "INVALID_REFERRAL") {
-      return res.status(400).json({ message: "Invalid referral code" });
+    const msg = handleMongoDup(err);
+    if (msg) {
+      return res.status(409).json({ message: msg });
     }
 
-    const msg = handleMongoDup(err);
-    if (msg) return res.status(409).json({ message: msg });
-
-    return res.status(500).json({ message: "Server error", error: err.message });
-  } finally {
-    session.endSession();
+    return res.status(500).json({
+      message: "Server error",
+      error: err.message,
+    });
   }
 });
 

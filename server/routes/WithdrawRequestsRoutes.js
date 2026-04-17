@@ -69,20 +69,24 @@ router.get("/eligibility", requireAuth, async (req, res) => {
  * - creates pending request
  */
 router.post("/", requireAuth, async (req, res) => {
-  const session = await mongoose.startSession();
   try {
     const userId = req.user?.id || req.user?._id;
+
     if (!userId) {
-      return res.status(401).json({ success: false, message: "Unauthorized" });
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
     }
 
     const { methodId, amount, fields } = req.body || {};
     const amt = Number(amount || 0);
 
     if (!methodId || !Number.isFinite(amt) || amt <= 0) {
-      return res
-        .status(400)
-        .json({ success: false, message: "methodId and valid amount required" });
+      return res.status(400).json({
+        success: false,
+        message: "methodId and valid amount required",
+      });
     }
 
     // ✅ turnover check (must be fulfilled)
@@ -96,6 +100,7 @@ router.post("/", requireAuth, async (req, res) => {
         0,
         Number(running.required || 0) - Number(running.progress || 0),
       );
+
       return res.status(403).json({
         success: false,
         message: "Turnover not fulfilled. Complete turnover before withdraw.",
@@ -103,54 +108,78 @@ router.post("/", requireAuth, async (req, res) => {
       });
     }
 
-    await session.withTransaction(async () => {
-      const user = await User.findById(userId).session(session);
+    const user = await User.findById(userId);
 
-      if (!user) {
-        throw Object.assign(new Error("User not found"), { statusCode: 404 });
-      }
-      if (user.isActive === false) {
-        throw Object.assign(new Error("User is inactive"), { statusCode: 403 });
-      }
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
 
-      const currentBalance = Number(user.balance || 0);
-      if (currentBalance < amt) {
-        throw Object.assign(new Error("Insufficient balance"), {
-          statusCode: 400,
-        });
-      }
+    if (user.isActive === false) {
+      return res.status(403).json({
+        success: false,
+        message: "User is inactive",
+      });
+    }
 
-      const balanceAfter = currentBalance - amt;
+    const currentBalance = Number(user.balance || 0);
 
-      // ✅ create request
-      const doc = await WithdrawRequest.create(
-        [
-          {
-            user: user._id,
-            methodId: String(methodId),
-            amount: amt,
-            fields: fields && typeof fields === "object" ? fields : {},
-            status: "pending",
-            balanceBefore: currentBalance,
-            balanceAfter,
-          },
-        ],
-        { session },
-      );
+    if (currentBalance < amt) {
+      return res.status(400).json({
+        success: false,
+        message: "Insufficient balance",
+      });
+    }
 
-      // ✅ deduct user balance immediately (HOLD)
-      await User.updateOne(
-        { _id: user._id },
-        { $set: { balance: balanceAfter } },
-      ).session(session);
+    // ✅ extra re-check to reduce race condition
+    const freshUser = await User.findById(userId);
 
-      res.locals.__created = doc?.[0];
+    if (!freshUser) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    if (freshUser.isActive === false) {
+      return res.status(403).json({
+        success: false,
+        message: "User is inactive",
+      });
+    }
+
+    const freshBalance = Number(freshUser.balance || 0);
+
+    if (freshBalance < amt) {
+      return res.status(400).json({
+        success: false,
+        message: "Insufficient balance",
+      });
+    }
+
+    const balanceAfter = freshBalance - amt;
+
+    // ✅ create request
+    const doc = await WithdrawRequest.create({
+      user: freshUser._id,
+      methodId: String(methodId),
+      amount: amt,
+      fields: fields && typeof fields === "object" ? fields : {},
+      status: "pending",
+      balanceBefore: freshBalance,
+      balanceAfter,
     });
+
+    // ✅ deduct user balance immediately (HOLD)
+    freshUser.balance = balanceAfter;
+    await freshUser.save();
 
     return res.json({
       success: true,
       message: "Withdraw request created (balance held).",
-      data: res.locals.__created,
+      data: doc,
     });
   } catch (e) {
     const status = e?.statusCode || 500;
@@ -158,8 +187,6 @@ router.post("/", requireAuth, async (req, res) => {
       success: false,
       message: e?.message || "Server error",
     });
-  } finally {
-    session.endSession();
   }
 });
 
@@ -318,40 +345,47 @@ router.patch("/:id/approve", requireAuth, async (req, res) => {
  * - refunds user balance back (because balance was held)
  */
 router.patch("/:id/reject", requireAuth, async (req, res) => {
-  const session = await mongoose.startSession();
   try {
     const { adminNote } = req.body || {};
 
-    await session.withTransaction(async () => {
-      const doc = await WithdrawRequest.findById(req.params.id).session(session);
+    const doc = await WithdrawRequest.findById(req.params.id);
 
-      if (!doc) {
-        throw Object.assign(new Error("Not found"), { statusCode: 404 });
-      }
-      if (doc.status !== "pending") {
-        throw Object.assign(new Error("Only pending can be rejected"), {
-          statusCode: 400,
-        });
-      }
+    if (!doc) {
+      return res.status(404).json({
+        success: false,
+        message: "Not found",
+      });
+    }
 
-      // refund
-      await User.updateOne(
-        { _id: doc.user },
-        { $inc: { balance: Number(doc.amount || 0) } },
-      ).session(session);
+    if (doc.status !== "pending") {
+      return res.status(400).json({
+        success: false,
+        message: "Only pending can be rejected",
+      });
+    }
 
-      doc.status = "rejected";
-      doc.rejectedAt = new Date();
-      doc.adminNote = adminNote || "";
-      await doc.save({ session });
+    const user = await User.findById(doc.user);
 
-      res.locals.__doc = doc;
-    });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // refund
+    user.balance = Number(user.balance || 0) + Number(doc.amount || 0);
+    await user.save();
+
+    doc.status = "rejected";
+    doc.rejectedAt = new Date();
+    doc.adminNote = adminNote || "";
+    await doc.save();
 
     return res.json({
       success: true,
       message: "Rejected successfully (balance refunded).",
-      data: res.locals.__doc,
+      data: doc,
     });
   } catch (e) {
     const status = e?.statusCode || 500;
@@ -359,8 +393,6 @@ router.patch("/:id/reject", requireAuth, async (req, res) => {
       success: false,
       message: e?.message || "Reject failed",
     });
-  } finally {
-    session.endSession();
   }
 });
 

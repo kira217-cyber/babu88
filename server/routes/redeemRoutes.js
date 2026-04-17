@@ -35,93 +35,129 @@ router.get("/status", requireAuth, async (req, res) => {
 
 // ✅ Redeem confirm
 router.post("/", requireAuth, async (req, res) => {
-  const session = await mongoose.startSession();
   try {
     const userId = req.user?.id;
-    if (!userId) return res.status(401).json({ success: false, message: "Unauthorized" });
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
 
     const amount = clampNum(req.body?.amount);
 
     const settings = await RedeemSettings.findOne();
     if (!settings?.enabled) {
-      return res.status(403).json({ success: false, message: "Redeem is currently disabled" });
+      return res.status(403).json({
+        success: false,
+        message: "Redeem is currently disabled",
+      });
     }
 
     const min = Number(settings.minAmount || 0);
     const max = Number(settings.maxAmount || 0); // 0 => no limit
 
     if (!Number.isFinite(amount) || amount <= 0) {
-      return res.status(400).json({ success: false, message: "Valid amount required" });
+      return res.status(400).json({
+        success: false,
+        message: "Valid amount required",
+      });
     }
+
     if (min > 0 && amount < min) {
-      return res.status(400).json({ success: false, message: `Minimum redeem amount is ${min}` });
+      return res.status(400).json({
+        success: false,
+        message: `Minimum redeem amount is ${min}`,
+      });
     }
+
     if (max > 0 && amount > max) {
-      return res.status(400).json({ success: false, message: `Maximum redeem amount is ${max}` });
+      return res.status(400).json({
+        success: false,
+        message: `Maximum redeem amount is ${max}`,
+      });
     }
 
-    let createdHistory = null;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
 
-    await session.withTransaction(async () => {
-      const user = await User.findById(userId).session(session);
-      if (!user) throw Object.assign(new Error("User not found"), { statusCode: 404 });
-      if (user.isActive === false) throw Object.assign(new Error("User inactive"), { statusCode: 403 });
+    if (user.isActive === false) {
+      return res.status(403).json({
+        success: false,
+        message: "User inactive",
+      });
+    }
 
-      const walletBefore = Number(user.referCommissionBalance || 0);
-      const balanceBefore = Number(user.balance || 0);
+    const walletBefore = Number(user.referCommissionBalance || 0);
+    const balanceBefore = Number(user.balance || 0);
 
-      if (walletBefore < amount) {
-        throw Object.assign(new Error("Insufficient referral wallet balance"), { statusCode: 400 });
-      }
+    if (walletBefore < amount) {
+      return res.status(400).json({
+        success: false,
+        message: "Insufficient referral wallet balance",
+      });
+    }
 
-      const walletAfter = walletBefore - amount;
-      const balanceAfter = balanceBefore + amount;
+    // ✅ extra re-check to reduce race condition
+    const freshUser = await User.findById(userId);
+    if (!freshUser) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
 
-      // ✅ 1) create redeem history
-      const hist = await RedeemHistory.create(
-        [
-          {
-            user: user._id,
-            amount,
-            referralWalletBefore: walletBefore,
-            referralWalletAfter: walletAfter,
-            balanceBefore,
-            balanceAfter,
-            status: "completed",
-          },
-        ],
-        { session },
-      );
+    if (freshUser.isActive === false) {
+      return res.status(403).json({
+        success: false,
+        message: "User inactive",
+      });
+    }
 
-      createdHistory = hist?.[0];
+    const freshWalletBefore = Number(freshUser.referCommissionBalance || 0);
+    const freshBalanceBefore = Number(freshUser.balance || 0);
 
-      // ✅ 2) update user balances
-      await User.updateOne(
-        { _id: user._id },
-        {
-          $set: {
-            referCommissionBalance: walletAfter,
-            balance: balanceAfter,
-          },
-        },
-      ).session(session);
+    if (freshWalletBefore < amount) {
+      return res.status(400).json({
+        success: false,
+        message: "Insufficient referral wallet balance",
+      });
+    }
 
-      // ✅ 3) create turnover (1x)
-      // required = amount (1x)
-      await TurnOver.create(
-        [
-          {
-            user: user._id,
-            sourceType: "redeem",
-            sourceId: createdHistory._id,
-            required: amount, // 1x turnover
-            progress: 0,
-            status: "running",
-            creditedAmount: amount,
-          },
-        ],
-        { session },
-      );
+    const walletAfter = freshWalletBefore - amount;
+    const balanceAfter = freshBalanceBefore + amount;
+
+    // ✅ 1) create redeem history
+    const createdHistory = await RedeemHistory.create({
+      user: freshUser._id,
+      amount,
+      referralWalletBefore: freshWalletBefore,
+      referralWalletAfter: walletAfter,
+      balanceBefore: freshBalanceBefore,
+      balanceAfter,
+      status: "completed",
+    });
+
+    // ✅ 2) update user balances
+    freshUser.referCommissionBalance = walletAfter;
+    freshUser.balance = balanceAfter;
+    await freshUser.save();
+
+    // ✅ 3) create turnover (1x)
+    // required = amount (1x)
+    await TurnOver.create({
+      user: freshUser._id,
+      sourceType: "redeem",
+      sourceId: createdHistory._id,
+      required: amount, // 1x turnover
+      progress: 0,
+      status: "running",
+      creditedAmount: amount,
     });
 
     return res.json({
@@ -131,9 +167,10 @@ router.post("/", requireAuth, async (req, res) => {
     });
   } catch (e) {
     const status = e?.statusCode || 500;
-    return res.status(status).json({ success: false, message: e?.message || "Redeem failed" });
-  } finally {
-    session.endSession();
+    return res.status(status).json({
+      success: false,
+      message: e?.message || "Redeem failed",
+    });
   }
 });
 
