@@ -1,29 +1,18 @@
-// models/User.js
 import mongoose from "mongoose";
-import gameHistorySchema from "./GameHistory.js";
 
 const { Schema } = mongoose;
 
-/**
- * ✅ Per-user Referral Tier Override Schema
- * - Admin panel থেকে add/update/delete করা হবে
- * - amount: per referral fixed amount (BDT/USDT যেটা user.currency)
- * - from/to inclusive range (1..10, 11..30 etc)
- */
 const ReferralTierSchema = new Schema(
   {
     from: { type: Number, required: true, min: 1 },
     to: { type: Number, required: true, min: 1 },
-    amount: { type: Number, required: true, min: 0 }, // per referral payout
-    label: { type: String, default: "" }, // optional UI label
+    amount: { type: Number, required: true, min: 0 },
+    label: { type: String, default: "" },
     isActive: { type: Boolean, default: true },
   },
   { _id: false },
 );
 
-/**
- * ✅ Optional: Tier stats store (UI helper)
- */
 const ReferralTierStatSchema = new Schema(
   {
     from: { type: Number, required: true, min: 1 },
@@ -37,10 +26,7 @@ const ReferralTierStatSchema = new Schema(
 const userSchema = new Schema(
   {
     username: { type: String, required: true, trim: true },
-
-    // ❗ email unique না
     email: { type: String, default: "" },
-
     phone: { type: String, required: true, trim: true },
     password: { type: String, required: true },
 
@@ -63,66 +49,56 @@ const userSchema = new Schema(
       uppercase: true,
     },
 
-    // ✅ referral relations
     createdUsers: [{ type: Schema.Types.ObjectId, ref: "User", default: [] }],
     referredBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
 
-    // ✅ referral counter (race-safe)
     referralCount: { type: Number, default: 0, min: 0 },
 
-    // ✅ per-user override tiers (only for normal user)
     referralTierOverride: {
       type: [ReferralTierSchema],
-      default: null, // null => use default tiers
+      default: null,
     },
 
-    // ✅ optional stats (UI helper)
     referralTierStats: {
       type: [ReferralTierStatSchema],
       default: [],
     },
 
     commissionBalance: { type: Number, default: 0 },
-    // commissions (affiliate + other)
     gameLossCommission: { type: Number, default: 0 },
     depositCommission: { type: Number, default: 0 },
-    referCommission: { type: Number, default: 0 }, // ✅ affiliate fixed payout per referral
+    referCommission: { type: Number, default: 0 },
     gameWinCommission: { type: Number, default: 0 },
 
     gameLossCommissionBalance: { type: Number, default: 0 },
     depositCommissionBalance: { type: Number, default: 0 },
-    referCommissionBalance: { type: Number, default: 0 }, // ✅ referral earning wallet
+    referCommissionBalance: { type: Number, default: 0 },
     gameWinCommissionBalance: { type: Number, default: 0 },
 
     firstName: { type: String, default: "" },
     lastName: { type: String, default: "" },
+
     refundHistory: [
       {
         provider_code: String,
         game_code: String,
-        bet_type: String, // "REFUND"
+        bet_type: String,
         amount: Number,
         transaction_id: String,
         verification_key: String,
         times: Number,
-        status: String, // "refunded"
+        status: String,
         balance_after: Number,
         refundedAt: Date,
       },
     ],
-    // Existing fields
-    gameHistory: [gameHistorySchema],
   },
   { timestamps: true },
 );
 
-/**
- * ✅ Indexes
- */
 userSchema.index({ username: 1 }, { unique: true });
 userSchema.index({ phone: 1 }, { unique: true });
 userSchema.index({ referralCode: 1 }, { unique: true, sparse: true });
-
 userSchema.index({ role: 1, isActive: 1 });
 userSchema.index({ referredBy: 1 });
 

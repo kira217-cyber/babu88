@@ -26,6 +26,7 @@ const BET_TYPES = [
   "REFUND",
   "BONUS",
   "PROMO",
+  "CANCELBET",
 ];
 
 const STATUSES = [
@@ -65,7 +66,7 @@ const formatDateTime = (value) => {
 };
 
 const getStatusClass = (status) => {
-  switch (status) {
+  switch (String(status || "").toLowerCase()) {
     case "won":
       return "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30";
     case "lost":
@@ -80,13 +81,15 @@ const getStatusClass = (status) => {
     case "void":
     case "error":
       return "bg-orange-500/15 text-orange-300 border border-orange-500/30";
+    case "bet":
+      return "bg-sky-500/15 text-sky-300 border border-sky-500/30";
     default:
       return "bg-white/10 text-white border border-white/10";
   }
 };
 
 const getBetTypeClass = (type) => {
-  switch (type) {
+  switch (String(type || "").toUpperCase()) {
     case "BET":
       return "bg-sky-500/15 text-sky-300 border border-sky-500/30";
     case "SETTLE":
@@ -94,6 +97,7 @@ const getBetTypeClass = (type) => {
     case "REFUND":
       return "bg-yellow-500/15 text-yellow-200 border border-yellow-500/30";
     case "CANCEL":
+    case "CANCELBET":
       return "bg-orange-500/15 text-orange-300 border border-orange-500/30";
     case "BONUS":
     case "PROMO":
@@ -175,11 +179,25 @@ const MobileHistoryCard = ({ row, index, currentPage }) => {
         </div>
       </div>
 
-      <div className="mt-3 border-t border-amber-900/30 pt-3">
-        <p className="text-xs text-amber-200/70">Transaction ID</p>
-        <p className="text-sm text-white break-all">
-          {row.transaction_id || "-"}
-        </p>
+      <div className="mt-3 border-t border-amber-900/30 pt-3 space-y-2">
+        <div>
+          <p className="text-xs text-amber-200/70">Transaction ID</p>
+          <p className="text-sm text-white break-all">
+            {row.transaction_id || "-"}
+          </p>
+        </div>
+
+        <div>
+          <p className="text-xs text-amber-200/70">Verification Key</p>
+          <p className="text-sm text-white break-all">
+            {row.verification_key || "-"}
+          </p>
+        </div>
+
+        <div>
+          <p className="text-xs text-amber-200/70">Phone</p>
+          <p className="text-sm text-white break-all">{row.phone || "-"}</p>
+        </div>
       </div>
     </div>
   );
@@ -347,7 +365,7 @@ const BetLogSingleUser = () => {
                 type="text"
                 value={filters.q}
                 onChange={(e) => handleChange("q", e.target.value)}
-                placeholder="provider / game / transaction / round id / status..."
+                placeholder="provider / game / transaction / round id / verification / status..."
                 className="w-full rounded-xl border border-amber-900/50 bg-black/40 py-3 pl-10 pr-3 text-sm text-white placeholder-amber-200/40 outline-none focus:border-amber-500/70 focus:ring-2 focus:ring-amber-500/30"
               />
             </div>
@@ -423,7 +441,7 @@ const BetLogSingleUser = () => {
       {/* Desktop Table */}
       <div className="hidden xl:block mt-6 overflow-hidden rounded-2xl border border-amber-900/40 bg-black/20">
         <div className="overflow-x-auto">
-          <table className="min-w-[1280px] w-full text-sm">
+          <table className="min-w-[1500px] w-full text-sm">
             <thead className="bg-amber-950/30 text-left text-amber-100">
               <tr>
                 <th className="px-4 py-3">#</th>
@@ -436,6 +454,9 @@ const BetLogSingleUser = () => {
                 <th className="px-4 py-3 text-right">Win Amount</th>
                 <th className="px-4 py-3 text-right">Balance After</th>
                 <th className="px-4 py-3">Transaction ID</th>
+                <th className="px-4 py-3">Verification Key</th>
+                <th className="px-4 py-3">Round ID</th>
+                <th className="px-4 py-3">Phone</th>
               </tr>
             </thead>
 
@@ -443,7 +464,7 @@ const BetLogSingleUser = () => {
               {isLoading ? (
                 <tr>
                   <td
-                    colSpan={11}
+                    colSpan={13}
                     className="px-4 py-12 text-center text-amber-200/80"
                   >
                     Loading bet logs...
@@ -452,7 +473,7 @@ const BetLogSingleUser = () => {
               ) : rows.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={11}
+                    colSpan={13}
                     className="px-4 py-12 text-center text-amber-200/80"
                   >
                     No bet history found
@@ -461,7 +482,11 @@ const BetLogSingleUser = () => {
               ) : (
                 rows.map((row, index) => (
                   <tr
-                    key={row._id || `${row.transaction_id}-${index}`}
+                    key={
+                      row._id ||
+                      row.verification_key ||
+                      `${row.transaction_id}-${index}`
+                    }
                     className="border-t border-amber-900/20 hover:bg-amber-950/10 transition"
                   >
                     <td className="px-4 py-3 text-gray-200">
@@ -503,8 +528,17 @@ const BetLogSingleUser = () => {
                     <td className="px-4 py-3 text-right text-sky-300">
                       {formatMoney(row.balance_after)}
                     </td>
-                    <td className="px-4 py-3 text-gray-200">
+                    <td className="px-4 py-3 text-gray-200 break-all">
                       {row.transaction_id || "-"}
+                    </td>
+                    <td className="px-4 py-3 text-gray-200 break-all">
+                      {row.verification_key || "-"}
+                    </td>
+                    <td className="px-4 py-3 text-gray-200 break-all">
+                      {row.round_id || "-"}
+                    </td>
+                    <td className="px-4 py-3 text-gray-200 break-all">
+                      {row.phone || "-"}
                     </td>
                   </tr>
                 ))
@@ -530,7 +564,7 @@ const BetLogSingleUser = () => {
                     Loss: {formatMoney(safePageSummary.pageLossTotal)}
                   </td>
                   <td
-                    colSpan={2}
+                    colSpan={4}
                     className="px-4 py-4 text-left text-yellow-200"
                   >
                     Refund: {formatMoney(safePageSummary.pageRefundTotal)}
@@ -555,7 +589,11 @@ const BetLogSingleUser = () => {
         ) : (
           rows.map((row, index) => (
             <MobileHistoryCard
-              key={row._id || `${row.transaction_id}-${index}`}
+              key={
+                row._id ||
+                row.verification_key ||
+                `${row.transaction_id}-${index}`
+              }
               row={row}
               index={index}
               currentPage={currentPage}

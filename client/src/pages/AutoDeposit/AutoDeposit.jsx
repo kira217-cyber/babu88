@@ -23,7 +23,60 @@ const clampNumber = (val) => {
   return Math.floor(n);
 };
 
-const DepositDetailsModal = ({ open, onClose, onConfirm, details, t }) => {
+const computeBonusPreview = ({ amount, selectedBonus }) => {
+  const depositAmount = clampNumber(amount);
+
+  if (!selectedBonus) {
+    return {
+      depositAmount,
+      bonusAmount: 0,
+      creditedAmount: depositAmount,
+      turnoverMultiplier: 1,
+      targetTurnover: depositAmount,
+      bonusType: "",
+    };
+  }
+
+  const bonusType =
+    String(selectedBonus?.bonusType || "fixed").toLowerCase() === "percent"
+      ? "percent"
+      : "fixed";
+
+  const bonusValue = Number(selectedBonus?.bonusValue || 0);
+  let bonusAmount = 0;
+
+  if (bonusType === "percent") {
+    bonusAmount = Math.floor((depositAmount * bonusValue) / 100);
+  } else {
+    bonusAmount = Math.floor(bonusValue);
+  }
+
+  const turnoverMultiplier = Math.max(
+    Number(selectedBonus?.turnoverMultiplier || 1),
+    0,
+  );
+
+  const creditedAmount = depositAmount + bonusAmount;
+  const targetTurnover = Math.floor(creditedAmount * turnoverMultiplier);
+
+  return {
+    depositAmount,
+    bonusAmount,
+    creditedAmount,
+    turnoverMultiplier,
+    targetTurnover,
+    bonusType,
+  };
+};
+
+const DepositDetailsModal = ({
+  open,
+  onClose,
+  onConfirm,
+  details,
+  t,
+  selectedBonus,
+}) => {
   if (!open) return null;
 
   const Row = ({ k, v }) => (
@@ -60,11 +113,24 @@ const DepositDetailsModal = ({ open, onClose, onConfirm, details, t }) => {
           <div className="h-[1px] bg-black/25" />
         </div>
 
-        <div className="px-6 py-5 max-h-[55vh] overflow-auto">
+        <div className="px-6 py-5 max-h-[60vh] overflow-auto">
           <div className="space-y-3">
             <Row
               k={t("ডিপোজিট এমাউন্ট", "Deposit amount")}
               v={money(details.amount)}
+            />
+            <Row k={t("বোনাস", "Bonus")} v={money(details.bonusAmount)} />
+            <Row
+              k={t("মোট ক্রেডিট", "Total credited")}
+              v={money(details.creditedAmount)}
+            />
+            <Row
+              k={t("টার্নওভার মাল্টিপ্লায়ার", "Turnover multiplier")}
+              v={`x${details.turnoverMultiplier}`}
+            />
+            <Row
+              k={t("টার্গেট টার্নওভার", "Target turnover")}
+              v={money(details.targetTurnover)}
             />
             <Row k={t("ফি", "Fees")} v={money(details.fee)} />
             <Row
@@ -72,6 +138,17 @@ const DepositDetailsModal = ({ open, onClose, onConfirm, details, t }) => {
               v={money(details.total)}
             />
             <Row k={t("ইনভয়েস", "Invoice")} v={details.invoiceNumber} />
+          </div>
+
+          <div className="mt-4 rounded-lg bg-[#f7f7f7] border border-black/10 p-3">
+            <div className="text-[12px] font-bold text-black/70">
+              {t("সিলেক্টেড বোনাস", "Selected Bonus")}
+            </div>
+            <div className="mt-1 text-[13px] font-semibold text-black/80">
+              {selectedBonus
+                ? `${selectedBonus?.title?.bn || "—"} / ${selectedBonus?.title?.en || "—"}`
+                : t("কোনো বোনাস সিলেক্ট করা হয়নি", "No bonus selected")}
+            </div>
           </div>
 
           <div className="mt-6 flex justify-center">
@@ -101,6 +178,8 @@ const AutoDeposit = () => {
   const [enabled, setEnabled] = useState(false);
   const [minAmount, setMinAmount] = useState(5);
   const [maxAmount, setMaxAmount] = useState(0);
+  const [bonuses, setBonuses] = useState([]);
+  const [selectedBonusId, setSelectedBonusId] = useState("");
 
   const quickAmounts = useMemo(
     () => [200, 500, 1000, 2000, 5000, 10000, 20000, 50000],
@@ -118,17 +197,21 @@ const AutoDeposit = () => {
       try {
         setLoadingStatus(true);
         const { data } = await api.get("/api/auto-deposit/status");
+
         setEnabled(!!data?.data?.enabled);
         setMinAmount(Number(data?.data?.minAmount || 5));
         setMaxAmount(Number(data?.data?.maxAmount || 0));
+        setBonuses(Array.isArray(data?.data?.bonuses) ? data.data.bonuses : []);
       } catch {
         setEnabled(false);
         setMinAmount(5);
         setMaxAmount(0);
+        setBonuses([]);
       } finally {
         setLoadingStatus(false);
       }
     };
+
     loadStatus();
   }, []);
 
@@ -169,6 +252,21 @@ const AutoDeposit = () => {
 
   const onPickAmount = (v) => setAmount(String(v));
 
+  const selectedBonus = useMemo(
+    () =>
+      bonuses.find((b) => String(b?._id) === String(selectedBonusId)) || null,
+    [bonuses, selectedBonusId],
+  );
+
+  const bonusPreview = useMemo(
+    () =>
+      computeBonusPreview({
+        amount: amountNum,
+        selectedBonus,
+      }),
+    [amountNum, selectedBonus],
+  );
+
   const fee = 0;
   const total = amountNum + fee;
 
@@ -179,12 +277,14 @@ const AutoDeposit = () => {
       toast.error(t("এখন Auto Deposit উপলব্ধ নেই", "Auto Deposit is disabled"));
       return;
     }
+
     if (!userId) {
       toast.error(
         t("অনুগ্রহ করে আবার লগইন করুন", "User not found. Please login again."),
       );
       return;
     }
+
     if (!amountValid) return;
 
     const invoice = `DEP-${userId}-${Date.now()}`;
@@ -202,11 +302,13 @@ const AutoDeposit = () => {
         amount: amountNum,
         userIdentity: userId,
         invoiceNumber,
+        selectedBonusId: selectedBonus?._id || "",
         checkoutItems: {
           type: "deposit",
           method: "auto",
           gateway: "oraclepay",
           username: user?.username || "",
+          selectedBonusId: selectedBonus?._id || "",
         },
       });
 
@@ -230,7 +332,6 @@ const AutoDeposit = () => {
     }
   };
 
-  // ✅ UPDATED: use your Loading component here
   if (loadingStatus) {
     return <Loading open text={t("লোড হচ্ছে...", "Loading...")} />;
   }
@@ -337,6 +438,165 @@ const AutoDeposit = () => {
               </div>
             </div>
 
+            {/* Bonus Select */}
+            <div className="mt-6">
+              <div className="flex items-center justify-between gap-3">
+                <label className="text-[14px] font-semibold text-black">
+                  {t("বোনাস সিলেক্ট করুন", "Select Bonus")}
+                </label>
+                <span className="text-[12px] font-bold text-black/50">
+                  {selectedBonus
+                    ? t("বোনাস একটিভ", "Bonus selected")
+                    : t("না নিলেও চলবে", "Optional")}
+                </span>
+              </div>
+
+              <div className="mt-3">
+                <select
+                  value={selectedBonusId}
+                  onChange={(e) => setSelectedBonusId(e.target.value)}
+                  className="w-full max-w-[520px] bg-white border border-black/20 rounded-xl px-4 py-3 text-[14px] outline-none focus:ring-2 focus:ring-black/10"
+                >
+                  <option value="">
+                    {t(
+                      "কোনো বোনাস নিবো না (১x টার্নওভার)",
+                      "No bonus selected (1x turnover)",
+                    )}
+                  </option>
+
+                  {bonuses.map((bonus) => {
+                    const label = isBangla
+                      ? bonus?.title?.bn || bonus?.title?.en || "Bonus"
+                      : bonus?.title?.en || bonus?.title?.bn || "Bonus";
+
+                    const suffix =
+                      String(bonus?.bonusType) === "percent"
+                        ? `${Number(bonus?.bonusValue || 0)}%`
+                        : money(Number(bonus?.bonusValue || 0));
+
+                    return (
+                      <option key={bonus._id} value={bonus._id}>
+                        {label} - {suffix} - x
+                        {Number(bonus?.turnoverMultiplier || 1)}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              {selectedBonus ? (
+                <div className="mt-3 max-w-[520px] rounded-xl border border-black/10 bg-[#f8f8f8] p-3">
+                  <div className="text-[13px] font-extrabold text-black">
+                    {isBangla
+                      ? selectedBonus?.title?.bn || "বোনাস"
+                      : selectedBonus?.title?.en || "Bonus"}
+                  </div>
+                  <div className="mt-1 text-[12px] text-black/65">
+                    {String(selectedBonus?.bonusType) === "percent"
+                      ? t(
+                          `এই বোনাসে ${Number(selectedBonus?.bonusValue || 0)}% বোনাস পাবেন`,
+                          `You will get ${Number(selectedBonus?.bonusValue || 0)}% bonus`,
+                        )
+                      : t(
+                          `এই বোনাসে ${money(Number(selectedBonus?.bonusValue || 0))} ফিক্সড বোনাস পাবেন`,
+                          `You will get ${money(Number(selectedBonus?.bonusValue || 0))} fixed bonus`,
+                        )}
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-3 max-w-[520px] rounded-xl border border-black/10 bg-[#f8f8f8] p-3">
+                  <div className="text-[13px] font-semibold text-black/70">
+                    {t(
+                      "কোনো বোনাস সিলেক্ট করা হয়নি। এই ক্ষেত্রে আপনার টার্নওভার হবে ডিপোজিটের ১ গুণ।",
+                      "No bonus selected. In this case, your turnover will be 1x of your deposit.",
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Summary */}
+            {/* <div className="mt-6 max-w-[520px] rounded-xl border border-black/10 bg-[#fafafa] p-4">
+              <div className="text-[14px] font-extrabold text-black">
+                {t("ডিপোজিট সামারি", "Deposit Summary")}
+              </div>
+
+              <div className="mt-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-[13px] font-semibold text-black/55">
+                    {t("ডিপোজিট এমাউন্ট", "Deposit amount")}
+                  </div>
+                  <div className="text-[13px] font-extrabold text-black">
+                    {money(bonusPreview.depositAmount)}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="text-[13px] font-semibold text-black/55">
+                    {t("বোনাস এমাউন্ট", "Bonus amount")}
+                  </div>
+                  <div className="text-[13px] font-extrabold text-black">
+                    {money(bonusPreview.bonusAmount)}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="text-[13px] font-semibold text-black/55">
+                    {t("মোট ক্রেডিট", "Total credited")}
+                  </div>
+                  <div className="text-[13px] font-extrabold text-black">
+                    {money(bonusPreview.creditedAmount)}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="text-[13px] font-semibold text-black/55">
+                    {t("টার্নওভার মাল্টিপ্লায়ার", "Turnover multiplier")}
+                  </div>
+                  <div className="text-[13px] font-extrabold text-black">
+                    x{Number(bonusPreview.turnoverMultiplier || 1)}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between border-t border-black/10 pt-3">
+                  <div className="text-[13px] font-semibold text-black/55">
+                    {t("টার্গেট টার্নওভার", "Target turnover")}
+                  </div>
+                  <div className="text-[14px] font-extrabold text-[#0088ff]">
+                    {money(bonusPreview.targetTurnover)}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-lg bg-white border border-black/10 p-3 text-[12px] text-black/65 leading-relaxed">
+                {selectedBonus
+                  ? t(
+                      `এই বোনাস নিলে আপনার মোট ক্রেডিট হবে ${money(
+                        bonusPreview.creditedAmount,
+                      )} এবং টার্গেট টার্নওভার হবে ${money(
+                        bonusPreview.targetTurnover,
+                      )}।`,
+                      `With this bonus, your total credited amount will be ${money(
+                        bonusPreview.creditedAmount,
+                      )} and target turnover will be ${money(
+                        bonusPreview.targetTurnover,
+                      )}.`,
+                    )
+                  : t(
+                      `কোনো বোনাস না নিলে আপনার ডিপোজিট ${money(
+                        bonusPreview.depositAmount,
+                      )} এর উপর ১x টার্নওভার হবে, অর্থাৎ ${money(
+                        bonusPreview.targetTurnover,
+                      )}।`,
+                      `If you do not select any bonus, your deposit ${money(
+                        bonusPreview.depositAmount,
+                      )} will have 1x turnover, which is ${money(
+                        bonusPreview.targetTurnover,
+                      )}.`,
+                    )}
+              </div>
+            </div> */}
+
             {/* Deposit Button */}
             <div className="mt-6 max-w-[520px]">
               <button
@@ -392,6 +652,20 @@ const AutoDeposit = () => {
               <div>
                 •{" "}
                 {t(
+                  "বোনাস নিলে credited amount এবং turnover bonus অনুযায়ী হিসাব হবে।",
+                  "If you choose a bonus, credited amount and turnover will be calculated based on that bonus.",
+                )}
+              </div>
+              <div>
+                •{" "}
+                {t(
+                  "কোনো বোনাস না নিলে ১x turnover হবে।",
+                  "If no bonus is selected, turnover will be 1x.",
+                )}
+              </div>
+              <div>
+                •{" "}
+                {t(
                   "পেমেন্ট সম্পন্ন হলে ব্যালেন্স অটো যোগ হবে।",
                   "After completion, balance will be added automatically.",
                 )}
@@ -413,15 +687,19 @@ const AutoDeposit = () => {
           onConfirm={confirmAndPay}
           details={{
             amount: amountNum,
+            bonusAmount: bonusPreview.bonusAmount,
+            creditedAmount: bonusPreview.creditedAmount,
+            turnoverMultiplier: bonusPreview.turnoverMultiplier,
+            targetTurnover: bonusPreview.targetTurnover,
             fee,
             total,
             invoiceNumber: pendingInvoice,
           }}
+          selectedBonus={selectedBonus}
           t={t}
         />
       </div>
 
-      {/* ✅ Optional: show loader during processing as overlay */}
       <Loading open={processing} text={t("প্রসেস হচ্ছে...", "Processing...")} />
     </>
   );

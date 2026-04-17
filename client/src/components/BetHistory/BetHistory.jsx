@@ -8,8 +8,6 @@ import {
 } from "../../features/auth/authSelectors";
 import Loading from "../Loading/Loading";
 
-
-
 const fmtMoney = (n) => {
   const num = Number(n || 0);
   if (Number.isNaN(num)) return "0.00";
@@ -26,11 +24,52 @@ const fmtDateTime = (d) => {
   return dt.toLocaleString();
 };
 
+const statusClass = (status) => {
+  const s = String(status || "").toLowerCase();
+
+  if (["won", "settled"].includes(s)) {
+    return "bg-emerald-500/10 text-emerald-700 border border-emerald-500/20";
+  }
+
+  if (["lost", "error", "void"].includes(s)) {
+    return "bg-red-500/10 text-red-700 border border-red-500/20";
+  }
+
+  if (["refunded", "cancelled"].includes(s)) {
+    return "bg-yellow-500/10 text-yellow-700 border border-yellow-500/20";
+  }
+
+  return "bg-black/5 text-black/70 border border-black/10";
+};
+
+const typeClass = (type) => {
+  const t = String(type || "").toUpperCase();
+
+  if (t === "BET")
+    return "bg-blue-500/10 text-blue-700 border border-blue-500/20";
+  if (["SETTLE", "BONUS", "PROMO"].includes(t)) {
+    return "bg-emerald-500/10 text-emerald-700 border border-emerald-500/20";
+  }
+  if (["REFUND", "CANCEL", "CANCELBET"].includes(t)) {
+    return "bg-yellow-500/10 text-yellow-700 border border-yellow-500/20";
+  }
+
+  return "bg-black/5 text-black/70 border border-black/10";
+};
+
+const InfoRow = ({ label, value }) => (
+  <div className="flex items-start justify-between gap-3 py-2 border-b border-black/5 last:border-b-0">
+    <div className="text-[12px] font-bold text-black/45">{label}</div>
+    <div className="text-[12px] font-semibold text-black/80 text-right break-all">
+      {value || "-"}
+    </div>
+  </div>
+);
+
 const BetHistory = () => {
   const isAuth = useSelector(selectIsAuthenticated);
   const user = useSelector(selectUser);
 
-  // filters + pagination
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
@@ -38,8 +77,6 @@ const BetHistory = () => {
   const [betType, setBetType] = useState("");
   const [provider, setProvider] = useState("");
   const [gameCode, setGameCode] = useState("");
-
-  // quick date range (optional)
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
 
@@ -70,6 +107,17 @@ const BetHistory = () => {
 
   const rows = data?.data || [];
   const totalPages = data?.totalPages || 1;
+  const total = data?.total || 0;
+
+  const clearFilters = () => {
+    setPage(1);
+    setStatus("");
+    setBetType("");
+    setProvider("");
+    setGameCode("");
+    setFrom("");
+    setTo("");
+  };
 
   if (!isAuth) {
     return (
@@ -84,7 +132,6 @@ const BetHistory = () => {
 
   return (
     <div className="bg-white rounded-xl border border-black/10 p-4 md:p-5 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
-      {/* ✅ Global Loading Overlay */}
       <Loading open={isLoading} text="Loading bet history..." />
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
@@ -93,17 +140,28 @@ const BetHistory = () => {
             Bet History
           </div>
           <div className="text-[12px] text-black/55 mt-1">
-            Showing {rows.length} items • Page {page}/{totalPages}
+            Showing {rows.length} items • Total {total} • Page {page}/
+            {totalPages}
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => refetch()}
-          className="h-10 px-4 rounded-lg bg-black text-[#f5c400] font-extrabold text-[13px] hover:brightness-95"
-        >
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="h-10 px-4 rounded-lg border border-black/15 bg-white text-black font-extrabold text-[13px] hover:bg-black/[0.03]"
+          >
+            Clear
+          </button>
+
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="h-10 px-4 rounded-lg bg-black text-[#f5c400] font-extrabold text-[13px] hover:brightness-95"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -114,7 +172,7 @@ const BetHistory = () => {
             setPage(1);
             setStatus(e.target.value);
           }}
-          className="h-10 rounded-lg border border-black/15 px-3 text-[13px] outline-none"
+          className="h-10 rounded-lg border border-black/15 px-3 text-[13px] outline-none bg-white"
         >
           <option value="">All Status</option>
           <option value="pending">pending</option>
@@ -135,7 +193,7 @@ const BetHistory = () => {
             setPage(1);
             setBetType(e.target.value);
           }}
-          className="h-10 rounded-lg border border-black/15 px-3 text-[13px] outline-none"
+          className="h-10 rounded-lg border border-black/15 px-3 text-[13px] outline-none bg-white"
         >
           <option value="">All Bet Types</option>
           <option value="BET">BET</option>
@@ -144,6 +202,7 @@ const BetHistory = () => {
           <option value="REFUND">REFUND</option>
           <option value="BONUS">BONUS</option>
           <option value="PROMO">PROMO</option>
+          <option value="CANCELBET">CANCELBET</option>
         </select>
 
         <input
@@ -187,8 +246,8 @@ const BetHistory = () => {
         />
       </div>
 
-      {/* Content */}
-      <div className="mt-4">
+      {/* Desktop table */}
+      <div className="mt-4 hidden lg:block">
         {isLoading ? (
           <div className="text-[13px] text-black/60 py-10 text-center">
             Loading bet history...
@@ -203,7 +262,7 @@ const BetHistory = () => {
           </div>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-black/10">
-            <table className="min-w-[980px] w-full text-left">
+            <table className="min-w-[1250px] w-full text-left">
               <thead className="bg-[#f7f7f8]">
                 <tr className="text-[12px] text-black/65">
                   <th className="px-3 py-2 font-extrabold">Time</th>
@@ -215,12 +274,19 @@ const BetHistory = () => {
                   <th className="px-3 py-2 font-extrabold">Win</th>
                   <th className="px-3 py-2 font-extrabold">Balance After</th>
                   <th className="px-3 py-2 font-extrabold">Txn ID</th>
+                  <th className="px-3 py-2 font-extrabold">Verification</th>
+                  <th className="px-3 py-2 font-extrabold">Round</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((x, idx) => (
                   <tr
-                    key={x.transaction_id || `${x.createdAt}-${idx}`}
+                    key={
+                      x._id ||
+                      x.verification_key ||
+                      x.transaction_id ||
+                      `${x.createdAt}-${idx}`
+                    }
                     className="border-t border-black/5 text-[13px]"
                   >
                     <td className="px-3 py-2">{fmtDateTime(x.createdAt)}</td>
@@ -228,22 +294,116 @@ const BetHistory = () => {
                       {x.provider_code || "-"}
                     </td>
                     <td className="px-3 py-2">{x.game_code || "-"}</td>
-                    <td className="px-3 py-2">{x.bet_type || "-"}</td>
                     <td className="px-3 py-2">
-                      <span className="px-2 py-[2px] rounded-md bg-black/5 font-semibold">
+                      <span
+                        className={`px-2 py-[3px] rounded-md text-[12px] font-bold ${typeClass(
+                          x.bet_type,
+                        )}`}
+                      >
+                        {x.bet_type || "-"}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2">
+                      <span
+                        className={`px-2 py-[3px] rounded-md text-[12px] font-bold ${statusClass(
+                          x.status,
+                        )}`}
+                      >
                         {x.status || "-"}
                       </span>
                     </td>
-                    <td className="px-3 py-2">{fmtMoney(x.amount)}</td>
+                    <td className="px-3 py-2 font-semibold">
+                      {fmtMoney(x.amount)}
+                    </td>
                     <td className="px-3 py-2">{fmtMoney(x.win_amount)}</td>
                     <td className="px-3 py-2">{fmtMoney(x.balance_after)}</td>
-                    <td className="px-3 py-2 text-[12px] text-black/70">
+                    <td className="px-3 py-2 text-[12px] text-black/70 break-all">
                       {x.transaction_id || "-"}
+                    </td>
+                    <td className="px-3 py-2 text-[12px] text-black/70 break-all">
+                      {x.verification_key || "-"}
+                    </td>
+                    <td className="px-3 py-2 text-[12px] text-black/70 break-all">
+                      {x.round_id || "-"}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+      </div>
+
+      {/* Mobile / tablet cards */}
+      <div className="mt-4 lg:hidden">
+        {isLoading ? (
+          <div className="text-[13px] text-black/60 py-10 text-center">
+            Loading bet history...
+          </div>
+        ) : isError ? (
+          <div className="text-[13px] text-red-600 py-10 text-center">
+            Failed to load bet history.
+          </div>
+        ) : rows.length === 0 ? (
+          <div className="text-[13px] text-black/60 py-10 text-center">
+            No bet history found.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {rows.map((x, idx) => (
+              <div
+                key={
+                  x._id ||
+                  x.verification_key ||
+                  x.transaction_id ||
+                  `${x.createdAt}-${idx}`
+                }
+                className="rounded-xl border border-black/10 bg-white overflow-hidden"
+              >
+                <div className="p-3 border-b border-black/5 bg-[#fafafa]">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-[12px] font-bold text-black/50">
+                      {fmtDateTime(x.createdAt)}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`px-2 py-[3px] rounded-md text-[11px] font-bold ${typeClass(
+                          x.bet_type,
+                        )}`}
+                      >
+                        {x.bet_type || "-"}
+                      </span>
+                      <span
+                        className={`px-2 py-[3px] rounded-md text-[11px] font-bold ${statusClass(
+                          x.status,
+                        )}`}
+                      >
+                        {x.status || "-"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-2 text-[14px] font-extrabold text-black">
+                    {x.provider_code || "-"} • {x.game_code || "-"}
+                  </div>
+                </div>
+
+                <div className="p-3">
+                  <InfoRow label="Amount" value={fmtMoney(x.amount)} />
+                  <InfoRow label="Win" value={fmtMoney(x.win_amount)} />
+                  <InfoRow
+                    label="Balance After"
+                    value={fmtMoney(x.balance_after)}
+                  />
+                  <InfoRow label="Transaction ID" value={x.transaction_id} />
+                  <InfoRow
+                    label="Verification Key"
+                    value={x.verification_key}
+                  />
+                  <InfoRow label="Round ID" value={x.round_id} />
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

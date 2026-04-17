@@ -24,6 +24,7 @@ const BET_TYPES = [
   "REFUND",
   "BONUS",
   "PROMO",
+  "CANCELBET",
 ];
 
 const STATUSES = [
@@ -63,7 +64,7 @@ const formatDateTime = (value) => {
 };
 
 const getStatusClass = (status) => {
-  switch (status) {
+  switch (String(status || "").toLowerCase()) {
     case "won":
       return "bg-green-500/15 text-green-300 border border-green-500/30";
     case "lost":
@@ -74,6 +75,8 @@ const getStatusClass = (status) => {
       return "bg-blue-500/15 text-blue-300 border border-blue-500/30";
     case "pending":
       return "bg-gray-500/15 text-gray-300 border border-gray-500/30";
+    case "bet":
+      return "bg-sky-500/15 text-sky-300 border border-sky-500/30";
     case "cancelled":
     case "void":
     case "error":
@@ -84,7 +87,7 @@ const getStatusClass = (status) => {
 };
 
 const getBetTypeClass = (type) => {
-  switch (type) {
+  switch (String(type || "").toUpperCase()) {
     case "BET":
       return "bg-sky-500/15 text-sky-300 border border-sky-500/30";
     case "SETTLE":
@@ -92,6 +95,7 @@ const getBetTypeClass = (type) => {
     case "REFUND":
       return "bg-yellow-500/15 text-yellow-200 border border-yellow-500/30";
     case "CANCEL":
+    case "CANCELBET":
       return "bg-orange-500/15 text-orange-300 border border-orange-500/30";
     case "BONUS":
     case "PROMO":
@@ -188,11 +192,20 @@ const MobileRowCard = ({ row, index, currentPage }) => {
         </span>
       </div>
 
-      <div className="mt-3 border-t border-yellow-700/20 pt-3">
-        <p className="text-xs text-yellow-200/70">Transaction ID</p>
-        <p className="text-sm text-white break-all">
-          {row.transaction_id || "-"}
-        </p>
+      <div className="mt-3 border-t border-yellow-700/20 pt-3 space-y-2">
+        <div>
+          <p className="text-xs text-yellow-200/70">Transaction ID</p>
+          <p className="text-sm text-white break-all">
+            {row.transaction_id || "-"}
+          </p>
+        </div>
+
+        <div>
+          <p className="text-xs text-yellow-200/70">Verification Key</p>
+          <p className="text-sm text-white break-all">
+            {row.verification_key || "-"}
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -360,7 +373,8 @@ const BetLogAllUser = () => {
               Search & Filters
             </h2>
             <p className="text-xs text-yellow-200/70">
-              username, provider, game, transaction id, time range
+              username, provider, game, transaction id, verification key, phone,
+              time range
             </p>
           </div>
         </div>
@@ -379,7 +393,7 @@ const BetLogAllUser = () => {
                 type="text"
                 value={filters.q}
                 onChange={(e) => handleChange("q", e.target.value)}
-                placeholder="username / provider / game / transaction / phone..."
+                placeholder="username / provider / game / transaction / verification / phone..."
                 className="w-full rounded-xl border border-yellow-700/40 bg-black/60 py-3 pl-10 pr-3 text-sm text-white placeholder-yellow-200/40 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20"
               />
             </div>
@@ -457,7 +471,7 @@ const BetLogAllUser = () => {
       {/* Desktop / Tablet Table */}
       <div className="hidden lg:block overflow-hidden rounded-2xl border border-yellow-700/30 bg-gradient-to-br from-black via-yellow-950/10 to-black shadow-lg">
         <div className="overflow-x-auto">
-          <table className="min-w-[1280px] w-full text-sm">
+          <table className="min-w-[1500px] w-full text-sm">
             <thead className="bg-yellow-900/20 text-left text-yellow-100">
               <tr>
                 <th className="px-4 py-3">#</th>
@@ -472,6 +486,8 @@ const BetLogAllUser = () => {
                 <th className="px-4 py-3 text-right">Win Amount</th>
                 <th className="px-4 py-3 text-right">Balance After</th>
                 <th className="px-4 py-3">Transaction ID</th>
+                <th className="px-4 py-3">Verification Key</th>
+                <th className="px-4 py-3">Round ID</th>
               </tr>
             </thead>
 
@@ -479,7 +495,7 @@ const BetLogAllUser = () => {
               {isLoading ? (
                 <tr>
                   <td
-                    colSpan={13}
+                    colSpan={14}
                     className="px-4 py-12 text-center text-yellow-200/80"
                   >
                     Loading bet logs...
@@ -488,7 +504,7 @@ const BetLogAllUser = () => {
               ) : rows.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={13}
+                    colSpan={14}
                     className="px-4 py-12 text-center text-yellow-200/80"
                   >
                     No bet history found
@@ -497,7 +513,11 @@ const BetLogAllUser = () => {
               ) : (
                 rows.map((row, index) => (
                   <tr
-                    key={row._id || `${row.transaction_id}-${index}`}
+                    key={
+                      row._id ||
+                      row.verification_key ||
+                      `${row.transaction_id}-${index}`
+                    }
                     className="border-t border-yellow-700/15 hover:bg-yellow-900/10 transition"
                   >
                     <td className="px-4 py-3 text-gray-200">
@@ -545,8 +565,14 @@ const BetLogAllUser = () => {
                     <td className="px-4 py-3 text-right text-blue-300">
                       {formatMoney(row.balance_after)}
                     </td>
-                    <td className="px-4 py-3 text-gray-200">
+                    <td className="px-4 py-3 text-gray-200 break-all">
                       {row.transaction_id || "-"}
+                    </td>
+                    <td className="px-4 py-3 text-gray-200 break-all">
+                      {row.verification_key || "-"}
+                    </td>
+                    <td className="px-4 py-3 text-gray-200 break-all">
+                      {row.round_id || "-"}
                     </td>
                   </tr>
                 ))
@@ -572,7 +598,7 @@ const BetLogAllUser = () => {
                     Loss: {formatMoney(safePageSummary.pageLossTotal)}
                   </td>
                   <td
-                    colSpan={2}
+                    colSpan={3}
                     className="px-4 py-4 text-left text-yellow-200"
                   >
                     Refund: {formatMoney(safePageSummary.pageRefundTotal)}
@@ -597,7 +623,11 @@ const BetLogAllUser = () => {
         ) : (
           rows.map((row, index) => (
             <MobileRowCard
-              key={row._id || `${row.transaction_id}-${index}`}
+              key={
+                row._id ||
+                row.verification_key ||
+                `${row.transaction_id}-${index}`
+              }
               row={row}
               index={index}
               currentPage={currentPage}

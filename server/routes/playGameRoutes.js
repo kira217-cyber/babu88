@@ -2,7 +2,6 @@
 import express from "express";
 import axios from "axios";
 import jwt from "jsonwebtoken";
-
 import User from "../models/User.js";
 import Game from "../models/Game.js";
 import GameProvider from "../models/GameProvider.js";

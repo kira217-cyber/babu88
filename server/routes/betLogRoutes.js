@@ -1,31 +1,9 @@
-// betLogRoutes.js
 import express from "express";
-import User from "../models/User.js";
 import mongoose from "mongoose";
+import GameHistory from "../models/GameHistory.js";
 
 const router = express.Router();
 
-/**
- * GET /api/admin/bet-logs
- *
- * Query params:
- * - page=1
- * - limit=50
- * - q=
- * - betType=all|BET|SETTLE|CANCEL|REFUND|BONUS|PROMO
- * - status=all|pending|bet|settled|won|lost|push|cancelled|refunded|error|void
- * - from=
- * - to=
- *
- * Search fields:
- * - username
- * - phone
- * - provider_code
- * - game_code
- * - transaction_id
- * - round_id
- * - verification_key
- */
 router.get("/admin/bet-logs", async (req, res) => {
   try {
     const page = Math.max(parseInt(req.query.page || "1", 10), 1);
@@ -47,28 +25,20 @@ router.get("/admin/bet-logs", async (req, res) => {
 
     const match = {};
 
-    if (betType && betType !== "ALL") {
-      match.bet_type = betType;
-    }
-
-    if (status && status !== "all") {
-      match.status = status;
-    }
+    if (betType && betType !== "ALL") match.bet_type = betType;
+    if (status && status !== "all") match.status = status;
 
     if (from || to) {
       match.createdAt = {};
 
       if (from) {
         const fromDate = new Date(from);
-        if (!isNaN(fromDate.getTime())) {
-          match.createdAt.$gte = fromDate;
-        }
+        if (!isNaN(fromDate.getTime())) match.createdAt.$gte = fromDate;
       }
 
       if (to) {
         const toDate = new Date(to);
         if (!isNaN(toDate.getTime())) {
-          // যদি শুধু YYYY-MM-DD আসে তাহলে পুরো দিন include হবে
           if (/^\d{4}-\d{2}-\d{2}$/.test(to)) {
             toDate.setHours(23, 59, 59, 999);
           }
@@ -96,230 +66,156 @@ router.get("/admin/bet-logs", async (req, res) => {
       ];
     }
 
-    const pipeline = [
-      {
-        $project: {
-          username: 1,
-          phone: 1,
-          currency: 1,
-          role: 1,
-          gameHistory: 1,
-        },
-      },
-      {
-        $unwind: {
-          path: "$gameHistory",
-          preserveNullAndEmptyArrays: false,
-        },
-      },
-      {
-        $replaceRoot: {
-          newRoot: {
-            $mergeObjects: [
-              "$gameHistory",
-              {
-                userId: "$_id",
-                username: "$username",
-                phone: "$phone",
-                currency: "$currency",
-                userRole: "$role",
+    const [rows, totalCount, summaryAgg, pageSummaryAgg] = await Promise.all([
+      GameHistory.find(match)
+        .sort({ createdAt: -1, _id: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      GameHistory.countDocuments(match),
+      GameHistory.aggregate([
+        { $match: match },
+        {
+          $group: {
+            _id: null,
+            allBetHistoryCount: { $sum: 1 },
+
+            betLossTotalAmount: {
+              $sum: {
+                $cond: [
+                  {
+                    $or: [
+                      { $eq: ["$status", "lost"] },
+                      {
+                        $and: [
+                          { $eq: ["$bet_type", "BET"] },
+                          { $lte: [{ $ifNull: ["$win_amount", 0] }, 0] },
+                          { $in: ["$status", ["settled", "lost", "bet"]] },
+                        ],
+                      },
+                    ],
+                  },
+                  { $ifNull: ["$amount", 0] },
+                  0,
+                ],
               },
-            ],
+            },
+
+            betWinTotalAmount: {
+              $sum: {
+                $cond: [
+                  {
+                    $or: [
+                      { $eq: ["$status", "won"] },
+                      { $gt: [{ $ifNull: ["$win_amount", 0] }, 0] },
+                    ],
+                  },
+                  {
+                    $cond: [
+                      { $gt: [{ $ifNull: ["$win_amount", 0] }, 0] },
+                      { $ifNull: ["$win_amount", 0] },
+                      { $ifNull: ["$amount", 0] },
+                    ],
+                  },
+                  0,
+                ],
+              },
+            },
+
+            refundAmount: {
+              $sum: {
+                $cond: [
+                  {
+                    $or: [
+                      { $eq: ["$status", "refunded"] },
+                      { $eq: ["$bet_type", "REFUND"] },
+                    ],
+                  },
+                  { $ifNull: ["$amount", 0] },
+                  0,
+                ],
+              },
+            },
           },
         },
-      },
-      { $match: match },
-      { $sort: { createdAt: -1, _id: -1 } },
-      {
-        $facet: {
-          rows: [
-            { $skip: skip },
-            { $limit: limit },
-            {
-              $project: {
-                _id: 1,
-                userId: 1,
-                username: 1,
-                phone: 1,
-                currency: 1,
-                userRole: 1,
-                provider_code: 1,
-                game_code: 1,
-                bet_type: 1,
-                amount: 1,
-                win_amount: 1,
-                balance_after: 1,
-                transaction_id: 1,
-                round_id: 1,
-                verification_key: 1,
-                times: 1,
-                status: 1,
-                bet_details: 1,
-                flagged: 1,
-                createdAt: 1,
-                updatedAt: 1,
+      ]),
+      GameHistory.aggregate([
+        { $match: match },
+        { $sort: { createdAt: -1, _id: -1 } },
+        { $skip: skip },
+        { $limit: limit },
+        {
+          $group: {
+            _id: null,
+            pageCount: { $sum: 1 },
+            pageAmountTotal: { $sum: { $ifNull: ["$amount", 0] } },
+            pageWinTotal: {
+              $sum: {
+                $cond: [
+                  {
+                    $or: [
+                      { $eq: ["$status", "won"] },
+                      { $gt: [{ $ifNull: ["$win_amount", 0] }, 0] },
+                    ],
+                  },
+                  {
+                    $cond: [
+                      { $gt: [{ $ifNull: ["$win_amount", 0] }, 0] },
+                      { $ifNull: ["$win_amount", 0] },
+                      0,
+                    ],
+                  },
+                  0,
+                ],
               },
             },
-          ],
-
-          totalCount: [{ $count: "count" }],
-
-          summary: [
-            {
-              $group: {
-                _id: null,
-
-                allBetHistoryCount: { $sum: 1 },
-
-                betLossTotalAmount: {
-                  $sum: {
-                    $cond: [
-                      {
-                        $or: [
-                          { $eq: ["$status", "lost"] },
-                          {
-                            $and: [
-                              { $eq: ["$bet_type", "BET"] },
-                              { $lte: [{ $ifNull: ["$win_amount", 0] }, 0] },
-                              { $in: ["$status", ["settled", "lost", "bet"]] },
-                            ],
-                          },
-                        ],
-                      },
-                      { $ifNull: ["$amount", 0] },
-                      0,
+            pageRefundTotal: {
+              $sum: {
+                $cond: [
+                  {
+                    $or: [
+                      { $eq: ["$status", "refunded"] },
+                      { $eq: ["$bet_type", "REFUND"] },
                     ],
                   },
-                },
-
-                betWinTotalAmount: {
-                  $sum: {
-                    $cond: [
-                      {
-                        $or: [
-                          { $eq: ["$status", "won"] },
-                          { $gt: [{ $ifNull: ["$win_amount", 0] }, 0] },
-                        ],
-                      },
-                      {
-                        $cond: [
-                          { $gt: [{ $ifNull: ["$win_amount", 0] }, 0] },
-                          { $ifNull: ["$win_amount", 0] },
-                          { $ifNull: ["$amount", 0] },
-                        ],
-                      },
-                      0,
-                    ],
-                  },
-                },
-
-                refundAmount: {
-                  $sum: {
-                    $cond: [
-                      {
-                        $or: [
-                          { $eq: ["$status", "refunded"] },
-                          { $eq: ["$bet_type", "REFUND"] },
-                        ],
-                      },
-                      { $ifNull: ["$amount", 0] },
-                      0,
-                    ],
-                  },
-                },
+                  { $ifNull: ["$amount", 0] },
+                  0,
+                ],
               },
             },
-          ],
-
-          pageSummary: [
-            { $skip: skip },
-            { $limit: limit },
-            {
-              $group: {
-                _id: null,
-
-                pageCount: { $sum: 1 },
-
-                pageAmountTotal: {
-                  $sum: { $ifNull: ["$amount", 0] },
-                },
-
-                pageWinTotal: {
-                  $sum: {
-                    $cond: [
+            pageLossTotal: {
+              $sum: {
+                $cond: [
+                  {
+                    $or: [
+                      { $eq: ["$status", "lost"] },
                       {
-                        $or: [
-                          { $eq: ["$status", "won"] },
-                          { $gt: [{ $ifNull: ["$win_amount", 0] }, 0] },
+                        $and: [
+                          { $eq: ["$bet_type", "BET"] },
+                          { $lte: [{ $ifNull: ["$win_amount", 0] }, 0] },
+                          { $in: ["$status", ["settled", "lost", "bet"]] },
                         ],
                       },
-                      {
-                        $cond: [
-                          { $gt: [{ $ifNull: ["$win_amount", 0] }, 0] },
-                          { $ifNull: ["$win_amount", 0] },
-                          0,
-                        ],
-                      },
-                      0,
                     ],
                   },
-                },
-
-                pageRefundTotal: {
-                  $sum: {
-                    $cond: [
-                      {
-                        $or: [
-                          { $eq: ["$status", "refunded"] },
-                          { $eq: ["$bet_type", "REFUND"] },
-                        ],
-                      },
-                      { $ifNull: ["$amount", 0] },
-                      0,
-                    ],
-                  },
-                },
-
-                pageLossTotal: {
-                  $sum: {
-                    $cond: [
-                      {
-                        $or: [
-                          { $eq: ["$status", "lost"] },
-                          {
-                            $and: [
-                              { $eq: ["$bet_type", "BET"] },
-                              { $lte: [{ $ifNull: ["$win_amount", 0] }, 0] },
-                              { $in: ["$status", ["settled", "lost", "bet"]] },
-                            ],
-                          },
-                        ],
-                      },
-                      { $ifNull: ["$amount", 0] },
-                      0,
-                    ],
-                  },
-                },
+                  { $ifNull: ["$amount", 0] },
+                  0,
+                ],
               },
             },
-          ],
+          },
         },
-      },
-    ];
+      ]),
+    ]);
 
-    const [result] = await User.aggregate(pipeline);
-
-    const rows = result?.rows || [];
-    const totalCount = result?.totalCount?.[0]?.count || 0;
-
-    const summary = result?.summary?.[0] || {
+    const summary = summaryAgg?.[0] || {
       allBetHistoryCount: 0,
       betLossTotalAmount: 0,
       betWinTotalAmount: 0,
       refundAmount: 0,
     };
 
-    const pageSummary = result?.pageSummary?.[0] || {
+    const pageSummary = pageSummaryAgg?.[0] || {
       pageCount: 0,
       pageAmountTotal: 0,
       pageWinTotal: 0,
@@ -358,18 +254,6 @@ router.get("/admin/bet-logs", async (req, res) => {
   }
 });
 
-/**
- * GET /api/admin/users/:id/bet-logs
- *
- * Query params:
- * - page=1
- * - limit=20
- * - q=
- * - betType=all|BET|SETTLE|CANCEL|REFUND|BONUS|PROMO
- * - status=all|pending|bet|settled|won|lost|push|cancelled|refunded|error|void
- * - from=
- * - to=
- */
 router.get("/admin/users/:id/bet-logs", async (req, res) => {
   try {
     const { id } = req.params;
@@ -400,24 +284,17 @@ router.get("/admin/users/:id/bet-logs", async (req, res) => {
     const from = String(req.query.from || "").trim();
     const to = String(req.query.to || "").trim();
 
-    const historyMatch = {};
+    const match = { user: userObjectId };
 
-    if (betType && betType !== "ALL") {
-      historyMatch.bet_type = betType;
-    }
-
-    if (status && status !== "all") {
-      historyMatch.status = status;
-    }
+    if (betType && betType !== "ALL") match.bet_type = betType;
+    if (status && status !== "all") match.status = status;
 
     if (from || to) {
-      historyMatch.createdAt = {};
+      match.createdAt = {};
 
       if (from) {
         const fromDate = new Date(from);
-        if (!isNaN(fromDate.getTime())) {
-          historyMatch.createdAt.$gte = fromDate;
-        }
+        if (!isNaN(fromDate.getTime())) match.createdAt.$gte = fromDate;
       }
 
       if (to) {
@@ -426,18 +303,20 @@ router.get("/admin/users/:id/bet-logs", async (req, res) => {
           if (/^\d{4}-\d{2}-\d{2}$/.test(to)) {
             toDate.setHours(23, 59, 59, 999);
           }
-          historyMatch.createdAt.$lte = toDate;
+          match.createdAt.$lte = toDate;
         }
       }
 
-      if (Object.keys(historyMatch.createdAt).length === 0) {
-        delete historyMatch.createdAt;
+      if (Object.keys(match.createdAt).length === 0) {
+        delete match.createdAt;
       }
     }
 
     if (q) {
       const rx = new RegExp(q, "i");
-      historyMatch.$or = [
+      match.$or = [
+        { username: rx },
+        { phone: rx },
         { provider_code: rx },
         { game_code: rx },
         { transaction_id: rx },
@@ -445,236 +324,156 @@ router.get("/admin/users/:id/bet-logs", async (req, res) => {
         { verification_key: rx },
         { bet_type: rx },
         { status: rx },
-        { username: rx },
-        { phone: rx },
       ];
     }
 
-    const pipeline = [
-      {
-        $match: { _id: userObjectId },
-      },
-      {
-        $project: {
-          username: 1,
-          phone: 1,
-          currency: 1,
-          role: 1,
-          gameHistory: 1,
-        },
-      },
-      {
-        $unwind: {
-          path: "$gameHistory",
-          preserveNullAndEmptyArrays: false,
-        },
-      },
-      {
-        $replaceRoot: {
-          newRoot: {
-            $mergeObjects: [
-              "$gameHistory",
-              {
-                userId: "$_id",
-                username: "$username",
-                phone: "$phone",
-                currency: "$currency",
-                userRole: "$role",
+    const [rows, totalCount, summaryAgg, pageSummaryAgg] = await Promise.all([
+      GameHistory.find(match)
+        .sort({ createdAt: -1, _id: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      GameHistory.countDocuments(match),
+      GameHistory.aggregate([
+        { $match: match },
+        {
+          $group: {
+            _id: null,
+            allBetHistoryCount: { $sum: 1 },
+            betLossTotalAmount: {
+              $sum: {
+                $cond: [
+                  {
+                    $or: [
+                      { $eq: ["$status", "lost"] },
+                      {
+                        $and: [
+                          { $eq: ["$bet_type", "BET"] },
+                          { $lte: [{ $ifNull: ["$win_amount", 0] }, 0] },
+                          { $in: ["$status", ["settled", "lost", "bet"]] },
+                        ],
+                      },
+                    ],
+                  },
+                  { $ifNull: ["$amount", 0] },
+                  0,
+                ],
               },
-            ],
+            },
+            betWinTotalAmount: {
+              $sum: {
+                $cond: [
+                  {
+                    $or: [
+                      { $eq: ["$status", "won"] },
+                      { $gt: [{ $ifNull: ["$win_amount", 0] }, 0] },
+                    ],
+                  },
+                  {
+                    $cond: [
+                      { $gt: [{ $ifNull: ["$win_amount", 0] }, 0] },
+                      { $ifNull: ["$win_amount", 0] },
+                      { $ifNull: ["$amount", 0] },
+                    ],
+                  },
+                  0,
+                ],
+              },
+            },
+            refundAmount: {
+              $sum: {
+                $cond: [
+                  {
+                    $or: [
+                      { $eq: ["$status", "refunded"] },
+                      { $eq: ["$bet_type", "REFUND"] },
+                    ],
+                  },
+                  { $ifNull: ["$amount", 0] },
+                  0,
+                ],
+              },
+            },
           },
         },
-      },
-      {
-        $match: historyMatch,
-      },
-      {
-        $sort: { createdAt: -1, _id: -1 },
-      },
-      {
-        $facet: {
-          rows: [
-            { $skip: skip },
-            { $limit: limit },
-            {
-              $project: {
-                _id: 1,
-                userId: 1,
-                username: 1,
-                phone: 1,
-                currency: 1,
-                userRole: 1,
-                provider_code: 1,
-                game_code: 1,
-                bet_type: 1,
-                amount: 1,
-                win_amount: 1,
-                balance_after: 1,
-                transaction_id: 1,
-                round_id: 1,
-                verification_key: 1,
-                times: 1,
-                status: 1,
-                bet_details: 1,
-                flagged: 1,
-                createdAt: 1,
-                updatedAt: 1,
+      ]),
+      GameHistory.aggregate([
+        { $match: match },
+        { $sort: { createdAt: -1, _id: -1 } },
+        { $skip: skip },
+        { $limit: limit },
+        {
+          $group: {
+            _id: null,
+            pageCount: { $sum: 1 },
+            pageAmountTotal: { $sum: { $ifNull: ["$amount", 0] } },
+            pageWinTotal: {
+              $sum: {
+                $cond: [
+                  {
+                    $or: [
+                      { $eq: ["$status", "won"] },
+                      { $gt: [{ $ifNull: ["$win_amount", 0] }, 0] },
+                    ],
+                  },
+                  {
+                    $cond: [
+                      { $gt: [{ $ifNull: ["$win_amount", 0] }, 0] },
+                      { $ifNull: ["$win_amount", 0] },
+                      0,
+                    ],
+                  },
+                  0,
+                ],
               },
             },
-          ],
-
-          totalCount: [{ $count: "count" }],
-
-          summary: [
-            {
-              $group: {
-                _id: null,
-                allBetHistoryCount: { $sum: 1 },
-
-                betLossTotalAmount: {
-                  $sum: {
-                    $cond: [
-                      {
-                        $or: [
-                          { $eq: ["$status", "lost"] },
-                          {
-                            $and: [
-                              { $eq: ["$bet_type", "BET"] },
-                              { $lte: [{ $ifNull: ["$win_amount", 0] }, 0] },
-                              { $in: ["$status", ["settled", "lost", "bet"]] },
-                            ],
-                          },
-                        ],
-                      },
-                      { $ifNull: ["$amount", 0] },
-                      0,
+            pageRefundTotal: {
+              $sum: {
+                $cond: [
+                  {
+                    $or: [
+                      { $eq: ["$status", "refunded"] },
+                      { $eq: ["$bet_type", "REFUND"] },
                     ],
                   },
-                },
-
-                betWinTotalAmount: {
-                  $sum: {
-                    $cond: [
-                      {
-                        $or: [
-                          { $eq: ["$status", "won"] },
-                          { $gt: [{ $ifNull: ["$win_amount", 0] }, 0] },
-                        ],
-                      },
-                      {
-                        $cond: [
-                          { $gt: [{ $ifNull: ["$win_amount", 0] }, 0] },
-                          { $ifNull: ["$win_amount", 0] },
-                          { $ifNull: ["$amount", 0] },
-                        ],
-                      },
-                      0,
-                    ],
-                  },
-                },
-
-                refundAmount: {
-                  $sum: {
-                    $cond: [
-                      {
-                        $or: [
-                          { $eq: ["$status", "refunded"] },
-                          { $eq: ["$bet_type", "REFUND"] },
-                        ],
-                      },
-                      { $ifNull: ["$amount", 0] },
-                      0,
-                    ],
-                  },
-                },
+                  { $ifNull: ["$amount", 0] },
+                  0,
+                ],
               },
             },
-          ],
-
-          pageSummary: [
-            { $skip: skip },
-            { $limit: limit },
-            {
-              $group: {
-                _id: null,
-                pageCount: { $sum: 1 },
-                pageAmountTotal: {
-                  $sum: { $ifNull: ["$amount", 0] },
-                },
-                pageWinTotal: {
-                  $sum: {
-                    $cond: [
+            pageLossTotal: {
+              $sum: {
+                $cond: [
+                  {
+                    $or: [
+                      { $eq: ["$status", "lost"] },
                       {
-                        $or: [
-                          { $eq: ["$status", "won"] },
-                          { $gt: [{ $ifNull: ["$win_amount", 0] }, 0] },
+                        $and: [
+                          { $eq: ["$bet_type", "BET"] },
+                          { $lte: [{ $ifNull: ["$win_amount", 0] }, 0] },
+                          { $in: ["$status", ["settled", "lost", "bet"]] },
                         ],
                       },
-                      {
-                        $cond: [
-                          { $gt: [{ $ifNull: ["$win_amount", 0] }, 0] },
-                          { $ifNull: ["$win_amount", 0] },
-                          0,
-                        ],
-                      },
-                      0,
                     ],
                   },
-                },
-                pageRefundTotal: {
-                  $sum: {
-                    $cond: [
-                      {
-                        $or: [
-                          { $eq: ["$status", "refunded"] },
-                          { $eq: ["$bet_type", "REFUND"] },
-                        ],
-                      },
-                      { $ifNull: ["$amount", 0] },
-                      0,
-                    ],
-                  },
-                },
-                pageLossTotal: {
-                  $sum: {
-                    $cond: [
-                      {
-                        $or: [
-                          { $eq: ["$status", "lost"] },
-                          {
-                            $and: [
-                              { $eq: ["$bet_type", "BET"] },
-                              { $lte: [{ $ifNull: ["$win_amount", 0] }, 0] },
-                              { $in: ["$status", ["settled", "lost", "bet"]] },
-                            ],
-                          },
-                        ],
-                      },
-                      { $ifNull: ["$amount", 0] },
-                      0,
-                    ],
-                  },
-                },
+                  { $ifNull: ["$amount", 0] },
+                  0,
+                ],
               },
             },
-          ],
+          },
         },
-      },
-    ];
+      ]),
+    ]);
 
-    const [result] = await User.aggregate(pipeline);
-
-    const rows = result?.rows || [];
-    const totalCount = result?.totalCount?.[0]?.count || 0;
-
-    const summary = result?.summary?.[0] || {
+    const summary = summaryAgg?.[0] || {
       allBetHistoryCount: 0,
       betLossTotalAmount: 0,
       betWinTotalAmount: 0,
       refundAmount: 0,
     };
 
-    const pageSummary = result?.pageSummary?.[0] || {
+    const pageSummary = pageSummaryAgg?.[0] || {
       pageCount: 0,
       pageAmountTotal: 0,
       pageWinTotal: 0,

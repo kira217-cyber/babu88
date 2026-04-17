@@ -618,7 +618,7 @@ const Navber = () => {
                     </div>
 
                     <Link
-                      to="/profile/deposit"
+                      to="/profile/auto-deposit"
                       className="hidden h-10 w-10 rounded-full bg-[#0b78f0] text-white md:flex items-center justify-center shadow-sm hover:brightness-95 active:scale-[0.99] transition cursor-pointer"
                       aria-label="Add balance"
                       title="Add balance"

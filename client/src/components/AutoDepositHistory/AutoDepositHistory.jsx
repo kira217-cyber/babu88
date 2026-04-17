@@ -5,6 +5,8 @@ import {
   FaChevronDown,
   FaChevronUp,
   FaExternalLinkAlt,
+  FaGift,
+  FaPercentage,
 } from "react-icons/fa";
 import { api } from "../../api/axios";
 import { useLanguage } from "../../Context/LanguageProvider";
@@ -49,11 +51,10 @@ const AutoDepositHistory = () => {
   const isAuthed = useSelector(selectIsAuthenticated);
   const userId = user?._id;
 
-  const [all, setAll] = useState([]); // full list from server
+  const [all, setAll] = useState([]);
   const [loading, setLoading] = useState(false);
   const [expandedId, setExpandedId] = useState("");
 
-  // ✅ client-side pagination (because your API doesn't return meta)
   const [meta, setMeta] = useState({ page: 1, limit: 10, total: 0 });
 
   const pageCount = useMemo(() => {
@@ -77,10 +78,10 @@ const AutoDepositHistory = () => {
 
       setLoading(true);
 
-      // ✅ your provided API
       const { data } = await api.get(`/api/auto-deposit/history/${userId}`);
 
       const items = Array.isArray(data?.data) ? data.data : [];
+
       setAll(items);
       setMeta((m) => ({
         ...m,
@@ -110,7 +111,6 @@ const AutoDepositHistory = () => {
 
   return (
     <div className="w-full">
-      {/* ✅ Global Loading Overlay */}
       <Loading open={loading} text={t("লোড হচ্ছে...", "Loading...")} />
 
       <div className="bg-white rounded-xl border border-black/10 shadow-[0_1px_0_rgba(0,0,0,0.06)] overflow-hidden">
@@ -153,6 +153,28 @@ const AutoDepositHistory = () => {
                     ? new Date(r.createdAt).toLocaleString()
                     : "—";
 
+                  const bonusTitle =
+                    (isBangla
+                      ? r?.selectedBonus?.title?.bn
+                      : r?.selectedBonus?.title?.en) ||
+                    r?.selectedBonus?.title?.en ||
+                    r?.selectedBonus?.title?.bn ||
+                    "";
+
+                  const hasBonus = !!r?.selectedBonus?.bonusId;
+                  const bonusType = String(r?.selectedBonus?.bonusType || "");
+                  const bonusValue = Number(r?.selectedBonus?.bonusValue || 0);
+                  const bonusAmount = Number(r?.calc?.bonusAmount || 0);
+                  const creditedAmount = Number(
+                    r?.calc?.creditedAmount || r?.amount || 0,
+                  );
+                  const turnoverMultiplier = Number(
+                    r?.calc?.turnoverMultiplier || 1,
+                  );
+                  const targetTurnover = Number(
+                    r?.calc?.targetTurnover || r?.amount || 0,
+                  );
+
                   return (
                     <div key={r._id}>
                       <button
@@ -166,6 +188,7 @@ const AutoDepositHistory = () => {
                               <span className="text-[14px] font-extrabold text-black">
                                 OraclePay
                               </span>
+
                               <span
                                 className={`inline-flex items-center px-3 py-1 rounded-full text-[11px] font-extrabold border ${chipClass(
                                   r.status,
@@ -179,20 +202,44 @@ const AutoDepositHistory = () => {
                                   {t("ব্যালেন্স অ্যাডেড", "Balance Added")}
                                 </span>
                               ) : null}
+
+                              {hasBonus ? (
+                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-extrabold border bg-blue-500/10 text-blue-600 border-blue-500/25">
+                                  {bonusType === "percent" ? (
+                                    <FaPercentage className="text-[10px]" />
+                                  ) : (
+                                    <FaGift className="text-[10px]" />
+                                  )}
+                                  {t("বোনাস", "Bonus")}
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-extrabold border bg-slate-500/10 text-slate-600 border-slate-400/25">
+                                  {t("১x টার্নওভার", "1x Turnover")}
+                                </span>
+                              )}
                             </div>
 
                             <div className="mt-1 text-[12px] text-black/55">
                               {createdAt}
+                            </div>
+
+                            <div className="mt-1 text-[12px] font-semibold text-black/60">
+                              {hasBonus
+                                ? `${t("বোনাস", "Bonus")}: ${bonusTitle || "—"}`
+                                : t(
+                                    "কোনো বোনাস সিলেক্ট করা হয়নি",
+                                    "No bonus selected",
+                                  )}
                             </div>
                           </div>
 
                           <div className="flex items-center gap-4">
                             <div className="text-right">
                               <div className="text-[12px] text-black/45">
-                                {t("অ্যামাউন্ট", "Amount")}
+                                {t("ক্রেডিটেড", "Credited")}
                               </div>
                               <div className="text-[14px] font-extrabold text-black">
-                                {money(r.amount)}
+                                {money(creditedAmount)}
                               </div>
                             </div>
 
@@ -205,15 +252,43 @@ const AutoDepositHistory = () => {
 
                       {isOpen && (
                         <div className="px-4 sm:px-5 pb-4">
-                          <div className="rounded-xl border border-black/10 bg-black/[0.02] p-4">
+                          <div className="rounded-xl border border-black/10 bg-black/[0.02] p-4 space-y-4">
+                            {/* Deposit Details */}
                             <div className="rounded-xl border border-black/10 bg-white p-4">
                               <div className="text-[13px] font-extrabold text-black mb-3">
-                                {t("ডিটেইলস", "Details")}
+                                {t("ডিপোজিট ডিটেইলস", "Deposit Details")}
                               </div>
 
                               <FieldRow
                                 k={t("ইনভয়েস", "Invoice")}
                                 v={r.invoiceNumber || "—"}
+                              />
+                              <FieldRow
+                                k={t("স্ট্যাটাস", "Status")}
+                                v={r.status || "—"}
+                              />
+                              <FieldRow
+                                k={t("ডিপোজিট এমাউন্ট", "Deposit amount")}
+                                v={money(r.amount)}
+                              />
+                              <FieldRow
+                                k={t("বোনাস এমাউন্ট", "Bonus amount")}
+                                v={money(bonusAmount)}
+                              />
+                              <FieldRow
+                                k={t("মোট ক্রেডিট", "Total credited")}
+                                v={money(creditedAmount)}
+                              />
+                              <FieldRow
+                                k={t(
+                                  "টার্নওভার মাল্টিপ্লায়ার",
+                                  "Turnover multiplier",
+                                )}
+                                v={`x${turnoverMultiplier}`}
+                              />
+                              <FieldRow
+                                k={t("টার্গেট টার্নওভার", "Target turnover")}
+                                v={money(targetTurnover)}
                               />
                               <FieldRow
                                 k={t("ব্যাংক", "Bank")}
@@ -235,8 +310,11 @@ const AutoDepositHistory = () => {
                                     : "—"
                                 }
                               />
+                              <FieldRow
+                                k={t("ব্যালেন্স অ্যাডেড", "Balance added")}
+                                v={r.balanceAdded ? "Yes" : "No"}
+                              />
 
-                              {/* Footprint link (new tab) */}
                               {r.footprint && (
                                 <div className="pt-3">
                                   <a
@@ -253,6 +331,127 @@ const AutoDepositHistory = () => {
                                   </a>
                                 </div>
                               )}
+                            </div>
+
+                            {/* Bonus Details */}
+                            <div className="rounded-xl border border-black/10 bg-white p-4">
+                              <div className="text-[13px] font-extrabold text-black mb-3">
+                                {t("বোনাস ও টার্নওভার", "Bonus & Turnover")}
+                              </div>
+
+                              <FieldRow
+                                k={t("বোনাস টাইটেল", "Bonus title")}
+                                v={
+                                  hasBonus
+                                    ? bonusTitle || "—"
+                                    : t("কোনো বোনাস নেই", "No bonus selected")
+                                }
+                              />
+
+                              <FieldRow
+                                k={t("বোনাস টাইপ", "Bonus type")}
+                                v={
+                                  hasBonus
+                                    ? bonusType === "percent"
+                                      ? t("পার্সেন্ট", "Percent")
+                                      : t("ফিক্সড", "Fixed")
+                                    : "—"
+                                }
+                              />
+
+                              <FieldRow
+                                k={t("বোনাস ভ্যালু", "Bonus value")}
+                                v={
+                                  hasBonus
+                                    ? bonusType === "percent"
+                                      ? `${bonusValue}%`
+                                      : money(bonusValue)
+                                    : "—"
+                                }
+                              />
+
+                              <FieldRow
+                                k={t(
+                                  "টার্নওভার মাল্টিপ্লায়ার",
+                                  "Turnover multiplier",
+                                )}
+                                v={`x${turnoverMultiplier}`}
+                              />
+
+                              <div className="mt-3 rounded-lg bg-[#f7f7f7] border border-black/10 p-3 text-[12px] leading-relaxed text-black/70">
+                                {hasBonus
+                                  ? t(
+                                      `এই ডিপোজিটে ${money(
+                                        r.amount,
+                                      )} এর সাথে ${money(
+                                        bonusAmount,
+                                      )} বোনাস যোগ হয়ে মোট ${money(
+                                        creditedAmount,
+                                      )} ক্রেডিট হয়েছে। এই amount এর উপর x${turnoverMultiplier} হিসাবে মোট টার্গেট টার্নওভার ${money(
+                                        targetTurnover,
+                                      )}।`,
+                                      `For this deposit, ${money(
+                                        bonusAmount,
+                                      )} bonus was added to ${money(
+                                        r.amount,
+                                      )}, making the total credited amount ${money(
+                                        creditedAmount,
+                                      )}. With x${turnoverMultiplier} turnover, the total target turnover is ${money(
+                                        targetTurnover,
+                                      )}.`,
+                                    )
+                                  : t(
+                                      `এই ডিপোজিটে কোনো বোনাস নেওয়া হয়নি। তাই ${money(
+                                        r.amount,
+                                      )} amount এর উপর 1x হিসাবে টার্গেট টার্নওভার ${money(
+                                        targetTurnover,
+                                      )}।`,
+                                      `No bonus was selected for this deposit. So the target turnover is ${money(
+                                        targetTurnover,
+                                      )} at 1x on ${money(r.amount)}.`,
+                                    )}
+                              </div>
+                            </div>
+
+                            {/* Affiliate Commission */}
+                            <div className="rounded-xl border border-black/10 bg-white p-4">
+                              <div className="text-[13px] font-extrabold text-black mb-3">
+                                {t(
+                                  "এফিলিয়েট কমিশন ডিটেইলস",
+                                  "Affiliate Commission Details",
+                                )}
+                              </div>
+
+                              <FieldRow
+                                k={t("অ্যাফিলিয়েট আইডি", "Affiliate ID")}
+                                v={
+                                  r?.calc?.affiliateDepositCommission
+                                    ?.affiliatorUserId || "—"
+                                }
+                              />
+                              <FieldRow
+                                k={t("কমিশন পার্সেন্ট", "Commission percent")}
+                                v={`${
+                                  Number(
+                                    r?.calc?.affiliateDepositCommission
+                                      ?.percent || 0,
+                                  ) || 0
+                                }%`}
+                              />
+                              <FieldRow
+                                k={t("বেইস এমাউন্ট", "Base amount")}
+                                v={money(
+                                  r?.calc?.affiliateDepositCommission
+                                    ?.baseAmount || 0,
+                                )}
+                              />
+                              <FieldRow
+                                k={t("কমিশন এমাউন্ট", "Commission amount")}
+                                v={money(
+                                  r?.calc?.affiliateDepositCommission
+                                    ?.commissionAmount || 0,
+                                )}
+                              />
                             </div>
                           </div>
                         </div>
@@ -305,7 +504,6 @@ const AutoDepositHistory = () => {
             </div>
           </div>
 
-          {/* Extra hint */}
           <div className="mt-2 text-[12px] text-black/50">
             {t(
               "নোট: এই API সার্ভার সাইডে pagination দেয় না, তাই client-side pagination ব্যবহার করা হচ্ছে।",

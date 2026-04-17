@@ -10,7 +10,6 @@ import { api } from "../../api/axios";
 import { useLanguage } from "../../Context/LanguageProvider";
 import Loading from "../Loading/Loading";
 
-
 const money = (n, symbol = "৳") => {
   const num = Number(n || 0);
   if (Number.isNaN(num)) return `${symbol} 0.00`;
@@ -24,11 +23,15 @@ const chipClass = (status) => {
   const s = String(status || "running").toLowerCase();
   if (s === "completed")
     return "bg-emerald-500/15 text-emerald-300 border-emerald-400/30";
-  return "bg-yellow-500/15 text-black border-yellow-400/30"; // running
+  return "bg-yellow-500/15 text-black border-yellow-400/30";
 };
 
-const FieldRow = ({ k, v }) => (
-  <div className="flex items-start justify-between gap-4 py-2 border-b border-black/10">
+const FieldRow = ({ k, v, noBorder = false }) => (
+  <div
+    className={`flex items-start justify-between gap-4 py-2 ${
+      noBorder ? "" : "border-b border-black/10"
+    }`}
+  >
     <div className="text-[12px] font-bold text-black/50">{k}</div>
     <div className="text-[13px] font-extrabold text-black/80 text-right break-all">
       {v}
@@ -45,6 +48,7 @@ const TurnOverHistory = () => {
   const [loading, setLoading] = useState(false);
 
   const [status, setStatus] = useState("all"); // all|running|completed
+  const [sourceType, setSourceType] = useState("all"); // all|deposit|redeem|auto-deposit
   const [qInput, setQInput] = useState("");
   const [q, setQ] = useState("");
 
@@ -65,7 +69,31 @@ const TurnOverHistory = () => {
   const sourceLabel = (type) => {
     const st = String(type || "").toLowerCase();
     if (st === "redeem") return t("রিডিম", "Redeem");
+    if (st === "auto-deposit") return t("অটো ডিপোজিট", "Auto Deposit");
     return t("ডিপোজিট", "Deposit");
+  };
+
+  const sourceNote = (type) => {
+    const st = String(type || "").toLowerCase();
+
+    if (st === "redeem") {
+      return t(
+        "এই টার্নওভারটি রিডিম থেকে তৈরি হয়েছে। Required amount পূরণ হলে এটি completed হবে।",
+        "This turnover was created from redeem. It will be completed when the required amount is fulfilled.",
+      );
+    }
+
+    if (st === "auto-deposit") {
+      return t(
+        "এই টার্নওভারটি অটো ডিপোজিট থেকে তৈরি হয়েছে। বোনাস থাকলে credited amount এবং multiplier অনুযায়ী turnover target নির্ধারিত হয়েছে।",
+        "This turnover was created from auto deposit. If a bonus was used, the turnover target was calculated based on credited amount and multiplier.",
+      );
+    }
+
+    return t(
+      "এই টার্নওভারটি ডিপোজিট থেকে তৈরি হয়েছে। আপনি যত বেশি খেলবেন, progress বাড়বে।",
+      "This turnover was created from deposit. As you play more, the progress will increase.",
+    );
   };
 
   const fetchData = async (page = meta.page) => {
@@ -75,7 +103,7 @@ const TurnOverHistory = () => {
       const params = { page, limit: meta.limit };
       const { data } = await api.get("/api/turnovers/my", { params });
 
-      const items = data?.data || [];
+      const items = Array.isArray(data?.data) ? data.data : [];
       const total = data?.meta?.total ?? items.length;
 
       setList(items);
@@ -117,6 +145,12 @@ const TurnOverHistory = () => {
       );
     }
 
+    if (sourceType !== "all") {
+      items = items.filter(
+        (x) => String(x?.sourceType || "").toLowerCase() === sourceType,
+      );
+    }
+
     if (q) {
       items = items.filter((x) => {
         const id = String(x?._id || "").toLowerCase();
@@ -139,11 +173,10 @@ const TurnOverHistory = () => {
     }
 
     return items;
-  }, [list, status, q]);
+  }, [list, status, sourceType, q]);
 
   return (
     <div className="w-full">
-      {/* ✅ Global Loading Overlay */}
       <Loading open={loading} text={t("লোড হচ্ছে...", "Loading...")} />
 
       <div className="bg-white rounded-xl border border-black/10 shadow-[0_1px_0_rgba(0,0,0,0.06)] overflow-hidden">
@@ -155,8 +188,8 @@ const TurnOverHistory = () => {
             </div>
             <div className="mt-1 text-[12px] text-black/55">
               {t(
-                "ডিপোজিট বা রিডিম থেকে তৈরি হওয়া আপনার টার্নওভার তালিকা।",
-                "Your turnover list created from deposit or redeem.",
+                "ডিপোজিট, অটো ডিপোজিট বা রিডিম থেকে তৈরি হওয়া আপনার টার্নওভার তালিকা।",
+                "Your turnover list created from deposit, auto deposit or redeem.",
               )}
             </div>
           </div>
@@ -172,7 +205,7 @@ const TurnOverHistory = () => {
 
         {/* Toolbar */}
         <div className="px-5 sm:px-6 pb-5">
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_220px_140px] gap-3">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_200px_200px_140px] gap-3">
             <form onSubmit={onSearch} className="relative">
               <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-black/50" />
               <input
@@ -198,6 +231,24 @@ const TurnOverHistory = () => {
                 <option value="all">{t("সবগুলো", "All")}</option>
                 <option value="running">{t("চলমান", "Running")}</option>
                 <option value="completed">{t("সম্পন্ন", "Completed")}</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="text-[12px] font-extrabold text-black/60">
+                {t("সোর্স", "Source")}
+              </div>
+              <select
+                value={sourceType}
+                onChange={(e) => setSourceType(e.target.value)}
+                className="w-full py-3 px-3 rounded-xl bg-white border border-black/15 text-black outline-none focus:ring-2 focus:ring-black/10"
+              >
+                <option value="all">{t("সবগুলো", "All")}</option>
+                <option value="deposit">{t("ডিপোজিট", "Deposit")}</option>
+                <option value="auto-deposit">
+                  {t("অটো ডিপোজিট", "Auto Deposit")}
+                </option>
+                <option value="redeem">{t("রিডিম", "Redeem")}</option>
               </select>
             </div>
 
@@ -236,6 +287,11 @@ const TurnOverHistory = () => {
                   const srcType = String(r?.sourceType || "deposit");
                   const srcId = String(r?.sourceId || "—");
 
+                  const percent =
+                    required > 0
+                      ? Math.min(100, Math.floor((progress / required) * 100))
+                      : 0;
+
                   return (
                     <div key={r._id} className="bg-white">
                       <button
@@ -252,7 +308,7 @@ const TurnOverHistory = () => {
 
                               <span
                                 className={`inline-flex items-center px-3 py-1 rounded-full text-[11px] font-extrabold border ${chipClass(
-                                  st === "completed" ? "approved" : "pending",
+                                  st,
                                 )}`}
                               >
                                 {statusLabel(st)}
@@ -265,6 +321,22 @@ const TurnOverHistory = () => {
 
                             <div className="mt-1 text-[12px] text-black/55">
                               {createdAt}
+                            </div>
+
+                            <div className="mt-3 max-w-[360px]">
+                              <div className="h-2 w-full rounded-full bg-black/10 overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full ${
+                                    st === "completed"
+                                      ? "bg-emerald-500"
+                                      : "bg-yellow-400"
+                                  }`}
+                                  style={{ width: `${percent}%` }}
+                                />
+                              </div>
+                              <div className="mt-1 text-[11px] font-bold text-black/55">
+                                {t("প্রোগ্রেস", "Progress")}: {percent}%
+                              </div>
                             </div>
                           </div>
 
@@ -333,8 +405,13 @@ const TurnOverHistory = () => {
                                     v={money(remaining)}
                                   />
                                   <FieldRow
+                                    k={t("কমপ্লিশন", "Completion")}
+                                    v={`${percent}%`}
+                                  />
+                                  <FieldRow
                                     k={t("টার্নওভার আইডি", "Turnover ID")}
                                     v={String(r?._id || "—")}
+                                    noBorder
                                   />
                                 </div>
 
@@ -355,10 +432,51 @@ const TurnOverHistory = () => {
                                   {t("নোট", "Note")}
                                 </div>
                                 <div className="mt-3 text-[13px] text-black/65 leading-relaxed">
-                                  {t(
-                                    "আপনি যত বেশি খেলবেন, progress বাড়বে। Required পূরণ হলে turnover completed হবে।",
-                                    "As you play, progress increases. When required is reached, turnover becomes completed.",
-                                  )}
+                                  {sourceNote(srcType)}
+                                </div>
+
+                                <div className="mt-4 rounded-xl border border-black/10 bg-black/[0.02] p-3">
+                                  <div className="text-[12px] font-extrabold text-black/70">
+                                    {t("দ্রুত তথ্য", "Quick Info")}
+                                  </div>
+
+                                  <div className="mt-2 space-y-2 text-[12px] text-black/65">
+                                    <div>
+                                      •{" "}
+                                      {st === "completed"
+                                        ? t(
+                                            "এই টার্নওভার সম্পন্ন হয়েছে।",
+                                            "This turnover has been completed.",
+                                          )
+                                        : t(
+                                            "এই টার্নওভার এখনো চলমান আছে।",
+                                            "This turnover is still running.",
+                                          )}
+                                    </div>
+                                    <div>
+                                      •{" "}
+                                      {t(
+                                        `এখন পর্যন্ত ${money(progress)} progress হয়েছে।`,
+                                        `${money(progress)} progress has been completed so far.`,
+                                      )}
+                                    </div>
+                                    <div>
+                                      •{" "}
+                                      {remaining > 0
+                                        ? t(
+                                            `আরও ${money(
+                                              remaining,
+                                            )} বাকি আছে completed হতে।`,
+                                            `${money(
+                                              remaining,
+                                            )} is remaining to complete it.`,
+                                          )
+                                        : t(
+                                            "আর কোনো বাকি নেই।",
+                                            "Nothing is remaining.",
+                                          )}
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -390,7 +508,11 @@ const TurnOverHistory = () => {
                 onClick={() => fetchData(Math.max(1, meta.page - 1))}
                 disabled={meta.page <= 1 || loading}
                 className={`px-4 py-2 rounded-xl border border-black/15 font-extrabold text-[13px] transition
-                  ${meta.page <= 1 || loading ? "opacity-50 cursor-not-allowed" : "hover:bg-black/[0.03]"}`}
+                  ${
+                    meta.page <= 1 || loading
+                      ? "opacity-50 cursor-not-allowed"
+                      : "hover:bg-black/[0.03]"
+                  }`}
               >
                 {t("আগের", "Prev")}
               </button>
@@ -398,11 +520,22 @@ const TurnOverHistory = () => {
                 onClick={() => fetchData(Math.min(pageCount, meta.page + 1))}
                 disabled={meta.page >= pageCount || loading}
                 className={`px-4 py-2 rounded-xl border border-black/15 font-extrabold text-[13px] transition
-                  ${meta.page >= pageCount || loading ? "opacity-50 cursor-not-allowed" : "hover:bg-black/[0.03]"}`}
+                  ${
+                    meta.page >= pageCount || loading
+                      ? "opacity-50 cursor-not-allowed"
+                      : "hover:bg-black/[0.03]"
+                  }`}
               >
                 {t("পরের", "Next")}
               </button>
             </div>
+          </div>
+
+          <div className="mt-2 text-[12px] text-black/50">
+            {t(
+              "নোট: আপনার API যদি full list return করে, তাহলে filtering client-side এ হবে।",
+              "Note: If your API returns the full list, filtering will be handled on the client side.",
+            )}
           </div>
         </div>
       </div>
