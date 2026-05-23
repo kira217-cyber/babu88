@@ -1,5 +1,5 @@
 import React from "react";
-import loading from "../../assets/Loading.gif";
+import loading from "../../assets/Loading.png";
 /**
  * Loading Component
  * Usage:

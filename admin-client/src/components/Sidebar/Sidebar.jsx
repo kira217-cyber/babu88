@@ -100,6 +100,12 @@ const Sidebar = () => {
 
   const gamesSubItems = useMemo(
     () => [
+        {
+        key: "add-game-api-key",
+        to: "/add-game-api-key",
+        icon: <FaGamepad className="text-cyan-400" />,
+        text: "Add Game API Key",
+      },
       {
         key: "add-game-category",
         to: "/add-game-category",

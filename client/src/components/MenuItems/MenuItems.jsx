@@ -2,51 +2,93 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router";
 import { AnimatePresence, motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
+
 import { useLanguage } from "../../Context/LanguageProvider";
 import { api } from "../../api/axios";
-import { useQuery } from "@tanstack/react-query";
 
-// menu style config
+const MASTER_API_URL = import.meta.env.VITE_MASTER_API_URL;
+const PARTNET_URL = import.meta.env.VITE_PARTNER_URL;
+
 const fetchMenuItemsColor = async () => {
   const { data } = await api.get("/api/menuitems-color");
   return data;
 };
 
-const PARTNET_URL = import.meta.env.VITE_PARTNER_URL;
+const getSavedApiKey = async () => {
+  const res = await api.get("/api/admin/game-api-key");
+  const setting = res?.data?.data?.setting;
 
-// ✅ menu data from DB
+  if (!setting?.apiKey || !setting?.isActive || !setting?.isVerified) {
+    return "";
+  }
+
+  return setting.apiKey;
+};
+
 const fetchGameMenu = async () => {
-  const { data } = await api.get("/api/public/game-menu");
-  return data?.data || [];
+  try {
+    const apiKey = await getSavedApiKey();
+
+    if (!apiKey || !MASTER_API_URL) {
+      return [];
+    }
+
+    const { data } = await axios.get(
+      `${MASTER_API_URL}/api/white-label/game-menu`,
+      {
+        headers: {
+          "x-api-key": apiKey,
+        },
+      },
+    );
+
+    return data?.data || [];
+  } catch (error) {
+    console.error("White label game menu fetch failed:", error);
+    return [];
+  }
+};
+
+const fileUrl = (path = "") => {
+  if (!path) return "";
+  if (String(path).startsWith("http")) return path;
+  return `${MASTER_API_URL}${String(path).startsWith("/") ? path : `/${path}`}`;
 };
 
 const hexToRgba = (hex, alpha = 1) => {
   if (!hex || typeof hex !== "string") return `rgba(0,0,0,${alpha})`;
+
   const h = hex.replace("#", "").trim();
+
   if (h.length === 3) {
     const r = parseInt(h[0] + h[0], 16);
     const g = parseInt(h[1] + h[1], 16);
     const b = parseInt(h[2] + h[2], 16);
     return `rgba(${r},${g},${b},${alpha})`;
   }
+
   if (h.length === 6) {
     const r = parseInt(h.slice(0, 2), 16);
     const g = parseInt(h.slice(2, 4), 16);
     const b = parseInt(h.slice(4, 6), 16);
     return `rgba(${r},${g},${b},${alpha})`;
   }
+
   return `rgba(0,0,0,${alpha})`;
 };
 
 const Badge = ({ type, colors }) => {
   if (!type || type === "none") return null;
+
   const bg = type === "new" ? colors.badgeNewBg : colors.badgeHotBg;
   const text = type === "new" ? colors.badgeNewText : colors.badgeHotText;
 
   return (
     <span
       style={{ backgroundColor: bg, color: text }}
-      className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-[2px] rounded-full text-[10px] font-extrabold"
+      className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full px-2 py-[2px] text-[10px] font-extrabold"
     >
       {type.toUpperCase()}
     </span>
@@ -64,12 +106,12 @@ const MenuItems = () => {
   });
 
   const { data: menuCats = [] } = useQuery({
-    queryKey: ["public-game-menu"],
+    queryKey: ["white-label-public-game-menu"],
     queryFn: fetchGameMenu,
     staleTime: 1000 * 60 * 2,
+    retry: false,
   });
 
-  // fallback style same
   const colors = useMemo(() => {
     return {
       barBg: cfg?.barBg || "#3e3e3e",
@@ -109,9 +151,6 @@ const MenuItems = () => {
     };
   }, [cfg]);
 
-  // ✅ SORT categories by order ASC (1 first, 9 last)
-  // - order missing/0/invalid => goes LAST
-  // - same order => older first (stable)
   const sortedMenuCats = useMemo(() => {
     const arr = Array.isArray(menuCats) ? [...menuCats] : [];
 
@@ -123,38 +162,39 @@ const MenuItems = () => {
       const bHas = Number.isFinite(bRaw) && bRaw > 0;
 
       if (aHas && bHas) {
-        if (aRaw !== bRaw) return aRaw - bRaw; // ✅ ASC
+        if (aRaw !== bRaw) return aRaw - bRaw;
       } else if (aHas && !bHas) {
-        return -1; // a first
+        return -1;
       } else if (!aHas && bHas) {
-        return 1; // b first
+        return 1;
       }
 
-      // tie-break: oldest first
       const at = new Date(a?.createdAt || 0).getTime();
       const bt = new Date(b?.createdAt || 0).getTime();
+
       return at - bt;
     });
 
     return arr;
   }, [menuCats]);
 
-  console.log("game category", sortedMenuCats)
-
-  // ✅ DB categories -> dropdown menus
   const dropdownMenus = useMemo(() => {
-    return (sortedMenuCats || []).map((c) => ({
-      key: c._id,
-      label: isBangla ? c.categoryName?.bn || "" : c.categoryName?.en || "",
-      badge: c.badge || "none",
-      providers: c.providers || [],
-      categoryId: c._id,
-      menuKey: c.menuKey,
-      order: c.order,
-    }));
+    return (sortedMenuCats || [])
+      .filter((c) => c?.status === "active" || !c?.status)
+      .map((c) => ({
+        key: c._id,
+        label: isBangla ? c.categoryName?.bn || "" : c.categoryName?.en || "",
+        badge: c.badge || (c.jackpot ? "hot" : "none"),
+        providers: Array.isArray(c.providers)
+          ? c.providers.filter((p) => p?.status === "active" || !p?.status)
+          : [],
+        categoryId: c._id,
+        menuKey: c.menuKey,
+        order: c.order,
+      }))
+      .filter((c) => c.label);
   }, [sortedMenuCats, isBangla]);
 
-  // other nav items fixed
   const fixedNav = useMemo(
     () => [
       {
@@ -197,18 +237,23 @@ const MenuItems = () => {
   );
 
   const MENUS = useMemo(() => {
-    const drops = dropdownMenus.map((m) => ({ ...m, type: "dropdown" }));
+    const drops = dropdownMenus.map((m) => ({
+      ...m,
+      type: "dropdown",
+    }));
+
     return [...drops, ...fixedNav];
   }, [dropdownMenus, fixedNav]);
 
   const wrapRef = useRef(null);
-  const [openKey, setOpenKey] = useState(null);
   const closeTimer = useRef(null);
+  const [openKey, setOpenKey] = useState(null);
 
   const openMenu = (key) => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
     setOpenKey(key);
   };
+
   const closeMenu = () => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
     closeTimer.current = setTimeout(() => setOpenKey(null), 120);
@@ -219,7 +264,9 @@ const MenuItems = () => {
       if (!wrapRef.current) return;
       if (!wrapRef.current.contains(e.target)) setOpenKey(null);
     };
+
     document.addEventListener("mousedown", onOutside);
+
     return () => document.removeEventListener("mousedown", onOutside);
   }, []);
 
@@ -227,6 +274,7 @@ const MenuItems = () => {
     e.currentTarget.dataset.prevColor = e.currentTarget.style.color || "";
     e.currentTarget.style.color = colors.itemHoverText;
   };
+
   const onHoverOut = (e) => {
     const prev = e.currentTarget.dataset.prevColor;
     e.currentTarget.style.color = prev || "";
@@ -237,18 +285,16 @@ const MenuItems = () => {
     return dropdownMenus.find((x) => x.key === openKey) || null;
   }, [dropdownMenus, openKey]);
 
-  // ✅ NEW: external open safe (affiliate)
   const onOpenPartner = (e) => {
     if (!PARTNET_URL) {
       e.preventDefault();
-      return;
     }
   };
 
   return (
-    <div className="hidden lg:block relative" ref={wrapRef}>
+    <div className="relative hidden lg:block" ref={wrapRef}>
       <div
-        className="w-full relative z-[60]"
+        className="relative z-[60] w-full"
         style={{ backgroundColor: colors.barBg }}
       >
         <div className="mx-auto px-3">
@@ -266,7 +312,7 @@ const MenuItems = () => {
                   >
                     <button
                       type="button"
-                      className="relative h-[56px] px-4 font-bold bg-transparent"
+                      className="relative h-[56px] cursor-pointer bg-transparent px-4 font-bold"
                       style={{
                         fontSize: `${colors.itemTextSize}px`,
                         color: colors.itemText,
@@ -300,7 +346,7 @@ const MenuItems = () => {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={onOpenPartner}
-                      className="relative inline-flex items-center h-[56px] px-4 font-bold"
+                      className="relative inline-flex h-[56px] items-center px-4 font-bold"
                       style={{
                         fontSize: `${colors.itemTextSize}px`,
                         backgroundColor: "transparent",
@@ -321,7 +367,7 @@ const MenuItems = () => {
                 <div key={m.key} className="relative">
                   <NavLink
                     to={m.to}
-                    className="relative inline-flex items-center h-[56px] px-4 font-bold"
+                    className="relative inline-flex h-[56px] items-center px-4 font-bold"
                     style={({ isActive }) => ({
                       fontSize: `${colors.itemTextSize}px`,
                       backgroundColor: isActive
@@ -333,15 +379,19 @@ const MenuItems = () => {
                     onMouseEnter={(e) => {
                       if (
                         e.currentTarget.getAttribute("aria-current") === "page"
-                      )
+                      ) {
                         return;
+                      }
+
                       onHoverIn(e);
                     }}
                     onMouseLeave={(e) => {
                       if (
                         e.currentTarget.getAttribute("aria-current") === "page"
-                      )
+                      ) {
                         return;
+                      }
+
                       onHoverOut(e);
                     }}
                   >
@@ -355,7 +405,6 @@ const MenuItems = () => {
         </div>
       </div>
 
-      {/* Mega dropdown */}
       <AnimatePresence>
         {openKey && openMenuObj ? (
           <motion.div
@@ -366,7 +415,7 @@ const MenuItems = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.18 }}
-            className="absolute left-0 w-full z-[55] pointer-events-auto"
+            className="pointer-events-auto absolute left-0 z-[55] w-full"
           >
             <div className="w-full">
               <div className="mx-auto">
@@ -383,68 +432,81 @@ const MenuItems = () => {
                     )}`,
                   }}
                 >
-                  <div className="p-5 max-w-6xl mx-auto">
-                    <div className="grid grid-cols-5 gap-8">
-                      {(openMenuObj.providers || []).map((p) => (
-                        <motion.button
-                          key={p._id}
-                          whileHover={{ y: -3, scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          type="button"
-                          onClick={() => {
-                            setOpenKey(null);
-                            navigate(
-                              `/games/${openMenuObj.categoryId}?provider=${p._id}`,
-                            );
-                          }}
-                          className="group relative overflow-hidden transition"
-                          style={{
-                            backgroundColor: hexToRgba(
-                              colors.cardBg,
-                              colors.cardBgOpacity,
-                            ),
-                            border: `1px solid ${hexToRgba(
-                              colors.cardBorder,
-                              colors.cardBorderOpacity,
-                            )}`,
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = hexToRgba(
-                              colors.cardHoverBg,
-                              colors.cardHoverBgOpacity,
-                            );
-                            e.currentTarget.style.border = `1px solid ${hexToRgba(
-                              colors.cardHoverBorder,
-                              colors.cardHoverBorderOpacity,
-                            )}`;
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = hexToRgba(
-                              colors.cardBg,
-                              colors.cardBgOpacity,
-                            );
-                            e.currentTarget.style.border = `1px solid ${hexToRgba(
-                              colors.cardBorder,
-                              colors.cardBorderOpacity,
-                            )}`;
-                          }}
-                          title={p.providerName}
-                        >
-                          <div className="aspect-[1/1] w-full">
-                            <img
-                              src={`${import.meta.env.VITE_API_URL}${p.providerImage}`}
-                              alt={p.providerName}
-                              className="w-full h-66 cursor-pointer object-cover"
-                              loading="lazy"
-                            />
-                          </div>
+                  <div className="mx-auto max-w-6xl p-5">
+                    {openMenuObj.providers?.length ? (
+                      <div className="grid grid-cols-5 gap-8">
+                        {openMenuObj.providers.map((p) => (
+                          <motion.button
+                            key={p._id}
+                            whileHover={{ y: -3, scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            type="button"
+                            onClick={() => {
+                              setOpenKey(null);
+                              navigate(
+                                `/games/${openMenuObj.categoryId}?provider=${p._id}`,
+                              );
+                            }}
+                            className="group relative cursor-pointer overflow-hidden transition"
+                            style={{
+                              backgroundColor: hexToRgba(
+                                colors.cardBg,
+                                colors.cardBgOpacity,
+                              ),
+                              border: `1px solid ${hexToRgba(
+                                colors.cardBorder,
+                                colors.cardBorderOpacity,
+                              )}`,
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = hexToRgba(
+                                colors.cardHoverBg,
+                                colors.cardHoverBgOpacity,
+                              );
 
-                          <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition">
-                            <div className="absolute -inset-8 bg-[radial-gradient(circle_at_center,rgba(245,180,0,0.25),transparent_60%)]" />
-                          </div>
-                        </motion.button>
-                      ))}
-                    </div>
+                              e.currentTarget.style.border = `1px solid ${hexToRgba(
+                                colors.cardHoverBorder,
+                                colors.cardHoverBorderOpacity,
+                              )}`;
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = hexToRgba(
+                                colors.cardBg,
+                                colors.cardBgOpacity,
+                              );
+
+                              e.currentTarget.style.border = `1px solid ${hexToRgba(
+                                colors.cardBorder,
+                                colors.cardBorderOpacity,
+                              )}`;
+                            }}
+                            title={p.providerName}
+                          >
+                            <div className="aspect-[1/1] w-full">
+                              <img
+                                src={fileUrl(p.providerImage)}
+                                alt={p.providerName}
+                                className="h-66 w-full cursor-pointer object-cover"
+                                loading="lazy"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = "none";
+                                }}
+                              />
+                            </div>
+
+                            <div className="pointer-events-none absolute inset-0 opacity-0 transition group-hover:opacity-100">
+                              <div className="absolute -inset-8 bg-[radial-gradient(circle_at_center,rgba(245,180,0,0.25),transparent_60%)]" />
+                            </div>
+                          </motion.button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="py-10 text-center text-sm text-white/60">
+                        {isBangla
+                          ? "এই ক্যাটাগরিতে কোনো প্রোভাইডার নেই।"
+                          : "No provider found in this category."}
+                      </div>
+                    )}
 
                     <div
                       className="mt-5 h-px"

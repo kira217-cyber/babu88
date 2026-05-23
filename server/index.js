@@ -49,7 +49,7 @@ import affAgentColorRoutes from "./routes/affAgentColorRoutes.js";
 import affWhyUsColorRoutes from "./routes/affWhyUsColorRoutes.js";
 import affNoticeColorRoutes from "./routes/affNoticeColorRoutes.js";
 import affSliderColorRoutes from "./routes/affSliderColorRoutes.js";
-import liveGameGlobalRoutes from "./routes/liveGamesRoutes.js"
+import liveGameGlobalRoutes from "./routes/liveGamesRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import adminAffiliateRoutes from "./routes/adminAffiliateRoutes.js";
 import adminUserRoutes from "./routes/adminUserRoutes.js";
@@ -73,14 +73,13 @@ import affWithdrawMethodRoutes from "./routes/affWithdrawMethodRoutes.js";
 import affWithdrawRequestsRoutes from "./routes/affWithdrawRequestsRoutes.js";
 import redeemRoutes from "./routes/redeemRoutes.js";
 import adminRedeemRoutes from "./routes/adminRedeemRoutes.js";
-import refundRoutes from "./routes/refundRoutes.js"
+import refundRoutes from "./routes/refundRoutes.js";
 import dashboardStatsRoutes from "./routes/dashboardStatsRoutes.js";
 import jackpotRoutes from "./routes/jackpotRoutes.js";
 import betLogRoutes from "./routes/betLogRoutes.js";
+import gameApiKeySettingRoutes from "./routes/gameApiKeySettingRoutes.js";
+
 // ...
-
-
-
 
 dotenv.config();
 
@@ -162,7 +161,7 @@ app.use("/api/public", publicGameRoutes);
 app.use("/api/call-back", callbackRoutes);
 app.use("/api/play-game", playGameRoutes);
 app.use("/api", betHistoryRoutes);
-app.use("/api", meRoutes); 
+app.use("/api", meRoutes);
 app.use("/api", withdrawMethodRoutes);
 app.use("/api", depositRequestsRoutes);
 app.use("/api", turnOverRoutes);
@@ -178,6 +177,7 @@ app.use("/api/refund", refundRoutes);
 app.use("/api", dashboardStatsRoutes);
 app.use("/api", jackpotRoutes);
 app.use("/api", betLogRoutes);
+app.use("/api/admin/game-api-key", gameApiKeySettingRoutes);
 
 // ✅ port
 const PORT = process.env.PORT || 5008;

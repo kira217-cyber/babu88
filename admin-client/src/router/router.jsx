@@ -54,6 +54,7 @@ import AffiliateWithdrawRequestDetails from "../pages/AffiliateWithdrawRequestDe
 import AddRedeem from "../pages/AddRedeem/AddRedeem";
 import JackpotController from "../pages/JackpotController/JackpotController";
 import BetLogAllUser from "../pages/BetLogAllUser/BetLogAllUser";
+import AddGameApiKey from "../pages/AddGameApiKey/AddGameApiKey";
 
 export const routes = createBrowserRouter([
   {
@@ -319,6 +320,14 @@ export const routes = createBrowserRouter([
         element: (
           <PrivateRoute permKey="affiliate-withdraw-request-details">
             <AffiliateWithdrawRequestDetails />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "add-game-api-key",
+        element: (
+          <PrivateRoute permKey="add-game-api-key">
+            <AddGameApiKey />
           </PrivateRoute>
         ),
       },
