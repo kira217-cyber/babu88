@@ -3,8 +3,13 @@ import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { api } from "../../api/axios";
+import { useNavigate } from "react-router";
+import { useSelector } from "react-redux";
+import { toast } from "react-toastify";
+import { useLanguage } from "../../Context/LanguageProvider";
 
-// Flag fallback map (kept exactly as it was)
+const MASTER_API_URL = import.meta.env.VITE_MASTER_API_URL;
+
 const flagMap = {
   BD: "https://flagsapi.com/BD/shiny/64.png",
   IN: "https://flagsapi.com/IN/shiny/64.png",
@@ -16,57 +21,91 @@ const flagMap = {
 
 const hexToRgba = (hex, alpha = 1) => {
   if (!hex || typeof hex !== "string") return `rgba(0,0,0,${alpha})`;
+  if (!hex.startsWith("#")) return hex;
+
   const h = hex.replace("#", "").trim();
+
   if (h.length === 3) {
     const r = parseInt(h[0] + h[0], 16);
     const g = parseInt(h[1] + h[1], 16);
     const b = parseInt(h[2] + h[2], 16);
     return `rgba(${r},${g},${b},${alpha})`;
   }
+
   if (h.length === 6) {
     const r = parseInt(h.slice(0, 2), 16);
     const g = parseInt(h.slice(2, 4), 16);
     const b = parseInt(h.slice(4, 6), 16);
     return `rgba(${r},${g},${b},${alpha})`;
   }
+
   return `rgba(0,0,0,${alpha})`;
 };
 
-// Fetch live games color settings (kept as is)
 const fetchLiveGamesColor = async () => {
   const { data } = await api.get("/api/livegames-color");
   return data;
 };
 
-// ✅ Fetch real live cricket matches from Oracle API
-const fetchLiveGames = async () => {
-  const res = await axios.get(
-    "https://api.oraclegames.live/api/cricket/matches",
-    {
-      headers: { Accept: "application/json" },
-    },
-  );
-  return res.data?.data || [];
+const getSavedApiKey = async () => {
+  const res = await api.get("/api/admin/game-api-key");
+  const setting = res?.data?.data?.setting;
+
+  if (!setting?.apiKey || !setting?.isActive || !setting?.isVerified) {
+    return "";
+  }
+
+  return setting.apiKey;
 };
 
-// ✅ Fetch GLOBAL gameUID from your DB (single config doc)
-const fetchGlobalGame = async () => {
-  // expected response: { gameUID: "69987ca39fa20f5dfecbdc95", isActive: true }
-  const { data } = await api.get("/api/live-games/global");
-  return data || {};
+const fetchGlobalLiveGame = async () => {
+  try {
+    const apiKey = await getSavedApiKey();
+
+    if (!apiKey || !MASTER_API_URL) {
+      return {};
+    }
+
+    const { data } = await axios.get(
+      `${MASTER_API_URL}/api/white-label/live-game`,
+      {
+        headers: {
+          "x-api-key": apiKey,
+        },
+      },
+    );
+
+    return data?.data || {};
+  } catch (error) {
+    console.error("White label live game config fetch failed:", error);
+    return {};
+  }
+};
+
+const fetchLiveGames = async () => {
+  try {
+    const res = await axios.get(
+      "https://api.oraclegames.live/api/cricket/matches",
+      {
+        headers: { Accept: "application/json" },
+      },
+    );
+
+    return res.data?.data || [];
+  } catch (error) {
+    console.error("Live cricket matches fetch failed:", error);
+    return [];
+  }
 };
 
 const StatusBadge = ({ text, variant, styles }) => {
-  // only 2 variants existed in design; keep same colors:
-  // - "upcoming" style for SOON / UPDATING / END
-  // - "live" style for LIVE
   const isUpcoming = variant === "upcoming";
   const bg = isUpcoming ? styles.badgeUpcomingBg : styles.badgeLiveBg;
   const color = isUpcoming ? styles.badgeUpcomingText : styles.badgeLiveText;
 
   return (
     <span
-      className="px-2 py-[2px] rounded-md font-extrabold"
+      className="rounded-md px-2 py-[2px] font-extrabold"
       style={{
         backgroundColor: bg,
         color,
@@ -78,64 +117,66 @@ const StatusBadge = ({ text, variant, styles }) => {
   );
 };
 
-// ✅ map API state -> required labels: End, Soon, Updating, Live
 const getStatusLabel = (state, isFetching) => {
   const s = String(state || "").toLowerCase();
 
   if (isFetching) return { label: "UPDATING", variant: "upcoming" };
   if (s === "live") return { label: "LIVE", variant: "live" };
 
-  // common possible values from cricket feeds
-  if (["upcoming", "preview", "scheduled", "not started", "soon"].includes(s))
+  if (["upcoming", "preview", "scheduled", "not started", "soon"].includes(s)) {
     return { label: "SOON", variant: "upcoming" };
+  }
 
   if (
     ["ended", "complete", "completed", "result", "finished", "end"].includes(s)
-  )
+  ) {
     return { label: "END", variant: "upcoming" };
+  }
 
-  // fallback
   return { label: "SOON", variant: "upcoming" };
 };
 
 const LiveGames = () => {
-  // Color settings from admin
+  const navigate = useNavigate();
+  const { isBangla } = useLanguage();
+  const token = useSelector((state) => state.auth.token);
+
   const { data: liveColor } = useQuery({
     queryKey: ["livegames-color"],
     queryFn: fetchLiveGamesColor,
-    staleTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 10 * 60 * 1000,
     retry: 1,
   });
 
-  // ✅ matches from oracle cricket api
-  // ✅ auto refetch every 30 seconds (live score updates)
   const { data: matchesRaw = [], isFetching } = useQuery({
     queryKey: ["live-cricket-matches"],
     queryFn: fetchLiveGames,
     staleTime: 0,
-    refetchInterval: 30 * 1000, // ✅ every 30 sec
+    refetchInterval: 30 * 1000,
     refetchIntervalInBackground: true,
     refetchOnWindowFocus: true,
     retry: 1,
   });
 
-  // ✅ global game uid from DB (NO design impact)
   const { data: globalGame = {} } = useQuery({
-    queryKey: ["live-games-global"],
-    queryFn: fetchGlobalGame,
+    queryKey: ["white-label-live-game-global"],
+    queryFn: fetchGlobalLiveGame,
     staleTime: 30 * 1000,
-    retry: 1,
+    retry: false,
   });
 
   const globalGameUID = useMemo(() => {
-    const uid = String(globalGame?.gameUID || "").trim();
-    return uid;
+    return String(
+      globalGame?.gameUID || globalGame?.gameUId || globalGame?.gameId || "",
+    ).trim();
   }, [globalGame]);
 
   const isGlobalActive = globalGame?.isActive !== false;
+  const openInNewTab = globalGame?.openInNewTab !== false;
 
   const styles = useMemo(() => {
     const d = liveColor || {};
+
     return {
       cardBg: d.cardBg || "#ffffff",
       cardBorderRgba: hexToRgba(
@@ -159,9 +200,6 @@ const LiveGames = () => {
       scoreText: d.scoreText || "#000000",
       scoreTextSize: d.scoreTextSize ?? 13,
 
-      dashTextRgba: hexToRgba(d.dashText || "#000000", d.dashOpacity ?? 0.3),
-      dashTextSize: d.dashTextSize ?? 12,
-
       badgeUpcomingBg: d.badgeUpcomingBg || "#000000",
       badgeUpcomingText: d.badgeUpcomingText || "#ffffff",
       badgeLiveBg: d.badgeLiveBg || "#ff2d2d",
@@ -178,38 +216,37 @@ const LiveGames = () => {
 
   const resolveImg = (path) => {
     if (!path) return "";
+
     const p = String(path).trim();
     if (!p) return "";
+
     if (/^https?:\/\//i.test(p)) return p;
+
     const base = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
-    if (!base) return p.startsWith("/") ? p : `/${p}`;
     const normalizedPath = p.startsWith("/") ? p : `/${p}`;
-    return `${base}${normalizedPath}`;
+
+    return base ? `${base}${normalizedPath}` : normalizedPath;
   };
 
-  // ✅ Normalize Oracle cricket matches -> UI shape (design unchanged)
   const matches = useMemo(() => {
     return (matchesRaw || []).map((m) => {
       const { label, variant } = getStatusLabel(m.state, isFetching);
 
       return {
-        id: m.matchId || m._id,
-        // ⚠️ IMPORTANT: UI shows oracle matches, but click will go to GLOBAL uid
-        gameUID: m.matchId,
+        id: m.matchId || m._id || `${m?.team1?.name}-${m?.team2?.name}`,
         statusText: label,
         statusType: variant,
         title: m.subtitle ? `${m.title} • ${m.subtitle}` : m.title,
-        datetime: null,
         teams: [
           {
             name: m?.team1?.name || "TEAM 1",
-            countryCode: m?.team1?.name || "GEN",
+            countryCode: m?.team1?.countryCode || "GEN",
             flagUrl: m?.team1?.flag || "",
             score: m?.team1?.score || "",
           },
           {
             name: m?.team2?.name || "TEAM 2",
-            countryCode: m?.team2?.name || "GEN",
+            countryCode: m?.team2?.countryCode || "GEN",
             flagUrl: m?.team2?.flag || "",
             score: m?.team2?.score || "",
           },
@@ -218,29 +255,45 @@ const LiveGames = () => {
     });
   }, [matchesRaw, isFetching]);
 
-  // Open game detail in new tab (target="_blank")
-  // ✅ NOW: always open GLOBAL game UID from DB (no extra params)
-  const openGameInNewTab = () => {
-    if (!isGlobalActive) return;
-    if (!globalGameUID) return;
+  const handlePlay = () => {
+    if (!isGlobalActive) {
+      toast.error(isBangla ? "লাইভ গেম এখন বন্ধ আছে" : "Live game is inactive");
+      return;
+    }
+
+    if (!globalGameUID) {
+      toast.error(
+        isBangla ? "লাইভ গেম আইডি পাওয়া যায়নি" : "Live game id not found",
+      );
+      return;
+    }
+
+    if (!token) {
+      toast.error(isBangla ? "খেলতে লগইন করুন" : "Please login to play");
+      navigate("/login");
+      return;
+    }
+
     const url = `/playgame/${globalGameUID}`;
-    window.open(url, "_blank", "noopener,noreferrer");
+
+    if (openInNewTab) {
+      window.open(url, "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    navigate(url, {
+      state: {
+        game_uid: globalGameUID,
+        liveGame: true,
+      },
+    });
   };
 
   return (
-    <section className="w-full mt-4">
-      <div className="mx-auto max-w-[1500px] px-2 lg:px-0 py-3">
-        {/* Horizontal scroll area */}
+    <section className="mt-4 w-full">
+      <div className="mx-auto max-w-[1500px] px-2 py-3 lg:px-0">
         <div
-          className="
-            live-scroll
-            flex gap-4
-            overflow-x-auto
-            overflow-y-hidden
-            pb-4
-            pr-2
-            snap-x snap-mandatory
-          "
+          className="live-scroll flex snap-x snap-mandatory gap-4 overflow-x-auto overflow-y-hidden pb-4 pr-2"
           style={{
             scrollbarColor: `${styles.scrollbarThumbFrom} ${styles.scrollbarTrack}`,
             scrollbarWidth: "thin",
@@ -249,28 +302,24 @@ const LiveGames = () => {
           {matches.map((m) => (
             <div
               key={m.id}
-              className="
-                snap-start
-                min-w-[280px] sm:min-w-[320px] lg:min-w-[360px]
-                rounded-xl
-                overflow-hidden
-                cursor-pointer
-              "
+              className={`snap-start min-w-[280px] overflow-hidden rounded-xl sm:min-w-[320px] lg:min-w-[360px] ${
+                isGlobalActive && globalGameUID
+                  ? "cursor-pointer"
+                  : "cursor-not-allowed opacity-70"
+              }`}
               style={{
                 backgroundColor: styles.cardBg,
                 border: `1px solid ${styles.cardBorderRgba}`,
               }}
-              // ✅ full card clickable (GLOBAL UID)
-              onClick={openGameInNewTab}
+              onClick={handlePlay}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") openGameInNewTab();
+                if (e.key === "Enter" || e.key === " ") handlePlay();
               }}
             >
-              {/* Top bar */}
               <div
-                className="px-3 py-2 flex items-center gap-2"
+                className="flex items-center gap-2 px-3 py-2"
                 style={{ backgroundColor: styles.topBarBg }}
               >
                 <StatusBadge
@@ -279,14 +328,13 @@ const LiveGames = () => {
                   styles={styles}
                 />
 
-                {/* (optional tiny indicator; still ok) */}
                 <span className="ml-auto text-[10px] font-extrabold text-black/70">
                   {isFetching ? "Updating..." : ""}
                 </span>
               </div>
 
               <div className="px-3 py-3">
-                <p
+                <div
                   className="font-bold"
                   style={{
                     color: styles.datetimeTextRgba,
@@ -294,7 +342,7 @@ const LiveGames = () => {
                   }}
                 >
                   <p
-                    className="font-extrabold line-clamp-1"
+                    className="line-clamp-1 font-extrabold"
                     style={{
                       color: styles.titleText,
                       fontSize: `${styles.titleTextSize}px`,
@@ -302,7 +350,7 @@ const LiveGames = () => {
                   >
                     {m.title}
                   </p>
-                </p>
+                </div>
 
                 <div className="mt-3 space-y-3">
                   {m.teams.map((t, idx) => (
@@ -310,7 +358,7 @@ const LiveGames = () => {
                       key={idx}
                       className="flex items-center justify-between gap-3"
                     >
-                      <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex min-w-0 items-center gap-2">
                         <img
                           src={
                             t.flagUrl
@@ -319,11 +367,12 @@ const LiveGames = () => {
                                 "https://cdn-icons-png.flaticon.com/512/502/502195.png"
                           }
                           alt={t.name}
-                          className="w-[18px] h-[18px] object-cover"
+                          className="h-[18px] w-[18px] object-cover"
                           loading="lazy"
                         />
+
                         <p
-                          className="font-extrabold truncate"
+                          className="truncate font-extrabold"
                           style={{
                             color: styles.teamNameText,
                             fontSize: `${styles.teamNameTextSize}px`,
@@ -334,7 +383,7 @@ const LiveGames = () => {
                       </div>
 
                       <p
-                        className="font-extrabold shrink-0"
+                        className="shrink-0 font-extrabold"
                         style={{
                           color: styles.scoreText,
                           fontSize: `${styles.scoreTextSize}px`,
@@ -350,19 +399,21 @@ const LiveGames = () => {
           ))}
         </div>
 
-        {/* Custom scrollbar */}
         <style>{`
           .live-scroll::-webkit-scrollbar {
             height: 10px;
           }
+
           .live-scroll::-webkit-scrollbar-track {
             background: ${styles.scrollbarTrack};
             border-radius: 999px;
           }
+
           .live-scroll::-webkit-scrollbar-thumb {
             background: linear-gradient(90deg, ${styles.scrollbarThumbFrom}, ${styles.scrollbarThumbTo});
             border-radius: 999px;
           }
+
           .live-scroll::-webkit-scrollbar-thumb:hover {
             background: linear-gradient(90deg, ${styles.scrollbarHoverFrom}, ${styles.scrollbarHoverTo});
           }

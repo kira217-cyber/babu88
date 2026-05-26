@@ -6,6 +6,7 @@ import React, {
   useState,
   useCallback,
 } from "react";
+import axios from "axios";
 import { useNavigate } from "react-router";
 import { motion } from "framer-motion";
 import { useLanguage } from "../../Context/LanguageProvider";
@@ -15,6 +16,8 @@ import { toast } from "react-toastify";
 
 import Loading from "../../components/Loading/Loading";
 import Jackpot from "../Jackpot/Jackpot";
+
+const MASTER_API_URL = import.meta.env.VITE_MASTER_API_URL;
 
 const HOT_ICON = "https://babu88.gold/static/image/other/hot-icon.png";
 const NEW_ICON = "https://babu88.gold/static/svg/game-icon-new.svg";
@@ -28,19 +31,25 @@ const PAGE_SIZE = 21;
 
 const hexToRgba = (hex, alpha = 1) => {
   if (!hex || typeof hex !== "string") return `rgba(0,0,0,${alpha})`;
+
   const h = hex.replace("#", "").trim();
+
   if (h.length === 3) {
     const r = parseInt(h[0] + h[0], 16);
     const g = parseInt(h[1] + h[1], 16);
     const b = parseInt(h[2] + h[2], 16);
+
     return `rgba(${r},${g},${b},${alpha})`;
   }
+
   if (h.length === 6) {
     const r = parseInt(h.slice(0, 2), 16);
     const g = parseInt(h.slice(2, 4), 16);
     const b = parseInt(h.slice(4, 6), 16);
+
     return `rgba(${r},${g},${b},${alpha})`;
   }
+
   return `rgba(0,0,0,${alpha})`;
 };
 
@@ -49,36 +58,64 @@ const fetchGameCategoryColor = async () => {
   return data;
 };
 
+const getSavedApiKey = async () => {
+  const res = await api.get("/api/admin/game-api-key");
+  const setting = res?.data?.data?.setting;
+
+  if (!setting?.apiKey || !setting?.isActive || !setting?.isVerified) {
+    return "";
+  }
+
+  return setting.apiKey;
+};
+
+const masterGet = async (url, params = {}) => {
+  const apiKey = await getSavedApiKey();
+
+  if (!apiKey || !MASTER_API_URL) {
+    return null;
+  }
+
+  const { data } = await axios.get(`${MASTER_API_URL}${url}`, {
+    params,
+    headers: {
+      "x-api-key": apiKey,
+    },
+  });
+
+  return data?.data;
+};
+
 const fetchCategories = async () => {
-  const { data } = await api.get("/api/public/game-categories");
-  return data?.data || [];
+  const data = await masterGet("/api/white-label/game-menu");
+  return Array.isArray(data) ? data : [];
 };
 
-// ✅ all games under one category (public)
-const fetchAllGamesByCategory = async (categoryId) => {
-  const qs = new URLSearchParams();
-  qs.set("categoryId", categoryId);
-  const { data } = await api.get(`/api/public/all-games?${qs.toString()}`);
-  return Array.isArray(data?.data) ? data.data : [];
-};
-
-// ✅ providers of one category (public)
 const fetchProviders = async (categoryId) => {
-  const { data } = await api.get(
-    `/api/public/game-categories/${categoryId}/providers`,
+  const data = await masterGet(
+    `/api/white-label/game-categories/${categoryId}`,
   );
-  return data?.data || [];
+  return Array.isArray(data?.providers) ? data.providers : [];
 };
 
-// ✅ merge all games across all categories (client side)
+const fetchGamesByCategory = async ({ categoryId, providerDbId = "" }) => {
+  const data = await masterGet("/api/white-label/games", {
+    categoryId,
+    providerDbId,
+  });
+
+  return Array.isArray(data) ? data : [];
+};
+
 const fetchAllGamesAcrossCategories = async (categoryIds = []) => {
   const ids = Array.isArray(categoryIds) ? categoryIds.filter(Boolean) : [];
+
   if (!ids.length) return [];
 
   const results = await Promise.all(
     ids.map(async (id) => {
       try {
-        return await fetchAllGamesByCategory(id);
+        return await fetchGamesByCategory({ categoryId: id });
       } catch {
         return [];
       }
@@ -87,26 +124,45 @@ const fetchAllGamesAcrossCategories = async (categoryIds = []) => {
 
   const merged = results.flat();
 
-  // de-dup
   const map = new Map();
+
   for (const g of merged) {
-    if (g && g._id) map.set(String(g._id), g);
+    const key = String(g?._id || g?.gameUId || g?.gameId || "");
+
+    if (key) {
+      map.set(key, g);
+    }
   }
 
   return Array.from(map.values()).sort((a, b) => {
     const at = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
     const bt = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+
     return bt - at;
   });
 };
 
-const GameCard = ({ game, onClick, ui, apiBase }) => {
-  const imgSrc =
-    game?.image && String(game.image).trim()
-      ? /^https?:\/\//i.test(String(game.image).trim())
-        ? String(game.image).trim()
-        : `${apiBase}${String(game.image).trim()}`
-      : "/no-image.png";
+const masterFileUrl = (path = "") => {
+  if (!path) return "";
+  if (String(path).startsWith("http")) return path;
+
+  const base = String(MASTER_API_URL || "").replace(/\/+$/, "");
+  const cleanPath = String(path).startsWith("/") ? path : `/${path}`;
+
+  return `${base}${cleanPath}`;
+};
+
+const getGameImage = (game) => {
+  if (game?.image) return masterFileUrl(game.image);
+  if (game?.oracleImage) return game.oracleImage;
+
+  return "/no-image.png";
+};
+
+const GameCard = ({ game, onClick, ui }) => {
+  const imgSrc = getGameImage(game);
+  const gameName =
+    game?.gameName || game?.name || game?.gameUId || game?.gameId || "Game";
 
   return (
     <motion.button
@@ -119,21 +175,22 @@ const GameCard = ({ game, onClick, ui, apiBase }) => {
         boxShadow: "0 4px 12px rgba(0,0,0,0.10)",
         border: `1px solid ${hexToRgba(ui.cardRing, ui.cardRingOpacity)}`,
       }}
-      title={game?.gameName || game?.gameUuid || game?.gameId || "Game"}
+      title={gameName}
       type="button"
     >
       <div className="aspect-square w-full overflow-hidden">
         <img
           src={imgSrc}
-          alt={game?.gameName || "game"}
+          alt={gameName}
           className="h-full w-full object-cover"
           loading="lazy"
-          onError={(e) => (e.currentTarget.src = "/no-image.png")}
+          onError={(e) => {
+            e.currentTarget.src = "/no-image.png";
+          }}
         />
       </div>
 
-      {/* ✅ game badges */}
-      <div className="absolute top-0 right-0 flex flex-col gap-1 items-end">
+      <div className="absolute right-0 top-0 flex flex-col items-end gap-1">
         {game?.isHot === true && (
           <img
             src={HOT_ICON}
@@ -142,6 +199,7 @@ const GameCard = ({ game, onClick, ui, apiBase }) => {
             loading="lazy"
           />
         )}
+
         {game?.isNew === true && (
           <img
             src={NEW_ICON}
@@ -155,23 +213,10 @@ const GameCard = ({ game, onClick, ui, apiBase }) => {
   );
 };
 
-/**
- * ✅ Provider Card (UPDATED to match your screenshot style)
- * - rounded "poster" look
- * - image cover
- * - bottom gradient overlay
- * - badges top corners (HOT/NEW)
- */
-const ProviderCard = ({ provider, onClick, apiBase }) => {
+const ProviderCard = ({ provider, onClick }) => {
   const img = provider?.providerImage || provider?.providerIcon || "";
-  const imgSrc =
-    img && String(img).trim()
-      ? /^https?:\/\//i.test(String(img).trim())
-        ? String(img).trim()
-        : `${apiBase}${String(img).trim()}`
-      : "/no-image.png";
-
-  // const name = provider?.providerName || "";
+  const imgSrc = img ? masterFileUrl(img) : "/no-image.png";
+  const name = provider?.providerName || "";
 
   return (
     <motion.button
@@ -186,31 +231,29 @@ const ProviderCard = ({ provider, onClick, apiBase }) => {
       }}
       title={name}
     >
-      {/* image */}
       <div className="aspect-[4/5] w-full overflow-hidden bg-black/5">
         <img
           src={imgSrc}
           alt={name || "provider"}
-          className="w-full h-full object-cover"
+          className="h-full w-full object-cover"
           loading="lazy"
-          onError={(e) => (e.currentTarget.src = "/no-image.png")}
+          onError={(e) => {
+            e.currentTarget.src = "/no-image.png";
+          }}
         />
       </div>
 
-      {/* ✅ bottom overlay like screenshot */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-black/65 via-black/15 to-transparent" />
 
-      {/* provider name (subtle, like poster) */}
       {name ? (
         <div className="absolute inset-x-0 bottom-2 px-2 text-center">
-          <div className="text-white font-extrabold text-[12px] drop-shadow line-clamp-1">
+          <div className="line-clamp-1 text-[12px] font-extrabold text-white drop-shadow">
             {name}
           </div>
         </div>
       ) : null}
 
-      {/* ✅ badges (HOT/NEW) */}
-      <div className="absolute top-1 right-1 flex flex-col gap-1 items-end">
+      <div className="absolute right-1 top-1 flex flex-col items-end gap-1">
         {provider?.isHot === true && (
           <img
             src={HOT_ICON}
@@ -219,6 +262,7 @@ const ProviderCard = ({ provider, onClick, apiBase }) => {
             loading="lazy"
           />
         )}
+
         {provider?.isNew === true && (
           <img
             src={NEW_ICON}
@@ -229,8 +273,7 @@ const ProviderCard = ({ provider, onClick, apiBase }) => {
         )}
       </div>
 
-      {/* soft highlight */}
-      <div className="pointer-events-none absolute inset-0 opacity-0 hover:opacity-100 transition">
+      <div className="pointer-events-none absolute inset-0 opacity-0 transition hover:opacity-100">
         <div className="absolute -inset-8 bg-[radial-gradient(circle_at_center,rgba(245,180,0,0.18),transparent_60%)]" />
       </div>
     </motion.button>
@@ -240,7 +283,6 @@ const ProviderCard = ({ provider, onClick, apiBase }) => {
 const GameCategory = () => {
   const navigate = useNavigate();
   const { isBangla } = useLanguage();
-  const API_URL = import.meta.env.VITE_API_URL;
 
   const { data: colorDoc, isLoading: loadingUi } = useQuery({
     queryKey: ["gamecategory-color"],
@@ -251,6 +293,7 @@ const GameCategory = () => {
 
   const ui = useMemo(() => {
     const d = colorDoc || {};
+
     return {
       wrapBg: d.wrapBg || "#ffffff",
       wrapOpacity: d.wrapOpacity ?? 0.9,
@@ -285,15 +328,15 @@ const GameCategory = () => {
   }, [colorDoc]);
 
   const { data: categoriesRaw = [], isLoading: loadingCats } = useQuery({
-    queryKey: ["public-mobile-categories"],
+    queryKey: ["white-label-home-categories"],
     queryFn: fetchCategories,
     staleTime: 60000,
-    retry: 1,
+    retry: false,
   });
 
-  // ✅ DB categories sort by order ASC
   const dbCategories = useMemo(() => {
     const arr = Array.isArray(categoriesRaw) ? [...categoriesRaw] : [];
+
     arr.sort((a, b) => {
       const aRaw = parseInt(a?.order, 10);
       const bRaw = parseInt(b?.order, 10);
@@ -303,17 +346,21 @@ const GameCategory = () => {
 
       if (aHas && bHas) {
         if (aRaw !== bRaw) return aRaw - bRaw;
-      } else if (aHas && !bHas) return -1;
-      else if (!aHas && bHas) return 1;
+      } else if (aHas && !bHas) {
+        return -1;
+      } else if (!aHas && bHas) {
+        return 1;
+      }
 
       const at = new Date(a?.createdAt || 0).getTime();
       const bt = new Date(b?.createdAt || 0).getTime();
+
       return at - bt;
     });
+
     return arr;
   }, [categoriesRaw]);
 
-  // ✅ virtual tabs
   const virtualCats = useMemo(() => {
     return [
       {
@@ -335,11 +382,12 @@ const GameCategory = () => {
     return [...virtualCats, ...(dbCategories || [])];
   }, [virtualCats, dbCategories]);
 
-  // ✅ default active jackpot
   const [active, setActive] = useState("jackpot");
   const [page, setPage] = useState(1);
 
-  useEffect(() => setPage(1), [active]);
+  useEffect(() => {
+    setPage(1);
+  }, [active]);
 
   const dbCategoryIds = useMemo(
     () => (dbCategories || []).map((c) => c._id).filter(Boolean),
@@ -349,23 +397,29 @@ const GameCategory = () => {
   const isVirtual = active === "jackpot" || active === "hot";
   const isDbCategory = !!active && !isVirtual;
 
-  // ✅ All games across categories only for Jackpot/Hot tabs
   const {
     data: allGames = [],
     isLoading: loadingAllGames,
     isFetching: fetchingAllGames,
   } = useQuery({
-    queryKey: ["public-all-games-across-cats", dbCategoryIds],
+    queryKey: ["white-label-all-games-across-cats", dbCategoryIds],
     queryFn: () => fetchAllGamesAcrossCategories(dbCategoryIds),
     enabled: isVirtual && dbCategoryIds.length > 0,
     staleTime: 30_000,
-    retry: 1,
+    retry: false,
   });
 
   const virtualGames = useMemo(() => {
     const list = Array.isArray(allGames) ? allGames : [];
-    if (active === "jackpot") return list.filter((g) => g?.isJackpot === true);
-    if (active === "hot") return list.filter((g) => g?.isHot === true);
+
+    if (active === "jackpot") {
+      return list.filter((g) => g?.isJackpot === true);
+    }
+
+    if (active === "hot") {
+      return list.filter((g) => g?.isHot === true);
+    }
+
     return [];
   }, [allGames, active]);
 
@@ -373,25 +427,24 @@ const GameCategory = () => {
   const totalPages = Math.max(1, Math.ceil(totalVirtual / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const start = (safePage - 1) * PAGE_SIZE;
+
   const pagedVirtualGames = useMemo(
     () => virtualGames.slice(start, start + PAGE_SIZE),
     [virtualGames, start],
   );
 
-  // ✅ providers for active DB category
   const {
     data: providers = [],
     isLoading: loadingProviders,
     isFetching: fetchingProviders,
   } = useQuery({
-    queryKey: ["public-category-providers-home", active],
+    queryKey: ["white-label-category-providers-home", active],
     queryFn: () => fetchProviders(active),
     enabled: isDbCategory,
     staleTime: 60_000,
-    retry: 1,
+    retry: false,
   });
 
-  // scroll indicator refs
   const scrollerRef = useRef(null);
   const trackRef = useRef(null);
   const btnRefs = useRef({});
@@ -400,6 +453,7 @@ const GameCategory = () => {
   const updateThumb = useCallback(() => {
     const scroller = scrollerRef.current;
     const track = trackRef.current;
+
     if (!scroller || !track) return;
 
     const { scrollLeft, scrollWidth, clientWidth } = scroller;
@@ -421,6 +475,7 @@ const GameCategory = () => {
   useEffect(() => {
     updateThumb();
     window.addEventListener("resize", updateThumb);
+
     return () => window.removeEventListener("resize", updateThumb);
   }, [updateThumb]);
 
@@ -431,14 +486,17 @@ const GameCategory = () => {
   const scrollToButtonCenter = (id) => {
     const scroller = scrollerRef.current;
     const btn = btnRefs.current[id];
+
     if (!scroller || !btn) return;
 
     const scrollerRect = scroller.getBoundingClientRect();
     const btnRect = btn.getBoundingClientRect();
 
     const currentLeft = scroller.scrollLeft;
+
     const btnCenter =
       btnRect.left - scrollerRect.left + btnRect.width / 2 + currentLeft;
+
     const target = btnCenter - scroller.clientWidth / 2;
 
     scroller.scrollTo({ left: target, behavior: "smooth" });
@@ -451,11 +509,13 @@ const GameCategory = () => {
   };
 
   const handlePlay = (game) => {
-    const gameId = game?.gameId;
+    const gameId = game?.gameId || game?.gameUId;
+
     if (!gameId) {
       toast.error(isBangla ? "গেম আইডি পাওয়া যায়নি" : "Game ID not found");
       return;
     }
+
     navigate(`/playgame/${gameId}`, { state: { game } });
   };
 
@@ -464,7 +524,6 @@ const GameCategory = () => {
     navigate(`/games-mobile/${categoryId}?provider=${providerDbId}`);
   };
 
-  // pagination buttons (only for virtual games view)
   const goPrev = () => setPage((p) => Math.max(1, p - 1));
   const goNext = () => setPage((p) => Math.min(totalPages, p + 1));
   const goPage = (p) => setPage(() => Math.min(totalPages, Math.max(1, p)));
@@ -473,22 +532,25 @@ const GameCategory = () => {
     const p = safePage;
     const tp = totalPages;
     const out = [];
-    const push = (v) => out.push(v);
 
     if (tp <= 5) {
-      for (let i = 1; i <= tp; i++) push(i);
+      for (let i = 1; i <= tp; i += 1) out.push(i);
       return out;
     }
 
-    push(1);
-    if (p > 3) push("...");
+    out.push(1);
+
+    if (p > 3) out.push("...");
 
     const s = Math.max(2, p - 1);
     const e = Math.min(tp - 1, p + 1);
-    for (let i = s; i <= e; i++) push(i);
 
-    if (p < tp - 2) push("...");
-    push(tp);
+    for (let i = s; i <= e; i += 1) out.push(i);
+
+    if (p < tp - 2) out.push("...");
+
+    out.push(tp);
+
     return out;
   }, [safePage, totalPages]);
 
@@ -502,21 +564,14 @@ const GameCategory = () => {
     <div className="w-full">
       <Loading open={overlayLoading} />
 
-      {/* Category Bar */}
       <div
-        className="w-full rounded-md px-2 mt-4"
+        className="mt-4 w-full rounded-md px-2"
         style={{ backgroundColor: hexToRgba(ui.wrapBg, ui.wrapOpacity) }}
       >
         <div
           ref={scrollerRef}
           onScroll={updateThumb}
-          className="
-            flex items-center gap-3 py-2
-            overflow-x-auto whitespace-nowrap
-            scroll-smooth
-            [scrollbar-width:none]
-            rounded-md mb-2
-          "
+          className="hide-scrollbar mb-2 flex items-center gap-3 overflow-x-auto whitespace-nowrap rounded-md py-2 scroll-smooth [scrollbar-width:none]"
           style={{
             WebkitOverflowScrolling: "touch",
             backgroundColor: ui.scrollerBg,
@@ -529,18 +584,13 @@ const GameCategory = () => {
           ) : (
             categories.map((c) => {
               const isActive = active === c._id;
-              const label = c?.isVirtual
-                ? isBangla
-                  ? c.categoryName?.bn
-                  : c.categoryName?.en
-                : isBangla
-                  ? c.categoryName?.bn
-                  : c.categoryName?.en;
+
+              const label = isBangla ? c.categoryName?.bn : c.categoryName?.en;
 
               const iconSrc = c?.isVirtual
                 ? c.iconUrl
                 : c.iconImage
-                  ? `${API_URL}${c.iconImage}`
+                  ? masterFileUrl(c.iconImage)
                   : "";
 
               return (
@@ -551,14 +601,9 @@ const GameCategory = () => {
                   }}
                   onClick={() => handleCategoryClick(c._id)}
                   type="button"
-                  className={`
-                    hide-scrollbar
-                    shrink-0 inline-flex items-center gap-2
-                    px-4 py-2 rounded-full
-                    font-extrabold
-                    transition
-                    ${isActive ? "shadow-sm" : "hover:bg-black/5"}
-                  `}
+                  className={`hide-scrollbar inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 font-extrabold transition ${
+                    isActive ? "shadow-sm" : "hover:bg-black/5"
+                  }`}
                   style={{
                     fontSize: `${ui.btnTextSize}px`,
                     backgroundColor: isActive
@@ -571,12 +616,15 @@ const GameCategory = () => {
                     <img
                       src={iconSrc}
                       alt={label}
-                      className="w-5 h-5 object-contain"
-                      onError={(e) => (e.currentTarget.style.display = "none")}
+                      className="h-5 w-5 object-contain"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
                     />
                   ) : (
-                    <span className="w-5 h-5 inline-block" />
+                    <span className="inline-block h-5 w-5" />
                   )}
+
                   <span>{label}</span>
                 </button>
               );
@@ -584,15 +632,14 @@ const GameCategory = () => {
           )}
         </div>
 
-        {/* Scroll indicator */}
         <div className="px-3 pb-2">
           <div
             ref={trackRef}
-            className="h-[6px] w-full rounded-full overflow-hidden relative"
+            className="relative h-[6px] w-full overflow-hidden rounded-full"
             style={{ backgroundColor: ui.trackBgRgba }}
           >
             <motion.div
-              className="absolute top-0 left-0 h-full rounded-full"
+              className="absolute left-0 top-0 h-full rounded-full"
               style={{ backgroundColor: ui.thumbBg }}
               animate={{ width: thumb.width, x: thumb.x }}
               transition={{ type: "spring", stiffness: 260, damping: 30 }}
@@ -601,16 +648,13 @@ const GameCategory = () => {
         </div>
       </div>
 
-      {/* ✅ ONLY show Jackpot component when jackpot tab active */}
       {active === "jackpot" ? <Jackpot /> : null}
 
-      {/* Content */}
       <div className="mt-4">
-        {/* ✅ Virtual tabs (Jackpot/Hot) => show games */}
         {isVirtual ? (
           totalVirtual === 0 ? (
             <div
-              className="text-center py-10 font-semibold"
+              className="py-10 text-center font-semibold"
               style={{
                 color: ui.emptyTextRgba,
                 fontSize: `${ui.emptyTextSize}px`,
@@ -629,24 +673,22 @@ const GameCategory = () => {
               <div className="grid grid-cols-3 gap-3 px-2">
                 {pagedVirtualGames.map((game) => (
                   <GameCard
-                    key={game._id}
+                    key={game._id || game.gameUId || game.gameId}
                     game={game}
                     onClick={() => handlePlay(game)}
                     ui={ui}
-                    apiBase={API_URL}
                   />
                 ))}
               </div>
 
-              {/* ✅ Pagination for virtual games */}
               {totalPages > 1 && (
                 <>
-                  <div className="mt-5 px-2 flex items-center justify-center gap-2 flex-wrap">
+                  <div className="mt-5 flex flex-wrap items-center justify-center gap-2 px-2">
                     <button
                       type="button"
                       onClick={goPrev}
                       disabled={page <= 1}
-                      className="px-3 py-2 rounded-lg font-bold border border-black/10 bg-white hover:bg-black/5 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="rounded-lg border border-black/10 bg-white px-3 py-2 font-bold hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {isBangla ? "পূর্বের" : "Prev"}
                     </button>
@@ -664,8 +706,8 @@ const GameCategory = () => {
                           key={p}
                           type="button"
                           onClick={() => goPage(p)}
-                          className={`px-3 py-2 rounded-lg font-extrabold border border-black/10 ${
-                            p === page
+                          className={`rounded-lg border border-black/10 px-3 py-2 font-extrabold ${
+                            p === safePage
                               ? "bg-[#F5B400] text-black"
                               : "bg-white hover:bg-black/5"
                           }`}
@@ -679,7 +721,7 @@ const GameCategory = () => {
                       type="button"
                       onClick={goNext}
                       disabled={page >= totalPages}
-                      className="px-3 py-2 rounded-lg font-bold border border-black/10 bg-white hover:bg-black/5 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="rounded-lg border border-black/10 bg-white px-3 py-2 font-bold hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {isBangla ? "পরের" : "Next"}
                     </button>
@@ -688,16 +730,15 @@ const GameCategory = () => {
                   <div className="mt-2 text-center text-[12px] text-black/50">
                     {`${isBangla ? "মোট" : "Total"} ${totalVirtual} ${
                       isBangla ? "গেম" : "games"
-                    } • ${isBangla ? "পেজ" : "Page"} ${page}/${totalPages}`}
+                    } • ${isBangla ? "পেজ" : "Page"} ${safePage}/${totalPages}`}
                   </div>
                 </>
               )}
             </>
           )
-        ) : /* ✅ DB category tabs => show providers under that category */
-        providers.length === 0 ? (
+        ) : providers.length === 0 ? (
           <div
-            className="text-center py-10 font-semibold"
+            className="py-10 text-center font-semibold"
             style={{
               color: ui.emptyTextRgba,
               fontSize: `${ui.emptyTextSize}px`,
@@ -706,13 +747,11 @@ const GameCategory = () => {
             {isBangla ? "কোনো প্রোভাইডার নেই" : "No providers"}
           </div>
         ) : (
-          // ✅ Provider posters like your screenshot
           <div className="grid grid-cols-4 gap-2 px-1">
             {providers.map((p) => (
               <ProviderCard
                 key={p._id}
                 provider={p}
-                apiBase={API_URL}
                 onClick={() => handleProviderOpen(active, p._id)}
               />
             ))}

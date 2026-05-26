@@ -29,7 +29,15 @@ const userSchema = new Schema(
     email: { type: String, default: "" },
     phone: { type: String, required: true, trim: true },
     password: { type: String, required: true },
-
+    // ✅ Oracle game play username - must be 10 chars and unique
+    userGamePlayName: {
+      type: String,
+      default: "",
+      trim: true,
+      minlength: 10,
+      maxlength: 10,
+      index: true,
+    },
     role: {
       type: String,
       enum: ["user", "aff-user", "admin"],

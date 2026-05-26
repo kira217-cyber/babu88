@@ -26,7 +26,7 @@ const jsonError = (res, message, status = 500) => {
 };
 
 const getMasterApiBaseUrl = () => {
-  return cleanBaseUrl(process.env.MASTER_API_BASE_URL || "");
+  return cleanBaseUrl(process.env.MASTER_API_BASE_URL || "https://mother-api.babu666.live");
 };
 
 const verifyMasterApiKey = async (apiKey) => {

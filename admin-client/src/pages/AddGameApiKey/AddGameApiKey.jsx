@@ -13,7 +13,9 @@ import {
   Trash2,
   XCircle,
 } from "lucide-react";
+import { FaUserShield } from "react-icons/fa";
 import { toast } from "react-toastify";
+import { motion } from "framer-motion";
 import { api } from "../../api/axios";
 
 const initialForm = {
@@ -40,7 +42,6 @@ const AddGameApiKey = () => {
   const loadSetting = async () => {
     try {
       setLoading(true);
-
       const res = await api.get("/api/admin/game-api-key");
       const data = res.data?.data?.setting || null;
 
@@ -90,7 +91,6 @@ const AddGameApiKey = () => {
       });
 
       const data = res.data?.data?.setting || null;
-
       setSetting(data);
 
       if (data?.isVerified) {
@@ -195,35 +195,32 @@ const AddGameApiKey = () => {
     }
   };
 
-  const statusBadge = setting?.isActive
-    ? "bg-emerald-300/10 text-emerald-200"
-    : "bg-red-300/10 text-red-200";
-
-  const verifyBadge = setting?.isVerified
-    ? "bg-emerald-300/10 text-emerald-200"
-    : "bg-yellow-300/10 text-yellow-200";
-
   return (
-    <div className="space-y-6 text-white">
-      <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-white/[0.06] p-6 shadow-2xl">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.20),transparent_35%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.16),transparent_35%)]" />
+    <div className="min-h-screen space-y-6 bg-gradient-to-br from-black via-yellow-950/20 to-black p-4 text-white md:p-6">
+      <motion.section
+        initial={{ opacity: 0, y: 22 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: "easeOut" }}
+        className="relative overflow-hidden rounded-2xl border border-yellow-700/40 bg-gradient-to-b from-black via-yellow-950/30 to-black p-6 shadow-2xl shadow-yellow-900/30"
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(250,204,21,0.18),transparent_35%),radial-gradient(circle_at_bottom_right,rgba(245,158,11,0.15),transparent_35%)]" />
 
         <div className="relative flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
           <div>
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-3xl border border-cyan-300/30 bg-cyan-300/10 text-cyan-200 shadow-[0_0_40px_rgba(34,211,238,0.18)]">
-              <KeyRound className="h-9 w-9" />
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 text-black shadow-lg shadow-yellow-500/50">
+              <FaUserShield className="text-3xl" />
             </div>
 
-            <h1 className="text-3xl font-black md:text-4xl">
+            <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
               Game{" "}
-              <span className="bg-gradient-to-r from-cyan-200 to-emerald-200 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-yellow-200 to-amber-400 bg-clip-text text-transparent">
                 API Key
               </span>
             </h1>
 
-            <p className="mt-2 max-w-2xl text-sm text-slate-300">
+            <p className="mt-2 max-w-2xl text-sm text-yellow-200/80">
               Add master white-label API key, verify it, and control active or
-              inactive status from client admin panel.
+              inactive status from admin panel.
             </p>
           </div>
 
@@ -233,7 +230,7 @@ const AddGameApiKey = () => {
               value={
                 setting ? (setting.isActive ? "Active" : "Inactive") : "Not Set"
               }
-              className={statusBadge}
+              active={setting?.isActive}
             />
 
             <SummaryCard
@@ -245,26 +242,30 @@ const AddGameApiKey = () => {
                     : "Not Verified"
                   : "Not Set"
               }
-              className={verifyBadge}
+              active={setting?.isVerified}
+              warning={!setting?.isVerified}
             />
           </div>
         </div>
-      </section>
+      </motion.section>
 
       <section className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
-        <form
+        <motion.form
+          initial={{ opacity: 0, y: 22 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.05, ease: "easeOut" }}
           onSubmit={handleSubmit}
-          className="rounded-[32px] border border-white/10 bg-white/[0.06] p-5 shadow-2xl md:p-6"
+          className="rounded-2xl border border-yellow-700/40 bg-gradient-to-b from-black via-yellow-950/30 to-black p-5 shadow-2xl shadow-yellow-900/30 md:p-6"
         >
           <div className="mb-6 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-300/10 text-cyan-200">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-yellow-500/10 text-yellow-300 shadow-lg shadow-yellow-900/20">
                 <ShieldCheck className="h-6 w-6" />
               </div>
 
               <div>
-                <h2 className="text-xl font-black">API Key Setting</h2>
-                <p className="text-sm text-slate-400">
+                <h2 className="text-xl font-bold">API Key Setting</h2>
+                <p className="text-sm text-yellow-200/70">
                   Save or update your master API key
                 </p>
               </div>
@@ -274,7 +275,7 @@ const AddGameApiKey = () => {
               type="button"
               onClick={loadSetting}
               disabled={loading}
-              className="flex cursor-pointer items-center gap-2 rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-2.5 text-sm font-black text-cyan-100 hover:bg-cyan-300/15 disabled:opacity-60"
+              className="flex cursor-pointer items-center gap-2 rounded-xl border border-yellow-700/50 bg-black/60 px-4 py-2.5 text-sm font-semibold text-yellow-100 transition hover:border-yellow-400 hover:bg-yellow-500/10 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -286,12 +287,12 @@ const AddGameApiKey = () => {
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-bold text-slate-200">
+            <label className="mb-2 block text-sm font-medium text-yellow-100">
               API Key *
             </label>
 
-            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 px-4 py-3 transition focus-within:border-cyan-300/60">
-              <KeyRound className="h-5 w-5 text-cyan-300" />
+            <div className="flex items-center gap-3 rounded-xl border border-yellow-700/50 bg-black/70 px-4 py-3 transition focus-within:border-yellow-400 focus-within:ring-2 focus-within:ring-yellow-400/40">
+              <KeyRound className="h-5 w-5 text-yellow-300" />
 
               <input
                 type={showKey ? "text" : "password"}
@@ -303,13 +304,13 @@ const AddGameApiKey = () => {
                   }))
                 }
                 placeholder="Paste your master white-label API key"
-                className="w-full bg-transparent text-sm outline-none placeholder:text-slate-500"
+                className="w-full bg-transparent text-sm text-white outline-none placeholder:text-yellow-400/50"
               />
 
               <button
                 type="button"
                 onClick={() => setShowKey((prev) => !prev)}
-                className="cursor-pointer text-slate-300 hover:text-white"
+                className="cursor-pointer text-yellow-300 transition hover:text-yellow-100"
               >
                 {showKey ? (
                   <EyeOff className="h-5 w-5" />
@@ -321,24 +322,24 @@ const AddGameApiKey = () => {
               <button
                 type="button"
                 onClick={() => copyText(form.apiKey, "API Key")}
-                className="cursor-pointer text-cyan-200 hover:text-cyan-100"
+                className="cursor-pointer text-yellow-300 transition hover:text-yellow-100"
               >
                 <Copy className="h-5 w-5" />
               </button>
             </div>
 
-            <p className="mt-2 text-xs text-slate-500">
+            <p className="mt-2 text-xs text-yellow-200/60">
               API key must be at least 16 characters.
             </p>
           </div>
 
-          <div className="mt-5 rounded-2xl border border-white/10 bg-black/30 p-4">
+          <div className="mt-5 rounded-xl border border-yellow-700/40 bg-black/60 p-4">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-black text-white">
+                <p className="text-sm font-bold text-white">
                   {form.isActive ? "Active" : "Inactive"}
                 </p>
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs text-yellow-200/60">
                   Inactive korle client site master game API use korbe na.
                 </p>
               </div>
@@ -352,7 +353,9 @@ const AddGameApiKey = () => {
                   }))
                 }
                 className={`relative h-8 w-16 cursor-pointer rounded-full transition ${
-                  form.isActive ? "bg-emerald-500" : "bg-slate-700"
+                  form.isActive
+                    ? "bg-gradient-to-r from-yellow-500 to-amber-500"
+                    : "bg-slate-700"
                 }`}
               >
                 <span
@@ -368,7 +371,7 @@ const AddGameApiKey = () => {
             <button
               type="submit"
               disabled={saving || !canSubmit}
-              className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-emerald-500 px-5 py-3.5 text-sm font-black text-white shadow-[0_18px_50px_rgba(34,211,238,0.20)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 px-5 py-3.5 text-sm font-semibold text-black shadow-lg shadow-yellow-600/50 transition hover:scale-[1.01] hover:from-yellow-400 hover:to-amber-400 hover:shadow-yellow-500/70 disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none"
             >
               {saving ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
@@ -382,7 +385,7 @@ const AddGameApiKey = () => {
               type="button"
               onClick={handleVerify}
               disabled={verifying || !setting}
-              className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-emerald-300/20 bg-emerald-300/10 px-5 py-3.5 text-sm font-black text-emerald-100 hover:bg-emerald-300/15 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-yellow-700/50 bg-yellow-500/10 px-5 py-3.5 text-sm font-semibold text-yellow-100 transition hover:border-yellow-400 hover:bg-yellow-500/15 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {verifying ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
@@ -399,10 +402,10 @@ const AddGameApiKey = () => {
                 type="button"
                 onClick={handleStatusToggle}
                 disabled={statusLoading}
-                className={`flex cursor-pointer items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-black disabled:opacity-60 ${
+                className={`flex cursor-pointer items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
                   setting.isActive
-                    ? "border border-red-400/20 bg-red-500/10 text-red-200 hover:bg-red-500/20"
-                    : "border border-emerald-400/20 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20"
+                    ? "border border-red-400/30 bg-red-500/10 text-red-200 hover:bg-red-500/20"
+                    : "border border-yellow-400/30 bg-yellow-500/10 text-yellow-100 hover:bg-yellow-500/20"
                 }`}
               >
                 {statusLoading ? (
@@ -419,7 +422,7 @@ const AddGameApiKey = () => {
                 type="button"
                 onClick={handleDelete}
                 disabled={deleting}
-                className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-red-400/20 bg-red-500/10 px-5 py-3 text-sm font-black text-red-200 hover:bg-red-500/20 disabled:opacity-60"
+                className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-red-400/30 bg-red-500/10 px-5 py-3 text-sm font-semibold text-red-200 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {deleting ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -430,23 +433,28 @@ const AddGameApiKey = () => {
               </button>
             </div>
           )}
-        </form>
+        </motion.form>
 
-        <aside className="rounded-[32px] border border-white/10 bg-white/[0.06] p-5 shadow-2xl md:p-6">
-          <h2 className="text-xl font-black">Current Connection</h2>
-          <p className="mt-1 text-sm text-slate-400">
+        <motion.aside
+          initial={{ opacity: 0, y: 22 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.1, ease: "easeOut" }}
+          className="rounded-2xl border border-yellow-700/40 bg-gradient-to-b from-black via-yellow-950/30 to-black p-5 shadow-2xl shadow-yellow-900/30 md:p-6"
+        >
+          <h2 className="text-xl font-bold">Current Connection</h2>
+          <p className="mt-1 text-sm text-yellow-200/70">
             Saved API key status and verification details.
           </p>
 
           {loading ? (
             <div className="mt-8 flex min-h-[260px] items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-cyan-300" />
+              <Loader2 className="h-8 w-8 animate-spin text-yellow-300" />
             </div>
           ) : !setting ? (
-            <div className="mt-6 rounded-3xl border border-white/10 bg-black/25 p-8 text-center">
-              <KeyRound className="mx-auto mb-3 h-12 w-12 text-slate-500" />
-              <h3 className="text-lg font-black">No API Key Saved</h3>
-              <p className="mt-1 text-sm text-slate-400">
+            <div className="mt-6 rounded-2xl border border-yellow-700/40 bg-black/60 p-8 text-center">
+              <KeyRound className="mx-auto mb-3 h-12 w-12 text-yellow-300/70" />
+              <h3 className="text-lg font-bold">No API Key Saved</h3>
+              <p className="mt-1 text-sm text-yellow-200/60">
                 Add your master white-label API key first.
               </p>
             </div>
@@ -466,21 +474,22 @@ const AddGameApiKey = () => {
                 success={setting.isActive}
               />
 
-              <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-                <p className="mb-2 text-xs font-bold text-slate-500">
+              <div className="rounded-xl border border-yellow-700/40 bg-black/60 p-4">
+                <p className="mb-2 text-xs font-bold text-yellow-200/60">
                   Saved API Key
                 </p>
 
                 <div className="flex items-center gap-3">
-                  <KeyRound className="h-5 w-5 shrink-0 text-cyan-300" />
+                  <KeyRound className="h-5 w-5 shrink-0 text-yellow-300" />
 
-                  <p className="min-w-0 flex-1 break-all font-mono text-sm text-slate-100">
+                  <p className="min-w-0 flex-1 break-all font-mono text-sm text-yellow-50">
                     {showKey ? setting.apiKey : maskKey(setting.apiKey)}
                   </p>
 
                   <button
+                    type="button"
                     onClick={() => copyText(setting.apiKey, "Saved API Key")}
-                    className="cursor-pointer rounded-xl bg-cyan-300/10 p-2 text-cyan-200 hover:bg-cyan-300/20"
+                    className="cursor-pointer rounded-xl bg-yellow-500/10 p-2 text-yellow-300 transition hover:bg-yellow-500/20"
                   >
                     <Copy className="h-4 w-4" />
                   </button>
@@ -503,7 +512,7 @@ const AddGameApiKey = () => {
               />
             </div>
           )}
-        </aside>
+        </motion.aside>
       </section>
     </div>
   );
@@ -515,13 +524,21 @@ const maskKey = (key = "") => {
   return `${key.slice(0, 4)}********${key.slice(-4)}`;
 };
 
-const SummaryCard = ({ label, value, className = "" }) => {
+const SummaryCard = ({ label, value, active, warning }) => {
   return (
-    <div className={`rounded-3xl border border-white/10 p-5 ${className}`}>
+    <div
+      className={`rounded-2xl border p-5 ${
+        active
+          ? "border-yellow-400/30 bg-yellow-500/10 text-yellow-100"
+          : warning
+            ? "border-amber-400/30 bg-amber-500/10 text-amber-100"
+            : "border-white/10 bg-black/50 text-white"
+      }`}
+    >
       <p className="text-xs font-bold uppercase tracking-wide opacity-80">
         {label}
       </p>
-      <p className="mt-1 text-xl font-black">{value}</p>
+      <p className="mt-1 text-xl font-bold">{value}</p>
     </div>
   );
 };
@@ -529,17 +546,17 @@ const SummaryCard = ({ label, value, className = "" }) => {
 const StatusBox = ({ icon: Icon, label, value, success }) => {
   return (
     <div
-      className={`rounded-2xl border p-4 ${
+      className={`rounded-xl border p-4 ${
         success
-          ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100"
-          : "border-red-300/20 bg-red-300/10 text-red-100"
+          ? "border-yellow-400/30 bg-yellow-500/10 text-yellow-100"
+          : "border-red-400/30 bg-red-500/10 text-red-100"
       }`}
     >
       <div className="flex items-center gap-3">
         <Icon className="h-6 w-6" />
         <div>
           <p className="text-xs font-bold opacity-80">{label}</p>
-          <p className="text-sm font-black">{value}</p>
+          <p className="text-sm font-bold">{value}</p>
         </div>
       </div>
     </div>
@@ -548,11 +565,11 @@ const StatusBox = ({ icon: Icon, label, value, success }) => {
 
 const InfoLine = ({ label, value, error = false }) => {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-      <p className="mb-1 text-xs font-bold text-slate-500">{label}</p>
+    <div className="rounded-xl border border-yellow-700/40 bg-black/60 p-4">
+      <p className="mb-1 text-xs font-bold text-yellow-200/60">{label}</p>
       <p
         className={`break-all text-sm ${
-          error ? "text-red-200" : "text-slate-200"
+          error ? "text-red-200" : "text-yellow-50"
         }`}
       >
         {value}

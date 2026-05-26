@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import axios from "axios";
 import { useNavigate } from "react-router";
 import { useLanguage } from "../../Context/LanguageProvider";
 import { useQuery } from "@tanstack/react-query";
@@ -6,32 +7,92 @@ import { api } from "../../api/axios";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 
+const MASTER_API_URL = import.meta.env.VITE_MASTER_API_URL;
+
 const fetchHotGamesColor = async () => {
   const { data } = await api.get("/api/hotgames-color");
   return data;
 };
 
+const getSavedApiKey = async () => {
+  const res = await api.get("/api/admin/game-api-key");
+  const setting = res?.data?.data?.setting;
+
+  if (!setting?.apiKey || !setting?.isActive || !setting?.isVerified) {
+    return "";
+  }
+
+  return setting.apiKey;
+};
+
 const fetchHotGames = async () => {
-  const { data } = await api.get("/api/public/hot-games?limit=15");
-  return data?.data || [];
+  try {
+    const apiKey = await getSavedApiKey();
+
+    if (!apiKey || !MASTER_API_URL) {
+      return [];
+    }
+
+    const { data } = await axios.get(
+      `${MASTER_API_URL}/api/white-label/hot-games`,
+      {
+        params: { limit: 15 },
+        headers: {
+          "x-api-key": apiKey,
+        },
+      },
+    );
+
+    return data?.data || [];
+  } catch (error) {
+    console.error("White label hot games fetch failed:", error);
+    return [];
+  }
+};
+
+const masterFileUrl = (path = "") => {
+  if (!path) return "";
+  if (String(path).startsWith("http")) return path;
+
+  const base = String(MASTER_API_URL || "").replace(/\/+$/, "");
+  const cleanPath = String(path).startsWith("/") ? path : `/${path}`;
+
+  return `${base}${cleanPath}`;
+};
+
+const getGameImage = (game) => {
+  if (game?.image) return masterFileUrl(game.image);
+  if (game?.oracleImage) return game.oracleImage;
+  if (game?.oracleImages?.thumbnail) return game.oracleImages.thumbnail;
+  if (game?.oracleImages?.height) return game.oracleImages.height;
+  if (game?.oracleImages?.original) return game.oracleImages.original;
+  return "/no-image.png";
+};
+
+const getPlayableGameId = (game) => {
+  return game?.game_uid || game?.gameUId || game?.gameId || game?.id || "";
 };
 
 const hexToRgba = (hex, alpha = 1) => {
   if (!hex || typeof hex !== "string") return `rgba(0,0,0,${alpha})`;
   if (!hex.startsWith("#")) return hex;
+
   const h = hex.replace("#", "").trim();
+
   if (h.length === 3) {
     const r = parseInt(h[0] + h[0], 16);
     const g = parseInt(h[1] + h[1], 16);
     const b = parseInt(h[2] + h[2], 16);
     return `rgba(${r},${g},${b},${alpha})`;
   }
+
   if (h.length === 6) {
     const r = parseInt(h.slice(0, 2), 16);
     const g = parseInt(h.slice(2, 4), 16);
     const b = parseInt(h.slice(4, 6), 16);
     return `rgba(${r},${g},${b},${alpha})`;
   }
+
   return `rgba(0,0,0,${alpha})`;
 };
 
@@ -41,26 +102,16 @@ const HotBadge = () => (
   <img
     src={HOT_ICON}
     alt="HOT"
-    className="
-      absolute top-0 right-2
-      w-10 h-10
-      drop-shadow-lg
-      pointer-events-none
-    "
+    className="pointer-events-none absolute right-2 top-0 h-10 w-10 drop-shadow-lg"
   />
 );
-
-const FALLBACK_IMG =
-  "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1200&q=60";
 
 const HotGames = () => {
   const navigate = useNavigate();
   const { isBangla } = useLanguage();
 
-  // ✅ only token check
   const token = useSelector((state) => state.auth.token);
 
-  // 🎨 UI config from DB (unchanged)
   const { data: colorDoc } = useQuery({
     queryKey: ["hotgames-color"],
     queryFn: fetchHotGamesColor,
@@ -68,16 +119,16 @@ const HotGames = () => {
     retry: 1,
   });
 
-  // 🔥 Hot games from DB
   const { data: games = [], isLoading } = useQuery({
-    queryKey: ["hot-games-15"],
+    queryKey: ["white-label-hot-games-15"],
     queryFn: fetchHotGames,
     staleTime: 1000 * 30,
-    retry: 1,
+    retry: false,
   });
 
   const ui = useMemo(() => {
     const d = colorDoc || {};
+
     return {
       titleColor: d.titleColor || "#000000",
       titleSize: d.titleSize ?? 28,
@@ -101,11 +152,6 @@ const HotGames = () => {
       playTextSize: d.playTextSize ?? 14,
       playTextWeight: d.playTextWeight ?? 800,
 
-      hotBg: d.hotBg || "#ff3b30",
-      hotText: d.hotText || "#ffffff",
-      hotTextSize: d.hotTextSize ?? 10,
-      hotWeight: d.hotWeight ?? 800,
-
       gameTitleBg: d.gameTitleBg || "#fbbf24",
       gameTitleText: d.gameTitleText || "#000000",
       gameTitleSize: d.gameTitleSize ?? 15,
@@ -119,22 +165,29 @@ const HotGames = () => {
   }, [colorDoc]);
 
   const handlePlay = (g) => {
-    const gameId = g?.gameId;
-    if (!gameId) return;
+    const gameId = getPlayableGameId(g);
 
-    // ✅ only login required
+    if (!gameId) {
+      toast.error(isBangla ? "গেম আইডি পাওয়া যায়নি" : "Game id not found");
+      return;
+    }
+
     if (!token) {
       toast.error(isBangla ? "খেলতে লগইন করুন" : "Please login to play");
       navigate("/login");
       return;
     }
 
-    // ✅ go play
-    navigate(`/playgame/${gameId}`);
+    navigate(`/playgame/${gameId}`, {
+      state: {
+        game: g,
+        game_uid: gameId,
+      },
+    });
   };
 
   return (
-    <section className="hidden lg:block w-full">
+    <section className="hidden w-full lg:block">
       <div className="mx-auto max-w-[1500px] px-2 py-4 lg:px-0">
         <div className="flex items-end justify-between">
           <h2
@@ -149,32 +202,24 @@ const HotGames = () => {
           </h2>
         </div>
 
-        {/* loading */}
         {isLoading ? (
-          <div className="mt-6 text-center text-black/60 font-bold">
+          <div className="mt-6 text-center font-bold text-black/60">
             Loading...
           </div>
         ) : games.length === 0 ? (
-          <div className="mt-6 text-center text-black/60 font-bold">
+          <div className="mt-6 text-center font-bold text-black/60">
             {isBangla ? "কোন হট গেম নেই" : "No hot games found"}
           </div>
         ) : (
           <div className="mt-5 grid grid-cols-5 gap-x-6 gap-y-8">
             {games.map((g) => {
-              const title = g.gameName || g.title || "Game";
-              const provider = g.providerName || g.providerId || "";
-
-              // ✅ image url fix (local "/uploads/.." OR remote "https://...")
-
-              const img =
-                g.image && String(g.image).trim()
-                  ? /^https?:\/\//i.test(String(g.image).trim())
-                    ? String(g.image).trim() // ✅ remote url 그대로
-                    : `${import.meta.env.VITE_API_URL}${String(g.image).trim()}` // ✅ local path হলে base যোগ
-                  : "";
+              const gameId = getPlayableGameId(g);
+              const title = g.gameName || g.name || gameId || "Game";
+              const provider = g.provider || g.providerName || "";
+              const img = getGameImage(g);
 
               return (
-                <div key={g._id} className="group">
+                <div key={g._id || gameId} className="group">
                   <button
                     type="button"
                     onClick={() => handlePlay(g)}
@@ -190,30 +235,22 @@ const HotGames = () => {
                       <img
                         src={img}
                         alt={title}
-                        className="h-48 w-full transition duration-300"
+                        className="h-48 w-full object-cover transition duration-300"
                         loading="lazy"
-                        // onError={(e) => {
-                        //   e.currentTarget.src = FALLBACK_IMG;
-                        // }}
+                        onError={(e) => {
+                          e.currentTarget.src = "/no-image.png";
+                        }}
                       />
                     </div>
 
-                    {/* Hover scale */}
                     <style>{`
                       .group:hover img { transform: scale(${ui.imgHoverScale}); }
                     `}</style>
 
-                    {/* HOT badge */}
                     <HotBadge />
 
-                    {/* overlay */}
                     <div
-                      className="
-                        absolute inset-0
-                        opacity-0 group-hover:opacity-100
-                        transition duration-200
-                        flex items-center justify-center
-                      "
+                      className="absolute inset-0 flex items-center justify-center opacity-0 transition duration-200 group-hover:opacity-100"
                       style={{
                         backgroundColor: hexToRgba(
                           ui.overlayBg,
@@ -222,13 +259,7 @@ const HotGames = () => {
                       }}
                     >
                       <div
-                        className="
-                          px-5 py-2
-                          rounded-full
-                          border cursor-pointer
-                          backdrop-blur-sm
-                          tracking-widest
-                        "
+                        className="cursor-pointer rounded-full border px-5 py-2 tracking-widest backdrop-blur-sm"
                         style={{
                           backgroundColor: hexToRgba(
                             ui.playPillBg,
@@ -250,7 +281,7 @@ const HotGames = () => {
 
                   <div className="mt-2">
                     <p
-                      className="text-center leading-snug line-clamp-1"
+                      className="line-clamp-1 text-center leading-snug"
                       style={{
                         backgroundColor: ui.gameTitleBg,
                         color: ui.gameTitleText,
@@ -262,7 +293,7 @@ const HotGames = () => {
                     </p>
 
                     <p
-                      className="text-center uppercase tracking-wide mt-1 line-clamp-1"
+                      className="mt-1 line-clamp-1 text-center uppercase tracking-wide"
                       style={{
                         color: hexToRgba(ui.providerText, ui.providerOpacity),
                         fontSize: ui.providerSize,

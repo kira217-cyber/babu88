@@ -1,4 +1,3 @@
-// routes/callback.route.js
 import express from "express";
 import User from "../models/User.js";
 import TurnOver from "../models/TurnOver.js";
@@ -6,31 +5,45 @@ import GameHistory from "../models/GameHistory.js";
 
 const router = express.Router();
 
-/**
- * Apply wager amount to running turnover(s)
- * - adds progress to oldest running turnovers first
- * - marks completed when progress reaches required
- * - no transaction/session used
- */
+const toNum = (value = 0) => {
+  const n = Number.parseFloat(value);
+  return Number.isFinite(n) ? n : 0;
+};
+
+const money = (value = 0) => {
+  const n = toNum(value);
+  return Math.trunc(n * 100) / 100;
+};
+
+const clean = (value = "") => String(value || "").trim();
+
+const cleanMemberAccount = (value = "") => {
+  let username = clean(value).toLowerCase();
+
+  if (username.endsWith("orclegames")) {
+    username = username.slice(0, -"orclegames".length);
+  }
+
+  return username;
+};
+
 const applyTurnoverProgress = async ({ userId, wagerAmount }) => {
-  const amt = Number(wagerAmount || 0);
-  if (!Number.isFinite(amt) || amt <= 0) return;
+  const amt = money(wagerAmount);
+  if (amt <= 0) return;
 
   const running = await TurnOver.find({
     user: userId,
     status: "running",
   }).sort({ createdAt: 1 });
 
-  if (!running.length) return;
-
   let remaining = amt;
 
   for (const t of running) {
     if (remaining <= 0) break;
 
-    const required = Number(t.required || 0);
-    const progress = Number(t.progress || 0);
-    const left = Math.max(0, required - progress);
+    const required = money(t.required);
+    const progress = money(t.progress);
+    const left = Math.max(0, money(required - progress));
 
     if (left <= 0) {
       await TurnOver.updateOne(
@@ -40,8 +53,8 @@ const applyTurnoverProgress = async ({ userId, wagerAmount }) => {
       continue;
     }
 
-    const add = Math.min(left, remaining);
-    const newProgress = progress + add;
+    const add = money(Math.min(left, remaining));
+    const newProgress = money(progress + add);
     const completed = newProgress >= required;
 
     await TurnOver.updateOne(
@@ -54,180 +67,115 @@ const applyTurnoverProgress = async ({ userId, wagerAmount }) => {
       },
     );
 
-    remaining -= add;
+    remaining = money(remaining - add);
   }
 };
 
 router.post("/", async (req, res) => {
-  const startTime = Date.now();
-
   try {
     const {
-      username: rawUsername,
-      provider_code,
-      amount,
-      game_code,
-      transaction_id,
-      bet_type,
-      verification_key,
-      round_id,
-      times,
-      bet_details,
-    } = req.body;
-
-    console.log(
-      "this is call back -> ",
-      rawUsername,
-      provider_code,
-      amount,
-      game_code,
-      transaction_id,
-      bet_type,
-    );
-
-    console.log(
-      `\n[${new Date().toISOString()}] CALLBACK IN: ${transaction_id}`,
-    );
+      game_uid,
+      game_round,
+      bet_amount,
+      serial_number,
+      win_amount,
+      member_account,
+      currency_code,
+      timestamp,
+    } = req.body || {};
 
     if (
-      !rawUsername ||
-      !provider_code ||
-      amount === undefined ||
-      !transaction_id ||
-      !bet_type
+      !game_uid ||
+      !game_round ||
+      !serial_number ||
+      bet_amount === undefined ||
+      win_amount === undefined ||
+      !member_account
     ) {
-      console.warn(`SKIPPED: Missing fields in TX: ${transaction_id}`);
       return res.status(200).json({
         success: false,
+        balance: 0,
         message: "Missing required fields",
       });
     }
 
-    let cleanUsername = String(rawUsername).trim();
-    if (cleanUsername.endsWith("45")) {
-      cleanUsername = cleanUsername.slice(0, -2);
-    }
+    const gameUId = clean(game_uid);
+    const gameRound = clean(game_round);
+    const serialNumber = clean(serial_number);
+    const rawMemberAccount = clean(member_account);
+    const userGamePlayName = cleanMemberAccount(member_account);
 
-    const amountFloat = Number.parseFloat(amount);
+    const betAmount = money(bet_amount);
+    const winAmount = money(win_amount);
 
-    if (!Number.isFinite(amountFloat) || amountFloat < 0) {
+    if (betAmount < 0 || winAmount < 0) {
       return res.status(200).json({
         success: false,
+        balance: 0,
         message: "Invalid amount",
       });
     }
 
-    const player = await User.findOne({ username: cleanUsername });
+    const duplicate = await GameHistory.findOne({
+      $or: [{ serial_number: serialNumber }, { game_round: gameRound }],
+    }).lean();
 
-    if (!player) {
-      console.warn(
-        `NOT FOUND: User ${cleanUsername} for TX: ${transaction_id}`,
-      );
+    if (duplicate) {
       return res.status(200).json({
         success: false,
-        message: "USER_NOT_FOUND",
-        data: { username: cleanUsername, transaction_id },
-      });
-    }
-
-    // duplicate check from GameHistory collection
-    let duplicateQuery = null;
-
-    if (verification_key) {
-      duplicateQuery = {
-        verification_key: String(verification_key).trim(),
-      };
-    } else {
-      duplicateQuery = {
-        user: player._id,
-        transaction_id: String(transaction_id).trim(),
-        bet_type: String(bet_type).trim().toUpperCase(),
-      };
-    }
-
-    const existingHistory = await GameHistory.findOne(duplicateQuery).lean();
-
-    if (existingHistory) {
-      console.log(
-        `DUPLICATE: TX ${transaction_id} already in GameHistory. No changes made.`,
-      );
-
-      return res.status(200).json({
-        success: false,
+        balance: duplicate.balance_after || 0,
         message: "DUPLICATE",
         data: {
           status: "DUPLICATE",
-          currentBalance: Number(player.balance || 0),
-          transaction_id,
+          balance: duplicate.balance_after || 0,
+          game_round: gameRound,
+          serial_number: serialNumber,
         },
       });
     }
 
-    const currentBalance = Number(player.balance || 0);
-    const normalizedBetType = String(bet_type).trim().toUpperCase();
+    const player = await User.findOne({
+      userGamePlayName,
+      isActive: true,
+    });
 
-    let balanceChange = 0;
-    let historyStatus = "pending";
-    let winAmount = 0;
-
-    switch (normalizedBetType) {
-      case "BET":
-        balanceChange = -amountFloat;
-        historyStatus = "bet";
-        break;
-
-      case "SETTLE":
-        balanceChange = amountFloat;
-        historyStatus = amountFloat > 0 ? "won" : "settled";
-        winAmount = amountFloat;
-        break;
-
-      case "REFUND":
-        balanceChange = amountFloat;
-        historyStatus = "refunded";
-        break;
-
-      case "CANCEL":
-      case "CANCELBET":
-        balanceChange = amountFloat;
-        historyStatus = "cancelled";
-        break;
-
-      case "BONUS":
-        balanceChange = amountFloat;
-        historyStatus = "won";
-        winAmount = amountFloat;
-        break;
-
-      case "PROMO":
-        balanceChange = amountFloat;
-        historyStatus = "won";
-        winAmount = amountFloat;
-        break;
-
-      default:
-        return res.status(200).json({
-          success: false,
-          message: "Invalid bet_type",
-        });
-    }
-
-    if (normalizedBetType === "BET" && currentBalance < amountFloat) {
-      console.warn(
-        `LOW BALANCE: ${cleanUsername} (Has: ${currentBalance}, Needs: ${amountFloat})`,
-      );
+    if (!player) {
       return res.status(200).json({
         success: false,
+        balance: 0,
+        message: "USER_NOT_FOUND",
+        data: {
+          member_account: rawMemberAccount,
+          userGamePlayName,
+        },
+      });
+    }
+
+    const currentBalance = money(player.balance || 0);
+
+    if (currentBalance < betAmount) {
+      return res.status(200).json({
+        success: false,
+        balance: currentBalance,
         message: "INSUFFICIENT_BALANCE",
         data: {
           status: "INSUFFICIENT_BALANCE",
+          balance: currentBalance,
           currentBalance,
-          transaction_id,
+          betAmount,
+          game_round: gameRound,
+          serial_number: serialNumber,
         },
       });
     }
 
-    const newBalance = currentBalance + balanceChange;
+    const netAmount = money(winAmount - betAmount);
+
+    let resultType = "push";
+    if (netAmount > 0) resultType = "win";
+    if (netAmount < 0) resultType = "loss";
+
+    const newBalance = money(currentBalance - betAmount + winAmount);
 
     const updatedPlayer = await User.findByIdAndUpdate(
       player._id,
@@ -235,69 +183,74 @@ router.post("/", async (req, res) => {
       { new: true },
     );
 
-    await GameHistory.create({
+    const finalBalance = money(updatedPlayer.balance || 0);
+
+    const history = await GameHistory.create({
       user: player._id,
       username: player.username,
+      userGamePlayName: player.userGamePlayName,
+      member_account: rawMemberAccount,
       phone: player.phone || "",
-      currency: player.currency || "BDT",
+      currency: currency_code || player.currency || "BDT",
       userRole: player.role || "user",
-      provider_code: String(provider_code).trim().toUpperCase(),
-      game_code: String(game_code || "").trim(),
-      bet_type: normalizedBetType,
-      amount: amountFloat,
+
+      game_uid: gameUId,
+      game_round: gameRound,
+      serial_number: serialNumber,
+
+      bet_amount: betAmount,
       win_amount: winAmount,
-      balance_after: Number(updatedPlayer.balance || 0),
-      transaction_id: String(transaction_id || "").trim(),
-      verification_key: verification_key
-        ? String(verification_key).trim()
-        : null,
-      round_id: String(round_id || "").trim(),
-      times: String(times || "").trim(),
-      status: historyStatus,
-      bet_details: bet_details || {},
-      flagged: false,
+      net_amount: netAmount,
+      resultType,
+
+      balance_before: currentBalance,
+      balance_after: finalBalance,
+
+      oracleTimestamp: clean(timestamp),
+      rawPayload: req.body || {},
     });
 
-    // BET হলে turnover fillup হবে
-    if (normalizedBetType === "BET" && amountFloat > 0) {
+    if (betAmount > 0) {
       await applyTurnoverProgress({
         userId: player._id,
-        wagerAmount: amountFloat,
+        wagerAmount: betAmount,
       });
     }
 
-    console.log(
-      `DB ADDED: TX ${transaction_id} | User: ${cleanUsername} | New Bal: ${newBalance}`,
-    );
-
-    const duration = Date.now() - startTime;
-    console.log(`DONE: ${duration}ms | Final Status: SUCCESS\n`);
-
     return res.status(200).json({
       success: true,
+      balance: finalBalance,
       message: "SUCCESS",
       data: {
         status: "SUCCESS",
-        newBalance: Number(updatedPlayer.balance || 0),
-        transaction_id,
+        resultType,
+        betAmount,
+        winAmount,
+        netAmount,
+        balanceBefore: currentBalance,
+        newBalance: finalBalance,
+        game_round: gameRound,
+        serial_number: serialNumber,
+        historyId: history._id,
       },
     });
-  } catch (err) {
-    console.error(`SYSTEM ERROR: ${err.message}`);
+  } catch (error) {
+    console.error("Callback Error:", error.message);
 
-    if (err?.code === 11000 && err?.keyPattern?.verification_key) {
+    if (error?.code === 11000) {
       return res.status(200).json({
         success: false,
+        balance: 0,
         message: "DUPLICATE",
         data: {
           status: "DUPLICATE",
-          duplicateBy: "verification_key",
         },
       });
     }
 
     return res.status(200).json({
       success: false,
+      balance: 0,
       message: "Internal processing error, but acknowledged",
     });
   }

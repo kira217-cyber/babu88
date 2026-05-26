@@ -100,36 +100,36 @@ const Sidebar = () => {
 
   const gamesSubItems = useMemo(
     () => [
-        {
+      {
         key: "add-game-api-key",
         to: "/add-game-api-key",
         icon: <FaGamepad className="text-cyan-400" />,
         text: "Add Game API Key",
       },
-      {
-        key: "add-game-category",
-        to: "/add-game-category",
-        icon: <FaLayerGroup className="text-cyan-400" />,
-        text: "Add Game Category",
-      },
-      {
-        key: "add-provider",
-        to: "/add-provider",
-        icon: <FaServer className="text-indigo-400" />,
-        text: "Add Provider",
-      },
-      {
-        key: "add-game",
-        to: "/add-game",
-        icon: <FaGamepad className="text-emerald-400" />,
-        text: "Add Game",
-      },
-      {
-        key: "live-controller",
-        to: "/live-controller",
-        icon: <FaStream className="text-rose-400" />,
-        text: "Live Controller",
-      },
+      // {
+      //   key: "add-game-category",
+      //   to: "/add-game-category",
+      //   icon: <FaLayerGroup className="text-cyan-400" />,
+      //   text: "Add Game Category",
+      // },
+      // {
+      //   key: "add-provider",
+      //   to: "/add-provider",
+      //   icon: <FaServer className="text-indigo-400" />,
+      //   text: "Add Provider",
+      // },
+      // {
+      //   key: "add-game",
+      //   to: "/add-game",
+      //   icon: <FaGamepad className="text-emerald-400" />,
+      //   text: "Add Game",
+      // },
+      // {
+      //   key: "live-controller",
+      //   to: "/live-controller",
+      //   icon: <FaStream className="text-rose-400" />,
+      //   text: "Live Controller",
+      // },
       {
         key: "all-bet-logs",
         to: "/all-bet-logs",

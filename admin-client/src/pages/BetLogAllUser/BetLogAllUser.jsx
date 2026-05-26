@@ -10,36 +10,13 @@ import {
   Wallet,
   TrendingDown,
   TrendingUp,
-  RotateCcw,
   ReceiptText,
+  Trophy,
 } from "lucide-react";
 
 const PAGE_SIZE = 50;
 
-const BET_TYPES = [
-  "all",
-  "BET",
-  "SETTLE",
-  "CANCEL",
-  "REFUND",
-  "BONUS",
-  "PROMO",
-  "CANCELBET",
-];
-
-const STATUSES = [
-  "all",
-  "pending",
-  "bet",
-  "settled",
-  "won",
-  "lost",
-  "push",
-  "cancelled",
-  "refunded",
-  "error",
-  "void",
-];
+const RESULT_TYPES = ["all", "win", "loss", "push"];
 
 const formatMoney = (value) => {
   const num = Number(value ?? 0);
@@ -63,43 +40,14 @@ const formatDateTime = (value) => {
   });
 };
 
-const getStatusClass = (status) => {
-  switch (String(status || "").toLowerCase()) {
-    case "won":
+const getResultClass = (type) => {
+  switch (String(type || "").toLowerCase()) {
+    case "win":
       return "bg-green-500/15 text-green-300 border border-green-500/30";
-    case "lost":
+    case "loss":
       return "bg-red-500/15 text-red-300 border border-red-500/30";
-    case "refunded":
-      return "bg-yellow-500/15 text-yellow-200 border border-yellow-500/30";
-    case "settled":
+    case "push":
       return "bg-blue-500/15 text-blue-300 border border-blue-500/30";
-    case "pending":
-      return "bg-gray-500/15 text-gray-300 border border-gray-500/30";
-    case "bet":
-      return "bg-sky-500/15 text-sky-300 border border-sky-500/30";
-    case "cancelled":
-    case "void":
-    case "error":
-      return "bg-orange-500/15 text-orange-300 border border-orange-500/30";
-    default:
-      return "bg-white/10 text-white border border-white/10";
-  }
-};
-
-const getBetTypeClass = (type) => {
-  switch (String(type || "").toUpperCase()) {
-    case "BET":
-      return "bg-sky-500/15 text-sky-300 border border-sky-500/30";
-    case "SETTLE":
-      return "bg-indigo-500/15 text-indigo-300 border border-indigo-500/30";
-    case "REFUND":
-      return "bg-yellow-500/15 text-yellow-200 border border-yellow-500/30";
-    case "CANCEL":
-    case "CANCELBET":
-      return "bg-orange-500/15 text-orange-300 border border-orange-500/30";
-    case "BONUS":
-    case "PROMO":
-      return "bg-purple-500/15 text-purple-300 border border-purple-500/30";
     default:
       return "bg-white/10 text-white border border-white/10";
   }
@@ -138,86 +86,70 @@ const MobileRowCard = ({ row, index, currentPage }) => {
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-        <div>
-          <p className="text-yellow-200/70">User</p>
-          <p className="text-white font-medium break-words">
-            {row.username || "-"}
-          </p>
-        </div>
-        <div>
-          <p className="text-yellow-200/70">Phone</p>
-          <p className="text-white break-words">{row.phone || "-"}</p>
-        </div>
-        <div>
-          <p className="text-yellow-200/70">Provider</p>
-          <p className="text-white break-words">{row.provider_code || "-"}</p>
-        </div>
-        <div>
-          <p className="text-yellow-200/70">Game</p>
-          <p className="text-white break-words">{row.game_code || "-"}</p>
-        </div>
-        <div>
-          <p className="text-yellow-200/70">Amount</p>
-          <p className="text-white">{formatMoney(row.amount)}</p>
-        </div>
-        <div>
-          <p className="text-yellow-200/70">Win Amount</p>
-          <p className="text-green-300">{formatMoney(row.win_amount)}</p>
-        </div>
-        <div>
-          <p className="text-yellow-200/70">Balance After</p>
-          <p className="text-blue-300">{formatMoney(row.balance_after)}</p>
-        </div>
-        <div>
-          <p className="text-yellow-200/70">Round ID</p>
-          <p className="text-white break-words">{row.round_id || "-"}</p>
-        </div>
+        <Info label="User" value={row.username} />
+        <Info label="Phone" value={row.phone} />
+        <Info label="Play Name" value={row.userGamePlayName} />
+        <Info label="Member Account" value={row.member_account} />
+        <Info label="Provider" value={row.provider} />
+        <Info label="Game" value={row.gameName || row.game_uid} />
+        <Info label="Bet Amount" value={formatMoney(row.bet_amount)} />
+        <Info label="Win Amount" value={formatMoney(row.win_amount)} />
+        <Info
+          label="Net"
+          value={formatMoney(row.net_amount)}
+          valueClass={
+            Number(row.net_amount) > 0
+              ? "text-green-300"
+              : Number(row.net_amount) < 0
+                ? "text-red-300"
+                : "text-blue-300"
+          }
+        />
+        <Info label="Balance After" value={formatMoney(row.balance_after)} />
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <span
-          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getBetTypeClass(
-            row.bet_type,
+          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium capitalize ${getResultClass(
+            row.resultType,
           )}`}
         >
-          {row.bet_type || "-"}
-        </span>
-
-        <span
-          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium capitalize ${getStatusClass(
-            row.status,
-          )}`}
-        >
-          {row.status || "-"}
+          {row.resultType || "-"}
         </span>
       </div>
 
       <div className="mt-3 border-t border-yellow-700/20 pt-3 space-y-2">
-        <div>
-          <p className="text-xs text-yellow-200/70">Transaction ID</p>
-          <p className="text-sm text-white break-all">
-            {row.transaction_id || "-"}
-          </p>
-        </div>
-
-        <div>
-          <p className="text-xs text-yellow-200/70">Verification Key</p>
-          <p className="text-sm text-white break-all">
-            {row.verification_key || "-"}
-          </p>
-        </div>
+        <Info label="Game UID" value={row.game_uid} breakAll />
+        <Info label="Game Round" value={row.game_round} breakAll />
+        <Info label="Serial Number" value={row.serial_number} breakAll />
       </div>
     </div>
   );
 };
+
+const Info = ({
+  label,
+  value,
+  valueClass = "text-white",
+  breakAll = false,
+}) => (
+  <div>
+    <p className="text-yellow-200/70">{label}</p>
+    <p
+      className={`${valueClass} ${breakAll ? "break-all" : "break-words"} font-medium`}
+    >
+      {value || "-"}
+    </p>
+  </div>
+);
 
 const BetLogAllUser = () => {
   const [page, setPage] = useState(1);
 
   const [filters, setFilters] = useState({
     q: "",
-    betType: "all",
-    status: "all",
+    resultType: "all",
+    providerCode: "",
     from: "",
     to: "",
   });
@@ -241,8 +173,8 @@ const BetLogAllUser = () => {
       page,
       limit: PAGE_SIZE,
       q: debouncedFilters.q || undefined,
-      betType: debouncedFilters.betType || "all",
-      status: debouncedFilters.status || "all",
+      resultType: debouncedFilters.resultType || "all",
+      providerCode: debouncedFilters.providerCode || undefined,
       from: debouncedFilters.from || undefined,
       to: debouncedFilters.to || undefined,
     }),
@@ -266,18 +198,24 @@ const BetLogAllUser = () => {
   const pageSummary = data?.pageSummary || {};
 
   const safeSummary = {
-    betLossTotalAmount: Number(summary?.betLossTotalAmount ?? 0),
-    betWinTotalAmount: Number(summary?.betWinTotalAmount ?? 0),
-    refundAmount: Number(summary?.refundAmount ?? 0),
     allBetHistoryCount: Number(summary?.allBetHistoryCount ?? 0),
+    totalBetAmount: Number(summary?.totalBetAmount ?? 0),
+    totalWinAmount: Number(summary?.totalWinAmount ?? 0),
+    totalNetAmount: Number(summary?.totalNetAmount ?? 0),
+    totalWinProfit: Number(summary?.totalWinProfit ?? 0),
+    totalLossAmount: Number(summary?.totalLossAmount ?? 0),
+    winCount: Number(summary?.winCount ?? 0),
+    lossCount: Number(summary?.lossCount ?? 0),
+    pushCount: Number(summary?.pushCount ?? 0),
   };
 
   const safePageSummary = {
     pageCount: Number(pageSummary?.pageCount ?? 0),
-    pageAmountTotal: Number(pageSummary?.pageAmountTotal ?? 0),
+    pageBetTotal: Number(pageSummary?.pageBetTotal ?? 0),
     pageWinTotal: Number(pageSummary?.pageWinTotal ?? 0),
-    pageRefundTotal: Number(pageSummary?.pageRefundTotal ?? 0),
-    pageLossTotal: Number(pageSummary?.pageLossTotal ?? 0),
+    pageNetTotal: Number(pageSummary?.pageNetTotal ?? 0),
+    pageWinProfit: Number(pageSummary?.pageWinProfit ?? 0),
+    pageLossAmount: Number(pageSummary?.pageLossAmount ?? 0),
   };
 
   const totalPages = Number(pagination?.totalPages || 1);
@@ -292,6 +230,7 @@ const BetLogAllUser = () => {
     for (let i = start; i <= end; i += 1) {
       pages.push(i);
     }
+
     return pages;
   }, [currentPage, totalPages]);
 
@@ -305,8 +244,8 @@ const BetLogAllUser = () => {
   const handleReset = () => {
     setFilters({
       q: "",
-      betType: "all",
-      status: "all",
+      resultType: "all",
+      providerCode: "",
       from: "",
       to: "",
     });
@@ -321,7 +260,8 @@ const BetLogAllUser = () => {
             All User Bet Logs
           </h1>
           <p className="mt-1 text-sm text-yellow-200/80">
-            সকল user এর bet history, search, filter, pagination এবং summary
+            সকল user এর game result history, search, filter, pagination এবং
+            summary
           </p>
         </div>
 
@@ -334,26 +274,28 @@ const BetLogAllUser = () => {
         </button>
       </div>
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-4 mb-6">
         <SummaryCard
-          title="Bet Loss Total Amount"
-          value={formatMoney(safeSummary.betLossTotalAmount)}
+          title="Total Bet Amount"
+          value={formatMoney(safeSummary.totalBetAmount)}
           icon={<TrendingDown size={20} />}
           glowClass="shadow-red-900/20"
         />
+
         <SummaryCard
-          title="Bet Win Total Amount"
-          value={formatMoney(safeSummary.betWinTotalAmount)}
+          title="Total Win Amount"
+          value={formatMoney(safeSummary.totalWinAmount)}
           icon={<TrendingUp size={20} />}
           glowClass="shadow-green-900/20"
         />
+
         <SummaryCard
-          title="Refund Amount"
-          value={formatMoney(safeSummary.refundAmount)}
-          icon={<RotateCcw size={20} />}
-          glowClass="shadow-yellow-900/20"
+          title="Total Loss Amount"
+          value={formatMoney(safeSummary.totalLossAmount)}
+          icon={<TrendingDown size={20} />}
+          glowClass="shadow-red-900/20"
         />
+
         <SummaryCard
           title="All Bet History Count"
           value={formatMoney(safeSummary.allBetHistoryCount)}
@@ -362,7 +304,33 @@ const BetLogAllUser = () => {
         />
       </div>
 
-      {/* Filters */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-4 mb-6">
+        <SummaryCard
+          title="Net Total"
+          value={formatMoney(safeSummary.totalNetAmount)}
+          icon={<Wallet size={20} />}
+        />
+
+        <SummaryCard
+          title="Win Profit"
+          value={formatMoney(safeSummary.totalWinProfit)}
+          icon={<Trophy size={20} />}
+          glowClass="shadow-green-900/20"
+        />
+
+        <SummaryCard
+          title="Win Count"
+          value={formatMoney(safeSummary.winCount)}
+          icon={<TrendingUp size={20} />}
+        />
+
+        <SummaryCard
+          title="Loss Count"
+          value={formatMoney(safeSummary.lossCount)}
+          icon={<TrendingDown size={20} />}
+        />
+      </div>
+
       <div className="mb-6 rounded-2xl border border-yellow-700/30 bg-gradient-to-br from-black via-yellow-950/15 to-black p-4 md:p-5 shadow-lg">
         <div className="mb-4 flex items-center gap-2">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-500 to-amber-500 flex items-center justify-center text-black">
@@ -373,8 +341,8 @@ const BetLogAllUser = () => {
               Search & Filters
             </h2>
             <p className="text-xs text-yellow-200/70">
-              username, provider, game, transaction id, verification key, phone,
-              time range
+              username, game_uid, game_round, serial_number, member account,
+              provider code, time range
             </p>
           </div>
         </div>
@@ -384,16 +352,18 @@ const BetLogAllUser = () => {
             <label className="mb-2 block text-sm text-yellow-200/80">
               Search
             </label>
+
             <div className="relative">
               <Search
                 size={16}
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-yellow-300"
               />
+
               <input
                 type="text"
                 value={filters.q}
                 onChange={(e) => handleChange("q", e.target.value)}
-                placeholder="username / provider / game / transaction / verification / phone..."
+                placeholder="username / game_uid / round / serial / member account..."
                 className="w-full rounded-xl border border-yellow-700/40 bg-black/60 py-3 pl-10 pr-3 text-sm text-white placeholder-yellow-200/40 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20"
               />
             </div>
@@ -401,14 +371,15 @@ const BetLogAllUser = () => {
 
           <div>
             <label className="mb-2 block text-sm text-yellow-200/80">
-              Bet Type
+              Result Type
             </label>
+
             <select
-              value={filters.betType}
-              onChange={(e) => handleChange("betType", e.target.value)}
+              value={filters.resultType}
+              onChange={(e) => handleChange("resultType", e.target.value)}
               className="w-full rounded-xl border border-yellow-700/40 bg-black/60 px-3 py-3 text-sm text-white outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20"
             >
-              {BET_TYPES.map((item) => (
+              {RESULT_TYPES.map((item) => (
                 <option key={item} value={item} className="bg-black text-white">
                   {item}
                 </option>
@@ -418,19 +389,18 @@ const BetLogAllUser = () => {
 
           <div>
             <label className="mb-2 block text-sm text-yellow-200/80">
-              Status
+              Provider Code
             </label>
-            <select
-              value={filters.status}
-              onChange={(e) => handleChange("status", e.target.value)}
-              className="w-full rounded-xl border border-yellow-700/40 bg-black/60 px-3 py-3 text-sm text-white outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20"
-            >
-              {STATUSES.map((item) => (
-                <option key={item} value={item} className="bg-black text-white">
-                  {item}
-                </option>
-              ))}
-            </select>
+
+            <input
+              type="text"
+              value={filters.providerCode}
+              onChange={(e) =>
+                handleChange("providerCode", e.target.value.toUpperCase())
+              }
+              placeholder="JDB / PG"
+              className="w-full rounded-xl border border-yellow-700/40 bg-black/60 px-3 py-3 text-sm text-white placeholder-yellow-200/40 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20"
+            />
           </div>
 
           <div className="flex items-end">
@@ -448,6 +418,7 @@ const BetLogAllUser = () => {
             <label className="mb-2 block text-sm text-yellow-200/80">
               From
             </label>
+
             <input
               type="datetime-local"
               value={filters.from}
@@ -458,6 +429,7 @@ const BetLogAllUser = () => {
 
           <div>
             <label className="mb-2 block text-sm text-yellow-200/80">To</label>
+
             <input
               type="datetime-local"
               value={filters.to}
@@ -468,26 +440,26 @@ const BetLogAllUser = () => {
         </div>
       </div>
 
-      {/* Desktop / Tablet Table */}
       <div className="hidden lg:block overflow-hidden rounded-2xl border border-yellow-700/30 bg-gradient-to-br from-black via-yellow-950/10 to-black shadow-lg">
         <div className="overflow-x-auto">
-          <table className="min-w-[1500px] w-full text-sm">
+          <table className="min-w-[1650px] w-full text-sm">
             <thead className="bg-yellow-900/20 text-left text-yellow-100">
               <tr>
                 <th className="px-4 py-3">#</th>
                 <th className="px-4 py-3">Time</th>
                 <th className="px-4 py-3">User</th>
-                <th className="px-4 py-3">Phone</th>
-                <th className="px-4 py-3">Provider</th>
-                <th className="px-4 py-3">Game</th>
-                <th className="px-4 py-3">Bet Type</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3 text-right">Amount</th>
-                <th className="px-4 py-3 text-right">Win Amount</th>
-                <th className="px-4 py-3 text-right">Balance After</th>
-                <th className="px-4 py-3">Transaction ID</th>
-                <th className="px-4 py-3">Verification Key</th>
-                <th className="px-4 py-3">Round ID</th>
+                {/* <th className="px-4 py-3">Play Name</th> */}
+                {/* <th className="px-4 py-3">Provider</th> */}
+                {/* <th className="px-4 py-3">Game</th> */}
+                <th className="px-4 py-3">Result</th>
+                <th className="px-4 py-3 text-right">Bet</th>
+                <th className="px-4 py-3 text-right">Win</th>
+                <th className="px-4 py-3 text-right">Net</th>
+                <th className="px-4 py-3 text-right">Before</th>
+                <th className="px-4 py-3 text-right">After</th>
+                <th className="px-4 py-3">Game UID</th>
+                <th className="px-4 py-3">Round</th>
+                <th className="px-4 py-3">Serial</th>
               </tr>
             </thead>
 
@@ -495,7 +467,7 @@ const BetLogAllUser = () => {
               {isLoading ? (
                 <tr>
                   <td
-                    colSpan={14}
+                    colSpan={15}
                     className="px-4 py-12 text-center text-yellow-200/80"
                   >
                     Loading bet logs...
@@ -504,7 +476,7 @@ const BetLogAllUser = () => {
               ) : rows.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={14}
+                    colSpan={15}
                     className="px-4 py-12 text-center text-yellow-200/80"
                   >
                     No bet history found
@@ -513,66 +485,94 @@ const BetLogAllUser = () => {
               ) : (
                 rows.map((row, index) => (
                   <tr
-                    key={
-                      row._id ||
-                      row.verification_key ||
-                      `${row.transaction_id}-${index}`
-                    }
+                    key={row._id || row.serial_number || index}
                     className="border-t border-yellow-700/15 hover:bg-yellow-900/10 transition"
                   >
                     <td className="px-4 py-3 text-gray-200">
                       {(currentPage - 1) * PAGE_SIZE + index + 1}
                     </td>
+
                     <td className="px-4 py-3 whitespace-nowrap text-gray-200">
                       {formatDateTime(row.createdAt)}
                     </td>
-                    <td className="px-4 py-3 font-medium text-white">
-                      {row.username || "-"}
+
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-white">
+                        {row.username || "-"}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        {row.phone || "-"}
+                      </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-200">
-                      {row.phone || "-"}
-                    </td>
-                    <td className="px-4 py-3 text-gray-200">
-                      {row.provider_code || "-"}
-                    </td>
-                    <td className="px-4 py-3 text-gray-200">
-                      {row.game_code || "-"}
-                    </td>
+
+                    {/* <td className="px-4 py-3 text-gray-200">
+                      <div>{row.userGamePlayName || "-"}</div>
+                      <div className="text-xs text-gray-500">
+                        {row.member_account || "-"}
+                      </div>
+                    </td> */}
+
+                    {/* <td className="px-4 py-3 text-gray-200">
+                      {row.provider || "-"}
+                    </td> */}
+
+                    {/* <td className="px-4 py-3 text-gray-200">
+                      <div className="font-medium text-white">
+                        {row.gameName || row.game_uid || "-"}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {row.category || "-"}
+                      </div>
+                    </td> */}
+
                     <td className="px-4 py-3">
                       <span
-                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getBetTypeClass(
-                          row.bet_type,
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium capitalize ${getResultClass(
+                          row.resultType,
                         )}`}
                       >
-                        {row.bet_type || "-"}
+                        {row.resultType || "-"}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium capitalize ${getStatusClass(
-                          row.status,
-                        )}`}
-                      >
-                        {row.status || "-"}
-                      </span>
-                    </td>
+
                     <td className="px-4 py-3 text-right text-white">
-                      {formatMoney(row.amount)}
+                      {formatMoney(row.bet_amount)}
                     </td>
+
                     <td className="px-4 py-3 text-right text-green-300">
                       {formatMoney(row.win_amount)}
                     </td>
+
+                    <td
+                      className={`px-4 py-3 text-right font-semibold ${
+                        Number(row.net_amount) > 0
+                          ? "text-green-300"
+                          : Number(row.net_amount) < 0
+                            ? "text-red-300"
+                            : "text-blue-300"
+                      }`}
+                    >
+                      {formatMoney(row.net_amount)}
+                    </td>
+
+                    <td className="px-4 py-3 text-right text-gray-200">
+                      {formatMoney(row.balance_before)}
+                    </td>
+
                     <td className="px-4 py-3 text-right text-blue-300">
                       {formatMoney(row.balance_after)}
                     </td>
+
                     <td className="px-4 py-3 text-gray-200 break-all">
-                      {row.transaction_id || "-"}
+                      {row.game_uid || "-"}
                     </td>
+
                     <td className="px-4 py-3 text-gray-200 break-all">
-                      {row.verification_key || "-"}
+                      {row.game_round || "-"}
                     </td>
+
                     <td className="px-4 py-3 text-gray-200 break-all">
-                      {row.round_id || "-"}
+                      {row.serial_number || "-"}
                     </td>
                   </tr>
                 ))
@@ -585,23 +585,31 @@ const BetLogAllUser = () => {
                   <td colSpan={7} className="px-4 py-4 text-right">
                     This Page Totals:
                   </td>
-                  <td className="px-4 py-4 text-left">
-                    Count: {formatMoney(safePageSummary.pageCount)}
-                  </td>
+
                   <td className="px-4 py-4 text-right">
-                    {formatMoney(safePageSummary.pageAmountTotal)}
+                    {formatMoney(safePageSummary.pageBetTotal)}
                   </td>
+
                   <td className="px-4 py-4 text-right text-green-300">
                     {formatMoney(safePageSummary.pageWinTotal)}
                   </td>
-                  <td className="px-4 py-4 text-right text-red-300">
-                    Loss: {formatMoney(safePageSummary.pageLossTotal)}
-                  </td>
+
                   <td
-                    colSpan={3}
-                    className="px-4 py-4 text-left text-yellow-200"
+                    className={`px-4 py-4 text-right ${
+                      safePageSummary.pageNetTotal > 0
+                        ? "text-green-300"
+                        : safePageSummary.pageNetTotal < 0
+                          ? "text-red-300"
+                          : "text-blue-300"
+                    }`}
                   >
-                    Refund: {formatMoney(safePageSummary.pageRefundTotal)}
+                    {formatMoney(safePageSummary.pageNetTotal)}
+                  </td>
+
+                  <td colSpan={5} className="px-4 py-4 text-left">
+                    Count: {formatMoney(safePageSummary.pageCount)} | Win
+                    Profit: {formatMoney(safePageSummary.pageWinProfit)} | Loss:
+                    {formatMoney(safePageSummary.pageLossAmount)}
                   </td>
                 </tr>
               </tfoot>
@@ -610,7 +618,6 @@ const BetLogAllUser = () => {
         </div>
       </div>
 
-      {/* Mobile / Tablet Cards */}
       <div className="lg:hidden space-y-4">
         {isLoading ? (
           <div className="rounded-2xl border border-yellow-700/30 bg-black/60 p-8 text-center text-yellow-200/80">
@@ -623,11 +630,7 @@ const BetLogAllUser = () => {
         ) : (
           rows.map((row, index) => (
             <MobileRowCard
-              key={
-                row._id ||
-                row.verification_key ||
-                `${row.transaction_id}-${index}`
-              }
+              key={row._id || row.serial_number || index}
               row={row}
               index={index}
               currentPage={currentPage}
@@ -638,43 +641,44 @@ const BetLogAllUser = () => {
         {rows.length > 0 && (
           <div className="rounded-2xl border border-yellow-700/30 bg-gradient-to-br from-black via-yellow-950/10 to-black p-4">
             <h3 className="text-white font-semibold mb-3">This Page Totals</h3>
+
             <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="rounded-xl bg-yellow-900/10 border border-yellow-700/20 p-3">
-                <p className="text-yellow-200/70">Count</p>
-                <p className="text-white font-semibold">
-                  {formatMoney(safePageSummary.pageCount)}
-                </p>
-              </div>
-              <div className="rounded-xl bg-yellow-900/10 border border-yellow-700/20 p-3">
-                <p className="text-yellow-200/70">Amount Total</p>
-                <p className="text-white font-semibold">
-                  {formatMoney(safePageSummary.pageAmountTotal)}
-                </p>
-              </div>
-              <div className="rounded-xl bg-yellow-900/10 border border-yellow-700/20 p-3">
-                <p className="text-yellow-200/70">Win Total</p>
-                <p className="text-green-300 font-semibold">
-                  {formatMoney(safePageSummary.pageWinTotal)}
-                </p>
-              </div>
-              <div className="rounded-xl bg-yellow-900/10 border border-yellow-700/20 p-3">
-                <p className="text-yellow-200/70">Loss Total</p>
-                <p className="text-red-300 font-semibold">
-                  {formatMoney(safePageSummary.pageLossTotal)}
-                </p>
-              </div>
-              <div className="rounded-xl bg-yellow-900/10 border border-yellow-700/20 p-3 col-span-2">
-                <p className="text-yellow-200/70">Refund Total</p>
-                <p className="text-yellow-200 font-semibold">
-                  {formatMoney(safePageSummary.pageRefundTotal)}
-                </p>
-              </div>
+              <PageTotal label="Count" value={safePageSummary.pageCount} />
+              <PageTotal
+                label="Bet Total"
+                value={safePageSummary.pageBetTotal}
+              />
+              <PageTotal
+                label="Win Total"
+                value={safePageSummary.pageWinTotal}
+                green
+              />
+              <PageTotal
+                label="Net Total"
+                value={safePageSummary.pageNetTotal}
+                valueClass={
+                  safePageSummary.pageNetTotal > 0
+                    ? "text-green-300"
+                    : safePageSummary.pageNetTotal < 0
+                      ? "text-red-300"
+                      : "text-blue-300"
+                }
+              />
+              <PageTotal
+                label="Loss Amount"
+                value={safePageSummary.pageLossAmount}
+                red
+              />
+              <PageTotal
+                label="Win Profit"
+                value={safePageSummary.pageWinProfit}
+                green
+              />
             </div>
           </div>
         )}
       </div>
 
-      {/* Pagination */}
       <div className="mt-6 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="rounded-2xl border border-yellow-700/30 bg-gradient-to-r from-black via-yellow-950/20 to-black px-4 py-3 text-sm text-yellow-100 shadow-md">
           Total:{" "}
@@ -744,6 +748,28 @@ const BetLogAllUser = () => {
           Updating data...
         </div>
       )}
+    </div>
+  );
+};
+
+const PageTotal = ({
+  label,
+  value,
+  green = false,
+  red = false,
+  valueClass = "",
+}) => {
+  const cls =
+    valueClass || green
+      ? "text-green-300"
+      : red
+        ? "text-red-300"
+        : "text-white";
+
+  return (
+    <div className="rounded-xl bg-yellow-900/10 border border-yellow-700/20 p-3">
+      <p className="text-yellow-200/70">{label}</p>
+      <p className={`${cls} font-semibold`}>{formatMoney(value)}</p>
     </div>
   );
 };

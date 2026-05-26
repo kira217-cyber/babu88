@@ -5,7 +5,7 @@ const { Schema } = mongoose;
 const gameHistorySchema = new Schema(
   {
     user: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
       index: true,
@@ -18,11 +18,24 @@ const gameHistorySchema = new Schema(
       index: true,
     },
 
+    userGamePlayName: {
+      type: String,
+      required: true,
+      trim: true,
+      index: true,
+    },
+
+    member_account: {
+      type: String,
+      required: true,
+      trim: true,
+      index: true,
+    },
+
     phone: {
       type: String,
       default: "",
       trim: true,
-      index: true,
     },
 
     currency: {
@@ -37,37 +50,30 @@ const gameHistorySchema = new Schema(
       index: true,
     },
 
-    provider_code: {
-      type: String,
-      required: true,
-      uppercase: true,
-      trim: true,
-      index: true,
-    },
-
-    game_code: {
+    game_uid: {
       type: String,
       required: true,
       trim: true,
       index: true,
     },
 
-    bet_type: {
+    game_round: {
       type: String,
-      enum: [
-        "BET",
-        "SETTLE",
-        "CANCEL",
-        "REFUND",
-        "BONUS",
-        "PROMO",
-        "CANCELBET",
-      ],
       required: true,
+      trim: true,
+      unique: true,
       index: true,
     },
 
-    amount: {
+    serial_number: {
+      type: String,
+      required: true,
+      trim: true,
+      unique: true,
+      index: true,
+    },
+
+    bet_amount: {
       type: Number,
       required: true,
       min: 0,
@@ -75,88 +81,51 @@ const gameHistorySchema = new Schema(
 
     win_amount: {
       type: Number,
-      default: 0,
+      required: true,
       min: 0,
+    },
+
+    net_amount: {
+      type: Number,
+      required: true,
+    },
+
+    resultType: {
+      type: String,
+      enum: ["win", "loss", "push"],
+      required: true,
+      index: true,
+    },
+
+    balance_before: {
+      type: Number,
+      required: true,
     },
 
     balance_after: {
       type: Number,
-      default: 0,
+      required: true,
     },
 
-    // ✅ duplicate হতে পারবে
-    transaction_id: {
+    oracleTimestamp: {
       type: String,
       default: "",
       trim: true,
-      index: true,
     },
 
-    // ✅ always unique
-    verification_key: {
-      type: String,
-      default: null,
-      trim: true,
-      unique: true,
-      sparse: true,
-      index: true,
-    },
-
-    round_id: {
-      type: String,
-      default: "",
-      trim: true,
-      index: true,
-    },
-
-    times: {
-      type: String,
-      trim: true,
-      default: "",
-    },
-
-    status: {
-      type: String,
-      enum: [
-        "pending",
-        "bet",
-        "settled",
-        "won",
-        "lost",
-        "push",
-        "cancelled",
-        "refunded",
-        "error",
-        "void",
-      ],
-      default: "pending",
-      index: true,
-    },
-
-    bet_details: {
-      type: mongoose.Schema.Types.Mixed,
+    rawPayload: {
+      type: Schema.Types.Mixed,
       default: {},
     },
-
-    flagged: {
-      type: Boolean,
-      default: false,
-      index: true,
-    },
   },
-  {
-    timestamps: true,
-  },
+  { timestamps: true },
 );
 
 gameHistorySchema.index({ user: 1, createdAt: -1 });
-gameHistorySchema.index({ status: 1, createdAt: -1 });
-gameHistorySchema.index({ provider_code: 1, status: 1 });
-gameHistorySchema.index({ transaction_id: 1 });
-gameHistorySchema.index({ user: 1, provider_code: 1, createdAt: -1 });
-gameHistorySchema.index({ user: 1, game_code: 1, createdAt: -1 });
+gameHistorySchema.index({ user: 1, game_uid: 1, createdAt: -1 });
+gameHistorySchema.index({ resultType: 1, createdAt: -1 });
+gameHistorySchema.index({ userGamePlayName: 1, createdAt: -1 });
 
-// optional: user + verification_key fast lookup
-gameHistorySchema.index({ user: 1, verification_key: 1 });
+const GameHistory = mongoose.model("GameHistory", gameHistorySchema);
 
-export default mongoose.model("GameHistory", gameHistorySchema);
+export default GameHistory;

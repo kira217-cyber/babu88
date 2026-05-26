@@ -13,8 +13,6 @@ import {
 } from "../../features/auth/authSelectors";
 import Loading from "../../components/Loading/Loading";
 
-
-// ✅ balance fetch (direct API) — same as your Balance component
 const fetchMyBalance = async (token) => {
   const { data } = await axios.get(
     `${import.meta.env.VITE_API_URL}/api/users/me/balance`,
@@ -22,7 +20,8 @@ const fetchMyBalance = async (token) => {
       headers: { Authorization: `Bearer ${token}` },
     },
   );
-  return data; // { balance, currency }
+
+  return data;
 };
 
 const PlayGame = () => {
@@ -38,7 +37,6 @@ const PlayGame = () => {
 
   const [gameUrl, setGameUrl] = useState("");
 
-  // ✅ Balance query (direct API)
   const {
     data: balData,
     isFetching: balFetching,
@@ -48,7 +46,7 @@ const PlayGame = () => {
     queryKey: ["my-balance", token],
     queryFn: () => fetchMyBalance(token),
     enabled: !!token && isAuth,
-    staleTime: 0, // ✅ always latest
+    staleTime: 0,
     cacheTime: 1000 * 60 * 5,
     retry: 1,
   });
@@ -57,23 +55,31 @@ const PlayGame = () => {
     return Number(balData?.balance || 0);
   }, [balData?.balance]);
 
-  // ✅ Play API call
   const playMutation = useMutation({
     mutationFn: async () => {
       const res = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/play-game/playgame`,
-        { gameID: gameId },
+        {
+          game_uid: gameId,
+          gameID: gameId,
+        },
         {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         },
       );
+
       return res.data;
     },
     onSuccess: (data) => {
-      if (data?.gameUrl) setGameUrl(data.gameUrl);
-      else toast.error(t("গেম URL পাওয়া যায়নি", "No game URL received"));
+      const launchUrl = data?.gameUrl || data?.launch_url;
+
+      if (launchUrl) {
+        setGameUrl(launchUrl);
+      } else {
+        toast.error(t("গেম URL পাওয়া যায়নি", "No game URL received"));
+      }
     },
     onError: (err) => {
       toast.error(
@@ -84,7 +90,6 @@ const PlayGame = () => {
     },
   });
 
-  // ✅ Guard + balance check (API based)
   useEffect(() => {
     if (!isAuth || !token) {
       toast.error(t("খেলতে লগইন করুন", "Please login to play"));
@@ -106,16 +111,13 @@ const PlayGame = () => {
       return;
     }
 
-    // balance API error
     if (balError) {
       toast.error(t("ব্যালেন্স পাওয়া যায়নি", "Failed to fetch balance"));
       return;
     }
 
-    // balance fetching থাকলে কিছু করবো না
     if (balFetching) return;
 
-    // balance <= 0 -> deposit
     if (balance <= 0) {
       toast.error(
         t("ব্যালেন্স নেই, ডিপোজিট করুন", "No balance, please deposit"),
@@ -124,10 +126,10 @@ const PlayGame = () => {
       return;
     }
 
-    // ✅ all ok -> launch game
     if (!gameUrl && !playMutation.isPending) {
       playMutation.mutate();
     }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuth, token, isActive, gameId, balFetching, balError, balance]);
 
@@ -140,7 +142,6 @@ const PlayGame = () => {
 
   return (
     <div className="fixed inset-0 bg-black z-[9999]">
-      {/* Close */}
       <button
         onClick={closeGame}
         className="fixed top-4 right-4 z-[10000] text-white bg-red-600 hover:bg-red-700 p-3 rounded-full cursor-pointer shadow-lg"
@@ -149,7 +150,6 @@ const PlayGame = () => {
         <FaTimes size={22} />
       </button>
 
-      {/* ✅ Use your Loading component here */}
       <Loading
         open={isLoading}
         text={
@@ -159,7 +159,6 @@ const PlayGame = () => {
         }
       />
 
-      {/* Optional refresh (kept same functionality, only visible while loading) */}
       {isLoading ? (
         <div className="fixed inset-0 z-[1000000] flex items-end justify-center pointer-events-none pb-10">
           <button

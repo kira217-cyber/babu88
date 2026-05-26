@@ -332,7 +332,7 @@ const MenuItems = () => {
                       }}
                     >
                       {m.label}
-                      <Badge type={m.badge} colors={colors} />
+                      {/* <Badge type={m.badge} colors={colors} /> */}
                     </button>
                   </div>
                 );
