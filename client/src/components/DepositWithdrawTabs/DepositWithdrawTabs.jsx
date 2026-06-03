@@ -43,7 +43,7 @@ const DepositWithdrawTabs = () => {
 
   return (
     <div className="block md:hidden w-full bg-black border-b border-white/10">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-evenly gap-2">
         <TabItem
           to="/profile/deposit"
           label={t("ম্যানুয়াল ডিপি", "Manual DP")}

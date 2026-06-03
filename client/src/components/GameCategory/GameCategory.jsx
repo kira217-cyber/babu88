@@ -243,15 +243,15 @@ const ProviderCard = ({ provider, onClick }) => {
         />
       </div>
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-black/65 via-black/15 to-transparent" />
+      {/* <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-black/65 via-black/15 to-transparent" /> */}
 
-      {name ? (
+      {/* {name ? (
         <div className="absolute inset-x-0 bottom-2 px-2 text-center">
           <div className="line-clamp-1 text-[12px] font-extrabold text-white drop-shadow">
             {name}
           </div>
         </div>
-      ) : null}
+      ) : null} */}
 
       <div className="absolute right-1 top-1 flex flex-col items-end gap-1">
         {provider?.isHot === true && (

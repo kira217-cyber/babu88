@@ -109,7 +109,6 @@ const HotBadge = () => (
 const HotGames = () => {
   const navigate = useNavigate();
   const { isBangla } = useLanguage();
-
   const token = useSelector((state) => state.auth.token);
 
   const { data: colorDoc } = useQuery({
@@ -139,6 +138,9 @@ const HotGames = () => {
       cardRadius: d.cardRadius ?? 12,
       cardShadow: d.cardShadow || "0_10px_25px_rgba(0,0,0,0.12)",
 
+      cardBorderColor: d.cardBorderColor || "#4B03DF",
+      cardBorderWidth: d.cardBorderWidth ?? 3,
+
       imgHoverScale: d.imgHoverScale ?? 1.04,
 
       overlayBg: d.overlayBg || "#000000",
@@ -157,8 +159,10 @@ const HotGames = () => {
       gameTitleSize: d.gameTitleSize ?? 15,
       gameTitleWeight: d.gameTitleWeight ?? 800,
 
-      providerText: d.providerText || "#000000",
-      providerOpacity: d.providerOpacity ?? 0.6,
+      providerBg: d.providerBg || "#4B03DF",
+      providerBgOpacity: d.providerBgOpacity ?? 1,
+      providerText: d.providerText || "#ffffff",
+      providerOpacity: d.providerOpacity ?? 1,
       providerSize: d.providerSize ?? 11,
       providerWeight: d.providerWeight ?? 800,
     };
@@ -211,7 +215,7 @@ const HotGames = () => {
             {isBangla ? "কোন হট গেম নেই" : "No hot games found"}
           </div>
         ) : (
-          <div className="mt-5 grid grid-cols-5 gap-x-6 gap-y-8">
+          <div className="mt-5 grid grid-cols-7 gap-x-6 gap-y-8">
             {games.map((g) => {
               const gameId = getPlayableGameId(g);
               const title = g.gameName || g.name || gameId || "Game";
@@ -223,19 +227,20 @@ const HotGames = () => {
                   <button
                     type="button"
                     onClick={() => handlePlay(g)}
-                    className="relative w-full overflow-hidden focus:outline-none"
+                    className="relative w-48 overflow-hidden focus:outline-none rounded-lg"
                     title={title}
                     style={{
                       borderRadius: ui.cardRadius,
                       backgroundColor: hexToRgba(ui.cardBg, ui.cardBgOpacity),
                       boxShadow: ui.cardShadow.replaceAll("_", " "),
+                      border: `${ui.cardBorderWidth}px solid ${ui.cardBorderColor}`,
                     }}
                   >
                     <div className="aspect-[16/9] w-full">
                       <img
                         src={img}
                         alt={title}
-                        className="h-48 w-full object-cover transition duration-300"
+                        className="h-48 w-48 object-cover transition duration-300"
                         loading="lazy"
                         onError={(e) => {
                           e.currentTarget.src = "/no-image.png";
@@ -295,6 +300,10 @@ const HotGames = () => {
                     <p
                       className="mt-1 line-clamp-1 text-center uppercase tracking-wide"
                       style={{
+                        backgroundColor: hexToRgba(
+                          ui.providerBg,
+                          ui.providerBgOpacity,
+                        ),
                         color: hexToRgba(ui.providerText, ui.providerOpacity),
                         fontSize: ui.providerSize,
                         fontWeight: ui.providerWeight,
