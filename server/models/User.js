@@ -29,15 +29,17 @@ const userSchema = new Schema(
     email: { type: String, default: "" },
     phone: { type: String, required: true, trim: true },
     password: { type: String, required: true },
-    // ✅ Oracle game play username - must be 10 chars and unique
+
+    // ✅ Oracle game play username - must be 10 chars and unique when exists
+    // ✅ default null, so register time validation error will not happen
     userGamePlayName: {
       type: String,
-      default: "",
+      default: null,
       trim: true,
       minlength: 10,
       maxlength: 10,
-      index: true,
     },
+
     role: {
       type: String,
       enum: ["user", "aff-user", "admin"],
@@ -107,6 +109,10 @@ const userSchema = new Schema(
 userSchema.index({ username: 1 }, { unique: true });
 userSchema.index({ phone: 1 }, { unique: true });
 userSchema.index({ referralCode: 1 }, { unique: true, sparse: true });
+
+// ✅ unique only when userGamePlayName exists
+userSchema.index({ userGamePlayName: 1 }, { unique: true, sparse: true });
+
 userSchema.index({ role: 1, isActive: 1 });
 userSchema.index({ referredBy: 1 });
 

@@ -9,6 +9,8 @@ import { toast } from "react-toastify";
 
 const MASTER_API_URL = import.meta.env.VITE_MASTER_API_URL;
 
+const HOT_LIMIT = 15;
+
 const fetchHotGamesColor = async () => {
   const { data } = await api.get("/api/hotgames-color");
   return data;
@@ -30,23 +32,40 @@ const fetchHotGames = async () => {
     const apiKey = await getSavedApiKey();
 
     if (!apiKey || !MASTER_API_URL) {
-      return [];
+      return {
+        games: [],
+        pagination: null,
+      };
     }
 
     const { data } = await axios.get(
       `${MASTER_API_URL}/api/white-label/hot-games`,
       {
-        params: { limit: 15 },
+        params: {
+          page: 1,
+          limit: HOT_LIMIT,
+          includeOracle: true,
+        },
         headers: {
           "x-api-key": apiKey,
         },
       },
     );
 
-    return data?.data || [];
+    return {
+      games: Array.isArray(data?.data) ? data.data : [],
+      pagination: data?.pagination || null,
+    };
   } catch (error) {
-    console.error("White label hot games fetch failed:", error);
-    return [];
+    console.error(
+      "White label hot games fetch failed:",
+      error?.response?.data || error.message,
+    );
+
+    return {
+      games: [],
+      pagination: null,
+    };
   }
 };
 
@@ -118,12 +137,14 @@ const HotGames = () => {
     retry: 1,
   });
 
-  const { data: games = [], isLoading } = useQuery({
-    queryKey: ["white-label-hot-games-15"],
+  const { data: hotData, isLoading } = useQuery({
+    queryKey: ["white-label-hot-games", HOT_LIMIT],
     queryFn: fetchHotGames,
     staleTime: 1000 * 30,
-    retry: false,
+    retry: 1,
   });
+
+  const games = hotData?.games || [];
 
   const ui = useMemo(() => {
     const d = colorDoc || {};
@@ -227,7 +248,7 @@ const HotGames = () => {
                   <button
                     type="button"
                     onClick={() => handlePlay(g)}
-                    className="relative w-48 overflow-hidden focus:outline-none rounded-lg"
+                    className="relative w-48 overflow-hidden rounded-lg focus:outline-none"
                     title={title}
                     style={{
                       borderRadius: ui.cardRadius,

@@ -2,12 +2,13 @@
 import React, { useMemo, useState, useEffect } from "react";
 import axios from "axios";
 import { useParams, useSearchParams, useNavigate } from "react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { api } from "../../api/axios";
 import { useLanguage } from "../../Context/LanguageProvider";
 import Loading from "../../components/Loading/Loading";
 
-const PAGE_SIZE = 30;
+const UI_PAGE_SIZE = 32;
+const SERVER_PAGE_SIZE = 50;
 
 const MASTER_API_URL = import.meta.env.VITE_MASTER_API_URL;
 
@@ -38,47 +39,70 @@ const getSavedApiKey = async () => {
 const masterGet = async (url, params = {}) => {
   const apiKey = await getSavedApiKey();
 
+  if (!apiKey || !MASTER_API_URL) return null;
+
+  const { data } = await axios.get(`${MASTER_API_URL}${url}`, {
+    params,
+    headers: { "x-api-key": apiKey },
+  });
+
+  return data?.data;
+};
+
+const masterGetFull = async (url, params = {}) => {
+  const apiKey = await getSavedApiKey();
+
   if (!apiKey || !MASTER_API_URL) {
-    return null;
+    return {
+      data: [],
+      pagination: {
+        page: 1,
+        limit: SERVER_PAGE_SIZE,
+        total: 0,
+        totalPages: 1,
+        hasMore: false,
+        nextPage: null,
+      },
+    };
   }
 
   const { data } = await axios.get(`${MASTER_API_URL}${url}`, {
     params,
-    headers: {
-      "x-api-key": apiKey,
-    },
+    headers: { "x-api-key": apiKey },
   });
 
-  return data?.data;
+  return {
+    data: Array.isArray(data?.data) ? data.data : [],
+    pagination: data?.pagination || {
+      page: params.page || 1,
+      limit: params.limit || SERVER_PAGE_SIZE,
+      total: 0,
+      totalPages: 1,
+      hasMore: false,
+      nextPage: null,
+    },
+  };
 };
 
 const fetchCategory = async (categoryId) => {
   return await masterGet(`/api/white-label/game-categories/${categoryId}`);
 };
 
-const fetchGames = async ({ categoryId, providerDbId }) => {
-  const data = await masterGet("/api/white-label/games", {
+const fetchGamesPage = async ({ categoryId, providerDbId, pageParam = 1 }) => {
+  return await masterGetFull("/api/white-label/games", {
     categoryId,
     providerDbId: providerDbId || "",
+    page: pageParam,
+    limit: SERVER_PAGE_SIZE,
   });
-
-  return Array.isArray(data) ? data : [];
 };
 
 const getGameImage = (game) => {
   const customImage = String(game?.image || "").trim();
+  if (customImage) return fileUrl(customImage);
 
-  // ✅ DB custom image: /uploads/... হলে master server URL add হবে
-  if (customImage) {
-    return fileUrl(customImage);
-  }
-
-  // ✅ Oracle image: already full https URL, direct show হবে
   const oracleImage = String(game?.oracleImage || "").trim();
-
-  if (oracleImage) {
-    return oracleImage;
-  }
+  if (oracleImage) return oracleImage;
 
   return "/no-image.png";
 };
@@ -108,16 +132,56 @@ const GameCategory = () => {
   });
 
   const {
-    data: games = [],
+    data: gamesPages,
     isLoading: loadingGames,
     isFetching: fetchingGames,
-  } = useQuery({
-    queryKey: ["white-label-games", categoryId, providerDbId],
-    queryFn: () => fetchGames({ categoryId, providerDbId }),
+    isFetchingNextPage,
+    fetchNextPage,
+    hasNextPage,
+  } = useInfiniteQuery({
+    queryKey: [
+      "white-label-games-background-preload",
+      categoryId,
+      providerDbId,
+    ],
+    queryFn: ({ pageParam = 1 }) =>
+      fetchGamesPage({ categoryId, providerDbId, pageParam }),
     enabled: !!categoryId,
     staleTime: 30000,
     retry: false,
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (lastPage?.pagination?.hasMore) {
+        return lastPage.pagination.nextPage;
+      }
+
+      return undefined;
+    },
   });
+
+  useEffect(() => {
+    if (!loadingGames && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [loadingGames, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const games = useMemo(() => {
+    const pages = gamesPages?.pages || [];
+    const merged = pages.flatMap((item) => item?.data || []);
+
+    const map = new Map();
+
+    for (const game of merged) {
+      const key = String(game?._id || game?.gameId || game?.gameUId || "");
+      if (key) map.set(key, game);
+    }
+
+    return Array.from(map.values());
+  }, [gamesPages]);
+
+  const totalFromServer = useMemo(() => {
+    return gamesPages?.pages?.[0]?.pagination?.total || games.length;
+  }, [gamesPages, games.length]);
 
   const providers = useMemo(() => {
     return Array.isArray(cat?.providers)
@@ -145,6 +209,7 @@ const GameCategory = () => {
       next.set("provider", id);
     }
 
+    setPage(1);
     setSp(next, { replace: true });
   };
 
@@ -163,12 +228,14 @@ const GameCategory = () => {
       list = list.filter((g) => {
         const name = String(g.gameName || g.name || "").toLowerCase();
         const id = String(g.gameId || "").toLowerCase();
+        const uid = String(g.gameUId || "").toLowerCase();
         const code = String(g.game_code || "").toLowerCase();
         const uuid = String(g.gameUuid || g._id || "").toLowerCase();
 
         return (
           name.includes(query) ||
           id.includes(query) ||
+          uid.includes(query) ||
           code.includes(query) ||
           uuid.includes(query)
         );
@@ -190,15 +257,33 @@ const GameCategory = () => {
     return list;
   }, [games, q, sortKey]);
 
-  const total = filteredSortedGames.length;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const total =
+    q.trim() || sortKey !== "default"
+      ? filteredSortedGames.length
+      : totalFromServer;
+
+  const totalPages = Math.max(1, Math.ceil(total / UI_PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
-  const start = (safePage - 1) * PAGE_SIZE;
-  const end = start + PAGE_SIZE;
+  const start = (safePage - 1) * UI_PAGE_SIZE;
+  const end = start + UI_PAGE_SIZE;
 
   const pagedGames = useMemo(() => {
     return filteredSortedGames.slice(start, end);
   }, [filteredSortedGames, start, end]);
+
+  const requestPage = (targetPage) => {
+    const cleanPage = Math.min(totalPages, Math.max(1, targetPage));
+    setPage(cleanPage);
+
+    window.scrollTo({
+      top: 420,
+      behavior: "smooth",
+    });
+  };
+
+  const goPrev = () => requestPage(safePage - 1);
+  const goNext = () => requestPage(safePage + 1);
+  const goPage = (p) => requestPage(p);
 
   const pageButtons = useMemo(() => {
     const p = safePage;
@@ -226,10 +311,6 @@ const GameCategory = () => {
     return out;
   }, [safePage, totalPages]);
 
-  const goPrev = () => setPage((p) => Math.max(1, p - 1));
-  const goNext = () => setPage((p) => Math.min(totalPages, p + 1));
-  const goPage = (p) => setPage(() => Math.min(totalPages, Math.max(1, p)));
-
   if (loadingCat) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center font-bold text-black/70">
@@ -251,7 +332,7 @@ const GameCategory = () => {
   return (
     <div className="min-h-screen bg-[#f6f6f6]">
       <Loading
-        open={loadingCat || loadingGames || fetchingCat || fetchingGames}
+        open={loadingCat || loadingGames || fetchingCat}
         text={isBangla ? "লোড হচ্ছে..." : "Loading..."}
       />
 
@@ -360,7 +441,7 @@ const GameCategory = () => {
             </select>
           </div>
 
-          <div className="flex w-full items-center justify-end gap-2 md:w-auto">
+          <div className="flex w-full flex-col items-end gap-2 md:w-auto">
             <div className="flex h-[38px] min-w-[240px] items-center gap-2 rounded-full border border-black/20 bg-white px-4 md:min-w-[300px]">
               <span className="text-black/40">🔍</span>
 
@@ -373,6 +454,14 @@ const GameCategory = () => {
                 className="flex-1 bg-transparent text-sm font-semibold outline-none"
               />
             </div>
+
+            {/* <div className="text-[12px] font-bold text-black/45">
+              {isBangla ? "লোড হয়েছে" : "Loaded"} {games.length}/
+              {totalFromServer}
+              {isFetchingNextPage ? (
+                <span> {isBangla ? "লোড হচ্ছে..." : "Loading..."}</span>
+              ) : null}
+            </div> */}
           </div>
         </div>
 
@@ -396,7 +485,7 @@ const GameCategory = () => {
               <div className="grid grid-cols-2 gap-6 sm:grid-cols-4 md:gap-8 lg:grid-cols-6 xl:grid-cols-8">
                 {pagedGames.map((g) => {
                   const imgSrc = getGameImage(g);
-                  const goId = g.gameId;
+                  const goId = g.gameId || g.gameUId;
                   const gameName = g.gameName || g.name || goId;
 
                   return (
@@ -434,9 +523,9 @@ const GameCategory = () => {
                             alt={gameName}
                             className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.08]"
                             loading="lazy"
-                            // onError={(e) => {
-                            //   e.currentTarget.src = "/no-image.png";
-                            // }}
+                            onError={(e) => {
+                              e.currentTarget.src = "/no-image.png";
+                            }}
                           />
 
                           <div className="absolute inset-0 bg-black/0 transition duration-300 group-hover:bg-black/25" />
@@ -507,6 +596,17 @@ const GameCategory = () => {
                   </button>
                 </div>
               )}
+
+              <div className="mt-3 text-center text-[12px] font-bold text-black/45">
+                {isBangla ? "পেজ" : "Page"} {safePage}/{totalPages} •{" "}
+                {isBangla ? "মোট" : "Total"} {total}
+              </div>
+
+              {fetchingGames && !isFetchingNextPage ? (
+                <div className="py-3 text-center text-sm font-bold text-black/45">
+                  {isBangla ? "আপডেট হচ্ছে..." : "Updating..."}
+                </div>
+              ) : null}
             </>
           )}
         </div>

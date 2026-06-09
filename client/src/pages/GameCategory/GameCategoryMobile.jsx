@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { useNavigate, useParams, useSearchParams } from "react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { api } from "../../api/axios";
 import { useLanguage } from "../../Context/LanguageProvider";
 import { toast } from "react-toastify";
@@ -12,7 +12,9 @@ import Jackpot from "../../components/Jackpot/Jackpot";
 const HOT_ICON = "https://babu88.gold/static/image/other/hot-icon.png";
 const NEW_ICON = "https://babu88.gold/static/svg/game-icon-new.svg";
 
-const PAGE_SIZE = 30;
+const UI_PAGE_SIZE = 30;
+const SERVER_PAGE_SIZE = 50;
+
 const MASTER_API_URL = import.meta.env.VITE_MASTER_API_URL;
 
 const getSavedApiKey = async () => {
@@ -29,18 +31,49 @@ const getSavedApiKey = async () => {
 const masterGet = async (url, params = {}) => {
   const apiKey = await getSavedApiKey();
 
+  if (!apiKey || !MASTER_API_URL) return null;
+
+  const { data } = await axios.get(`${MASTER_API_URL}${url}`, {
+    params,
+    headers: { "x-api-key": apiKey },
+  });
+
+  return data?.data;
+};
+
+const masterGetFull = async (url, params = {}) => {
+  const apiKey = await getSavedApiKey();
+
   if (!apiKey || !MASTER_API_URL) {
-    return null;
+    return {
+      data: [],
+      pagination: {
+        page: 1,
+        limit: SERVER_PAGE_SIZE,
+        total: 0,
+        totalPages: 1,
+        hasMore: false,
+        nextPage: null,
+      },
+    };
   }
 
   const { data } = await axios.get(`${MASTER_API_URL}${url}`, {
     params,
-    headers: {
-      "x-api-key": apiKey,
-    },
+    headers: { "x-api-key": apiKey },
   });
 
-  return data?.data;
+  return {
+    data: Array.isArray(data?.data) ? data.data : [],
+    pagination: data?.pagination || {
+      page: params.page || 1,
+      limit: params.limit || SERVER_PAGE_SIZE,
+      total: 0,
+      totalPages: 1,
+      hasMore: false,
+      nextPage: null,
+    },
+  };
 };
 
 const fetchCategories = async () => {
@@ -55,13 +88,14 @@ const fetchProviders = async (categoryId) => {
   return Array.isArray(data?.providers) ? data.providers : [];
 };
 
-const fetchGames = async ({ categoryId, providerDbId }) => {
-  const data = await masterGet("/api/white-label/games", {
+const fetchGamesPage = async ({ categoryId, providerDbId, pageParam = 1 }) => {
+  return await masterGetFull("/api/white-label/games", {
     categoryId,
     providerDbId: providerDbId || "",
+    page: pageParam,
+    limit: SERVER_PAGE_SIZE,
+    includeOracle: true,
   });
-
-  return Array.isArray(data) ? data : [];
 };
 
 const masterFileUrl = (path = "") => {
@@ -77,6 +111,9 @@ const masterFileUrl = (path = "") => {
 const getGameImage = (game) => {
   if (game?.image) return masterFileUrl(game.image);
   if (game?.oracleImage) return game.oracleImage;
+  if (game?.oracleImages?.thumbnail) return game.oracleImages.thumbnail;
+  if (game?.oracleImages?.height) return game.oracleImages.height;
+  if (game?.oracleImages?.original) return game.oracleImages.original;
   return "/no-image.png";
 };
 
@@ -89,6 +126,7 @@ const GameCategoryMobile = () => {
   const [activeCategoryId, setActiveCategoryId] = useState(categoryId || "");
   const [activeProviderDbId, setActiveProviderDbId] = useState("");
   const [q, setQ] = useState("");
+  const [debouncedQ, setDebouncedQ] = useState("");
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -96,7 +134,9 @@ const GameCategoryMobile = () => {
     setActiveProviderDbId(qp);
   }, [categoryId, sp]);
 
-  const [debouncedQ, setDebouncedQ] = useState(q);
+  useEffect(() => {
+    if (categoryId) setActiveCategoryId(categoryId);
+  }, [categoryId]);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQ(q), 400);
@@ -113,10 +153,6 @@ const GameCategoryMobile = () => {
     staleTime: 60000,
     retry: false,
   });
-
-  useEffect(() => {
-    if (categoryId) setActiveCategoryId(categoryId);
-  }, [categoryId]);
 
   const activeIndex = useMemo(() => {
     const idx = categories.findIndex((c) => c._id === activeCategoryId);
@@ -147,24 +183,64 @@ const GameCategoryMobile = () => {
     retry: false,
   });
 
-  const { data: games = [], isLoading: loadingGames } = useQuery({
+  const {
+    data: gamesPages,
+    isLoading: loadingGames,
+    isFetching: fetchingGames,
+    isFetchingNextPage,
+    fetchNextPage,
+    hasNextPage,
+  } = useInfiniteQuery({
     queryKey: [
-      "white-label-mobile-games",
+      "white-label-mobile-games-background-preload",
       activeCategoryId,
       activeProviderDbId,
     ],
-    queryFn: () =>
-      fetchGames({
+    queryFn: ({ pageParam = 1 }) =>
+      fetchGamesPage({
         categoryId: activeCategoryId,
         providerDbId: activeProviderDbId,
+        pageParam,
       }),
     enabled: !!activeCategoryId,
     staleTime: 30000,
-    retry: false,
+    retry: 1,
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (lastPage?.pagination?.hasMore) {
+        return lastPage.pagination.nextPage;
+      }
+      return undefined;
+    },
   });
+
+  useEffect(() => {
+    if (!loadingGames && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [loadingGames, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const games = useMemo(() => {
+    const pages = gamesPages?.pages || [];
+    const merged = pages.flatMap((item) => item?.data || []);
+
+    const map = new Map();
+
+    for (const game of merged) {
+      const key = String(game?._id || game?.gameId || game?.gameUId || "");
+      if (key) map.set(key, game);
+    }
+
+    return Array.from(map.values());
+  }, [gamesPages]);
+
+  const totalFromServer = useMemo(() => {
+    return gamesPages?.pages?.[0]?.pagination?.total || games.length;
+  }, [gamesPages, games.length]);
 
   const shownGames = useMemo(() => {
     let list = Array.isArray(games) ? [...games] : [];
+
     list = list.filter((g) => g?.status === "active" || !g?.status);
 
     const term = String(debouncedQ || q || "")
@@ -210,12 +286,12 @@ const GameCategoryMobile = () => {
     return list;
   }, [games, q, debouncedQ]);
 
-  const total = shownGames.length;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const total = q.trim() ? shownGames.length : totalFromServer;
+  const totalPages = Math.max(1, Math.ceil(total / UI_PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
 
-  const start = (safePage - 1) * PAGE_SIZE;
-  const end = start + PAGE_SIZE;
+  const start = (safePage - 1) * UI_PAGE_SIZE;
+  const end = start + UI_PAGE_SIZE;
 
   const pagedGames = useMemo(
     () => shownGames.slice(start, end),
@@ -256,6 +332,7 @@ const GameCategoryMobile = () => {
 
     setActiveProviderDbId("");
     setQ("");
+    setPage(1);
     navigate(`/games-mobile/${id}`, { replace: true });
   };
 
@@ -267,8 +344,22 @@ const GameCategoryMobile = () => {
 
     setActiveProviderDbId("");
     setQ("");
+    setPage(1);
     navigate(`/games-mobile/${id}`, { replace: true });
   };
+
+  const goPage = (p) => {
+    const cleanPage = Math.min(totalPages, Math.max(1, p));
+    setPage(cleanPage);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
+
+  const prevPage = () => goPage(safePage - 1);
+  const nextPage = () => goPage(safePage + 1);
 
   const provScrollerRef = useRef(null);
   const trackRef = useRef(null);
@@ -299,7 +390,6 @@ const GameCategoryMobile = () => {
   useEffect(() => {
     updateThumb();
     window.addEventListener("resize", updateThumb);
-
     return () => window.removeEventListener("resize", updateThumb);
   }, []);
 
@@ -317,10 +407,6 @@ const GameCategoryMobile = () => {
 
     navigate(`/playgame/${gameId}`, { state: { game: g } });
   };
-
-  const goPage = (p) => setPage(() => Math.min(totalPages, Math.max(1, p)));
-  const prevPage = () => setPage((p) => Math.max(1, p - 1));
-  const nextPage = () => setPage((p) => Math.min(totalPages, p + 1));
 
   return (
     <div className="min-h-screen bg-[#f5f5f5]">
@@ -396,9 +482,9 @@ const GameCategoryMobile = () => {
                         alt={p.providerName}
                         className="h-9 w-9 object-contain"
                         loading="lazy"
-                        // onError={(e) => {
-                        //   e.currentTarget.style.display = "none";
-                        // }}
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
                       />
                     ) : (
                       <div className="h-9 w-9 rounded bg-black/5" />
@@ -440,6 +526,13 @@ const GameCategoryMobile = () => {
               className="w-full bg-transparent text-[14px] font-semibold text-black/70 outline-none"
             />
           </div>
+
+          {/* <div className="mt-2 text-center text-[11px] font-bold text-black/40">
+            {isBangla ? "লোড হয়েছে" : "Loaded"} {games.length}/{totalFromServer}
+            {isFetchingNextPage ? (
+              <span> {isBangla ? "লোড হচ্ছে..." : "Loading..."}</span>
+            ) : null}
+          </div> */}
         </div>
       </div>
 
@@ -483,14 +576,14 @@ const GameCategoryMobile = () => {
                           alt={label}
                           className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]"
                           loading="lazy"
-                          // onError={(e) => {
-                          //   e.currentTarget.src = "/no-image.png";
-                          // }}
+                          onError={(e) => {
+                            e.currentTarget.src = "/no-image.png";
+                          }}
                         />
                       </div>
 
                       <div className="absolute right-0 top-0 flex flex-col items-end gap-1">
-                        {g.isHot === true && (
+                        {(g.isHot === true || g.isHot === "true") && (
                           <img
                             src={HOT_ICON}
                             alt="hot"
@@ -499,7 +592,7 @@ const GameCategoryMobile = () => {
                           />
                         )}
 
-                        {g.isNew === true && (
+                        {(g.isNew === true || g.isNew === "true") && (
                           <img
                             src={NEW_ICON}
                             alt="new"
@@ -565,6 +658,12 @@ const GameCategoryMobile = () => {
               {isBangla ? "পেজ" : "Page"} {safePage}/{totalPages} •{" "}
               {isBangla ? "মোট" : "Total"} {total}
             </div>
+
+            {fetchingGames && !isFetchingNextPage ? (
+              <div className="py-3 text-center text-sm font-bold text-black/45">
+                {isBangla ? "আপডেট হচ্ছে..." : "Updating..."}
+              </div>
+            ) : null}
           </>
         )}
       </div>

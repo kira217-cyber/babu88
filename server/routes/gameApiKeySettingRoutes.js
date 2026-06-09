@@ -18,35 +18,67 @@ const jsonOk = (res, message, data = null, status = 200) => {
   });
 };
 
-const jsonError = (res, message, status = 500) => {
+const jsonError = (res, message, status = 500, data = null) => {
   return res.status(status).json({
     success: false,
     message,
+    data,
   });
 };
 
 const getMasterApiBaseUrl = () => {
-  return cleanBaseUrl(process.env.MASTER_API_BASE_URL || "https://mother-api.babu666.live");
+  return cleanBaseUrl(
+    process.env.MASTER_API_BASE_URL ||
+      "https://motherbabu88api.oracle-soft.com",
+  );
 };
 
 const verifyMasterApiKey = async (apiKey) => {
   const masterApiBaseUrl = getMasterApiBaseUrl();
+  const cleanKey = String(apiKey || "").trim();
 
   if (!masterApiBaseUrl) {
     throw new Error("MASTER_API_BASE_URL is missing in .env");
   }
 
+  if (!cleanKey) {
+    throw new Error("API key is missing");
+  }
+
+  console.log("MASTER_API_BASE_URL:", masterApiBaseUrl);
+  console.log("VERIFY TOKEN:", cleanKey);
+
   const res = await axios.post(
     `${masterApiBaseUrl}/api/master/sites/verify-token`,
     {
-      token: apiKey,
+      token: cleanKey,
     },
     {
       timeout: 15000,
+      headers: {
+        "Content-Type": "application/json",
+      },
     },
   );
 
-  return res.data?.data;
+  console.log("MASTER VERIFY RESPONSE:", JSON.stringify(res.data, null, 2));
+
+  const response = res.data || {};
+  const payload = response?.data || response;
+
+  const valid = Boolean(
+    payload?.valid === true ||
+    response?.valid === true ||
+    response?.success === true,
+  );
+
+  const site = payload?.site || response?.site || payload || null;
+
+  return {
+    valid,
+    site,
+    raw: response,
+  };
 };
 
 /* ======================================================
@@ -123,6 +155,7 @@ router.post("/", async (req, res) => {
         ? "API key saved and verified successfully."
         : "API key saved but verification failed.",
       {
+        valid: isVerified,
         setting,
       },
       isVerified ? 200 : 202,
@@ -157,6 +190,7 @@ router.post("/verify", async (req, res) => {
 
       return jsonOk(res, "API key verified successfully.", {
         valid: setting.isVerified,
+        site: verifyData?.site || null,
         setting,
       });
     } catch (error) {
@@ -169,7 +203,10 @@ router.post("/verify", async (req, res) => {
 
       await setting.save();
 
-      return jsonError(res, setting.lastVerifyError, 401);
+      return jsonError(res, setting.lastVerifyError, 401, {
+        valid: false,
+        setting,
+      });
     }
   } catch (error) {
     return jsonError(res, error.message || "Server error", 500);
