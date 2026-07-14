@@ -78,6 +78,10 @@ import dashboardStatsRoutes from "./routes/dashboardStatsRoutes.js";
 import jackpotRoutes from "./routes/jackpotRoutes.js";
 import betLogRoutes from "./routes/betLogRoutes.js";
 import gameApiKeySettingRoutes from "./routes/gameApiKeySettingRoutes.js";
+import nineWicketWalletRoutes from "./routes/nineWicketWalletRoutes.js";
+
+
+
 
 // ...
 
@@ -178,6 +182,9 @@ app.use("/api", dashboardStatsRoutes);
 app.use("/api", jackpotRoutes);
 app.use("/api", betLogRoutes);
 app.use("/api/admin/game-api-key", gameApiKeySettingRoutes);
+app.use("/api/nine-wicket-wallet", nineWicketWalletRoutes);
+
+
 
 // ✅ port
 const PORT = process.env.PORT || 5008;

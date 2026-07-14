@@ -265,74 +265,443 @@ const pageSummaryPipeline = ({ match, skip, limit }) => [
 
 router.get("/admin/bet-logs", async (req, res) => {
   try {
-    const page = Math.max(parseInt(req.query.page || "1", 10), 1);
+    /* =====================================================
+       PAGINATION
+    ===================================================== */
+
+    const page = Math.max(
+      parseInt(req.query.page || "1", 10),
+      1,
+    );
+
     const limit = Math.min(
-      Math.max(parseInt(req.query.limit || "50", 10), 1),
+      Math.max(
+        parseInt(req.query.limit || "50", 10),
+        1,
+      ),
       200,
     );
+
     const skip = (page - 1) * limit;
 
-    const { match, oracleMap, filters } = await buildMatch(req);
+    /* =====================================================
+       BUILD FILTER MATCH
+    ===================================================== */
 
-    const [rows, totalCount, summaryAgg, pageSummaryAgg] = await Promise.all([
+    const {
+      match,
+      oracleMap,
+      filters,
+    } = await buildMatch(req);
+
+    /* =====================================================
+       DATABASE QUERIES
+    ===================================================== */
+
+    const [
+      rows,
+      totalCount,
+      summaryAgg,
+      pageSummaryAgg,
+    ] = await Promise.all([
       GameHistory.find(match)
-        .sort({ createdAt: -1, _id: -1 })
+        .sort({
+          createdAt: -1,
+          _id: -1,
+        })
         .skip(skip)
         .limit(limit)
         .lean(),
 
       GameHistory.countDocuments(match),
 
-      GameHistory.aggregate(summaryPipeline(match)),
+      GameHistory.aggregate(
+        summaryPipeline(match),
+      ),
 
-      GameHistory.aggregate(pageSummaryPipeline({ match, skip, limit })),
+      GameHistory.aggregate(
+        pageSummaryPipeline({
+          match,
+          skip,
+          limit,
+        }),
+      ),
     ]);
+
+    /* =====================================================
+       ORACLE ENRICHMENT
+    ===================================================== */
+
+    const enrichedRows = enrichRows(
+      rows,
+      oracleMap,
+    );
+
+    /* =====================================================
+       NORMALIZE ORACLE + NINE WICKET ROWS
+    ===================================================== */
+
+    const data = (
+      Array.isArray(enrichedRows)
+        ? enrichedRows
+        : rows
+    ).map((row) => {
+      const provider = String(
+        row?.provider || "oracle",
+      )
+        .trim()
+        .toLowerCase();
+
+      const isNineWicket =
+        provider === "ninewicket";
+
+      const matchStake = Number(
+        row?.matchStake || 0,
+      );
+
+      const betAmount = Number(
+        row?.bet_amount || 0,
+      );
+
+      const winAmount = Number(
+        row?.win_amount || 0,
+      );
+
+      const netAmount = Number(
+        row?.net_amount || 0,
+      );
+
+      const profitLoss = Number(
+        row?.profitLoss || 0,
+      );
+
+      const exposureChange = Number(
+        row?.exposureChange || 0,
+      );
+
+      const exposureAfter = Number(
+        row?.exposureAfter || 0,
+      );
+
+      const eventTypeName = String(
+        row?.eventTypeName || "",
+      ).trim();
+
+      const eventName = String(
+        row?.eventName || "",
+      ).trim();
+
+      const marketName = String(
+        row?.marketName || "",
+      ).trim();
+
+      const competitionName = String(
+        row?.competitionName || "",
+      ).trim();
+
+      const nineWicketUsername =
+        String(
+          row?.nineWicketUsername ||
+            "",
+        ).trim();
+
+      const displayUsername =
+        isNineWicket
+          ? nineWicketUsername ||
+            row?.member_account ||
+            row?.username ||
+            ""
+          : row?.userGamePlayName ||
+            row?.member_account ||
+            row?.username ||
+            "";
+
+      const displayGameName =
+        isNineWicket
+          ? eventName ||
+            competitionName ||
+            "NineWicket"
+          : row?.gameName ||
+            row?.oracleGameName ||
+            row?.displayGameName ||
+            row?.game_uid ||
+            "";
+
+      const displayProviderName =
+        isNineWicket
+          ? "NineWicket"
+          : row?.providerName ||
+            row?.oracleProviderName ||
+            row?.providerCode ||
+            "Oracle";
+
+      const displayGameSubtitle =
+        isNineWicket
+          ? [
+              eventTypeName,
+              competitionName,
+              marketName,
+            ]
+              .filter(Boolean)
+              .join(" • ")
+          : row?.providerName ||
+            row?.providerCode ||
+            row?.game_uid ||
+            "";
+
+      const displayBetAmount =
+        isNineWicket
+          ? matchStake || betAmount
+          : betAmount;
+
+      return {
+        ...row,
+
+        provider,
+        isNineWicket,
+
+        bet_amount: betAmount,
+        win_amount: winAmount,
+        net_amount: netAmount,
+
+        nineWicketUsername,
+
+        nineWicketBetId: String(
+          row?.nineWicketBetId || "",
+        ).trim(),
+
+        nineWicketBetStatus: String(
+          row?.nineWicketBetStatus || "",
+        ).trim(),
+
+        matchStake,
+        profitLoss,
+
+        eventTypeName,
+        eventName,
+        marketName,
+        competitionName,
+
+        exposureChange,
+        exposureAfter,
+
+        displayUsername,
+        displayGameName,
+        displayProviderName,
+        displayGameSubtitle,
+        displayBetAmount,
+      };
+    });
+
+    /* =====================================================
+       GLOBAL SUMMARY
+    ===================================================== */
 
     const summary = summaryAgg?.[0] || {
       allBetHistoryCount: 0,
+
       totalBetAmount: 0,
       totalWinAmount: 0,
       totalNetAmount: 0,
+
       totalWinProfit: 0,
       totalLossAmount: 0,
+
       winCount: 0,
       lossCount: 0,
       pushCount: 0,
+
+      totalMatchStake: 0,
+      totalNineWicketProfitLoss: 0,
+      totalExposureChange: 0,
+
+      oracleCount: 0,
+      nineWicketCount: 0,
     };
 
-    const pageSummary = pageSummaryAgg?.[0] || {
-      pageCount: 0,
-      pageBetTotal: 0,
-      pageWinTotal: 0,
-      pageNetTotal: 0,
-      pageWinProfit: 0,
-      pageLossAmount: 0,
+    /**
+     * পুরোনো summaryPipeline-এ NineWicket field না থাকলেও
+     * response format consistent থাকবে।
+     */
+    const normalizedSummary = {
+      allBetHistoryCount: Number(
+        summary.allBetHistoryCount ||
+          totalCount ||
+          0,
+      ),
+
+      totalBetAmount: Number(
+        summary.totalBetAmount || 0,
+      ),
+
+      totalWinAmount: Number(
+        summary.totalWinAmount || 0,
+      ),
+
+      totalNetAmount: Number(
+        summary.totalNetAmount || 0,
+      ),
+
+      totalWinProfit: Number(
+        summary.totalWinProfit || 0,
+      ),
+
+      totalLossAmount: Number(
+        summary.totalLossAmount || 0,
+      ),
+
+      winCount: Number(
+        summary.winCount || 0,
+      ),
+
+      lossCount: Number(
+        summary.lossCount || 0,
+      ),
+
+      pushCount: Number(
+        summary.pushCount || 0,
+      ),
+
+      totalMatchStake: Number(
+        summary.totalMatchStake || 0,
+      ),
+
+      totalNineWicketProfitLoss:
+        Number(
+          summary.totalNineWicketProfitLoss ||
+            0,
+        ),
+
+      totalExposureChange: Number(
+        summary.totalExposureChange || 0,
+      ),
+
+      oracleCount: Number(
+        summary.oracleCount || 0,
+      ),
+
+      nineWicketCount: Number(
+        summary.nineWicketCount || 0,
+      ),
     };
+
+    /* =====================================================
+       PAGE SUMMARY
+    ===================================================== */
+
+    const pageSummary =
+      pageSummaryAgg?.[0] || {
+        pageCount: 0,
+
+        pageBetTotal: 0,
+        pageWinTotal: 0,
+        pageNetTotal: 0,
+
+        pageWinProfit: 0,
+        pageLossAmount: 0,
+
+        pageMatchStake: 0,
+        pageNineWicketProfitLoss: 0,
+        pageExposureChange: 0,
+      };
+
+    const normalizedPageSummary = {
+      pageCount: Number(
+        pageSummary.pageCount ||
+          data.length ||
+          0,
+      ),
+
+      pageBetTotal: Number(
+        pageSummary.pageBetTotal || 0,
+      ),
+
+      pageWinTotal: Number(
+        pageSummary.pageWinTotal || 0,
+      ),
+
+      pageNetTotal: Number(
+        pageSummary.pageNetTotal || 0,
+      ),
+
+      pageWinProfit: Number(
+        pageSummary.pageWinProfit || 0,
+      ),
+
+      pageLossAmount: Number(
+        pageSummary.pageLossAmount || 0,
+      ),
+
+      pageMatchStake: Number(
+        pageSummary.pageMatchStake || 0,
+      ),
+
+      pageNineWicketProfitLoss:
+        Number(
+          pageSummary.pageNineWicketProfitLoss ||
+            0,
+        ),
+
+      pageExposureChange: Number(
+        pageSummary.pageExposureChange ||
+          0,
+      ),
+    };
+
+    /* =====================================================
+       RESPONSE
+    ===================================================== */
 
     return res.status(200).json({
       success: true,
-      data: enrichRows(rows, oracleMap),
+
+      data,
+
       pagination: {
         page,
         limit,
+
         total: totalCount,
-        totalPages: Math.ceil(totalCount / limit) || 1,
-        hasNextPage: page * limit < totalCount,
-        hasPrevPage: page > 1,
+
+        totalPages:
+          Math.ceil(
+            totalCount / limit,
+          ) || 1,
+
+        hasNextPage:
+          page * limit <
+          totalCount,
+
+        hasPrevPage:
+          page > 1,
       },
+
       filters,
-      summary,
-      pageSummary,
+
+      summary:
+        normalizedSummary,
+
+      pageSummary:
+        normalizedPageSummary,
     });
   } catch (error) {
-    console.error("❌ bet logs fetch error:", error);
+    console.error(
+      "❌ bet logs fetch error:",
+      error,
+    );
+
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch all user bet logs",
-      error: error.message,
+
+      message:
+        "Failed to fetch all user bet logs",
+
+      error:
+        error.message,
     });
   }
 });
+
 
 /* ======================================================
    SINGLE USER BET LOGS
@@ -343,6 +712,10 @@ router.get("/admin/users/:id/bet-logs", async (req, res) => {
   try {
     const { id } = req.params;
 
+    /* =====================================================
+       USER ID VALIDATION
+    ===================================================== */
+
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
@@ -350,73 +723,529 @@ router.get("/admin/users/:id/bet-logs", async (req, res) => {
       });
     }
 
-    const userObjectId = new mongoose.Types.ObjectId(id);
+    const userObjectId =
+      new mongoose.Types.ObjectId(id);
 
-    const page = Math.max(parseInt(req.query.page || "1", 10), 1);
+    /* =====================================================
+       PAGINATION
+    ===================================================== */
+
+    const page = Math.max(
+      parseInt(req.query.page || "1", 10),
+      1,
+    );
+
     const limit = Math.min(
-      Math.max(parseInt(req.query.limit || "20", 10), 1),
+      Math.max(
+        parseInt(req.query.limit || "20", 10),
+        1,
+      ),
       200,
     );
+
     const skip = (page - 1) * limit;
 
-    const { match, oracleMap, filters } = await buildMatch(req, userObjectId);
+    /* =====================================================
+       BUILD FILTER MATCH
+    ===================================================== */
 
-    const [rows, totalCount, summaryAgg, pageSummaryAgg] = await Promise.all([
+    const {
+      match,
+      oracleMap,
+      filters,
+    } = await buildMatch(
+      req,
+      userObjectId,
+    );
+
+    /* =====================================================
+       DATABASE QUERIES
+    ===================================================== */
+
+    const [
+      rows,
+      totalCount,
+      summaryAgg,
+      pageSummaryAgg,
+    ] = await Promise.all([
       GameHistory.find(match)
-        .sort({ createdAt: -1, _id: -1 })
+        .sort({
+          createdAt: -1,
+          _id: -1,
+        })
         .skip(skip)
         .limit(limit)
         .lean(),
 
-      GameHistory.countDocuments(match),
+      GameHistory.countDocuments(
+        match,
+      ),
 
-      GameHistory.aggregate(summaryPipeline(match)),
+      GameHistory.aggregate(
+        summaryPipeline(match),
+      ),
 
-      GameHistory.aggregate(pageSummaryPipeline({ match, skip, limit })),
+      GameHistory.aggregate(
+        pageSummaryPipeline({
+          match,
+          skip,
+          limit,
+        }),
+      ),
     ]);
 
-    const summary = summaryAgg?.[0] || {
-      allBetHistoryCount: 0,
-      totalBetAmount: 0,
-      totalWinAmount: 0,
-      totalNetAmount: 0,
-      totalWinProfit: 0,
-      totalLossAmount: 0,
-      winCount: 0,
-      lossCount: 0,
-      pushCount: 0,
+    /* =====================================================
+       ORACLE GAME ENRICHMENT
+    ===================================================== */
+
+    const enrichedRows = enrichRows(
+      rows,
+      oracleMap,
+    );
+
+    /* =====================================================
+       NORMALIZE ORACLE + NINE WICKET DATA
+    ===================================================== */
+
+    const data = (
+      Array.isArray(enrichedRows)
+        ? enrichedRows
+        : rows
+    ).map((row) => {
+      const provider = String(
+        row?.provider || "oracle",
+      )
+        .trim()
+        .toLowerCase();
+
+      const isNineWicket =
+        provider === "ninewicket";
+
+      const betAmount = Number(
+        row?.bet_amount || 0,
+      );
+
+      const winAmount = Number(
+        row?.win_amount || 0,
+      );
+
+      const netAmount = Number(
+        row?.net_amount || 0,
+      );
+
+      const balanceBefore = Number(
+        row?.balance_before || 0,
+      );
+
+      const balanceAfter = Number(
+        row?.balance_after || 0,
+      );
+
+      const matchStake = Number(
+        row?.matchStake || 0,
+      );
+
+      const profitLoss = Number(
+        row?.profitLoss || 0,
+      );
+
+      const exposureChange = Number(
+        row?.exposureChange || 0,
+      );
+
+      const exposureAfter = Number(
+        row?.exposureAfter || 0,
+      );
+
+      const nineWicketUsername =
+        String(
+          row?.nineWicketUsername || "",
+        ).trim();
+
+      const nineWicketBetId =
+        String(
+          row?.nineWicketBetId || "",
+        ).trim();
+
+      const nineWicketBetStatus =
+        String(
+          row?.nineWicketBetStatus || "",
+        ).trim();
+
+      const eventTypeName =
+        String(
+          row?.eventTypeName || "",
+        ).trim();
+
+      const eventName =
+        String(
+          row?.eventName || "",
+        ).trim();
+
+      const marketName =
+        String(
+          row?.marketName || "",
+        ).trim();
+
+      const competitionName =
+        String(
+          row?.competitionName || "",
+        ).trim();
+
+      /* ---------------------------------------------------
+         DISPLAY USERNAME
+      --------------------------------------------------- */
+
+      const displayUsername =
+        isNineWicket
+          ? nineWicketUsername ||
+            row?.member_account ||
+            row?.username ||
+            ""
+          : row?.userGamePlayName ||
+            row?.member_account ||
+            row?.username ||
+            "";
+
+      /* ---------------------------------------------------
+         DISPLAY PROVIDER
+      --------------------------------------------------- */
+
+      const displayProviderName =
+        isNineWicket
+          ? "NineWicket"
+          : row?.providerName ||
+            row?.oracleProviderName ||
+            row?.providerCode ||
+            "Oracle";
+
+      /* ---------------------------------------------------
+         DISPLAY GAME NAME
+      --------------------------------------------------- */
+
+      const displayGameName =
+        isNineWicket
+          ? eventName ||
+            competitionName ||
+            "NineWicket"
+          : row?.gameName ||
+            row?.oracleGameName ||
+            row?.displayGameName ||
+            row?.game_uid ||
+            "";
+
+      /* ---------------------------------------------------
+         DISPLAY GAME SUBTITLE
+      --------------------------------------------------- */
+
+      const displayGameSubtitle =
+        isNineWicket
+          ? [
+              eventTypeName,
+              competitionName,
+              marketName,
+            ]
+              .filter(Boolean)
+              .join(" • ")
+          : row?.category ||
+            row?.providerName ||
+            row?.providerCode ||
+            row?.game_uid ||
+            "";
+
+      /* ---------------------------------------------------
+         DISPLAY BET AMOUNT
+
+         NineWicket-এর ক্ষেত্রে matchStake দেখাবে।
+         matchStake না থাকলে bet_amount fallback হবে।
+      --------------------------------------------------- */
+
+      const displayBetAmount =
+        isNineWicket
+          ? matchStake || betAmount
+          : betAmount;
+
+      return {
+        ...row,
+
+        provider,
+        isNineWicket,
+
+        bet_amount:
+          betAmount,
+
+        win_amount:
+          winAmount,
+
+        net_amount:
+          netAmount,
+
+        balance_before:
+          balanceBefore,
+
+        balance_after:
+          balanceAfter,
+
+        nineWicketUsername,
+
+        nineWicketBetId,
+
+        nineWicketBetStatus,
+
+        matchStake,
+
+        profitLoss,
+
+        eventTypeName,
+
+        eventName,
+
+        marketName,
+
+        competitionName,
+
+        exposureChange,
+
+        exposureAfter,
+
+        displayUsername,
+
+        displayProviderName,
+
+        displayGameName,
+
+        displayGameSubtitle,
+
+        displayBetAmount,
+      };
+    });
+
+    /* =====================================================
+       GLOBAL SUMMARY
+    ===================================================== */
+
+    const summaryData =
+      summaryAgg?.[0] || {
+        allBetHistoryCount: 0,
+
+        totalBetAmount: 0,
+        totalWinAmount: 0,
+        totalNetAmount: 0,
+
+        totalWinProfit: 0,
+        totalLossAmount: 0,
+
+        winCount: 0,
+        lossCount: 0,
+        pushCount: 0,
+
+        totalMatchStake: 0,
+
+        totalNineWicketProfitLoss: 0,
+
+        totalExposureChange: 0,
+
+        oracleCount: 0,
+
+        nineWicketCount: 0,
+      };
+
+    const summary = {
+      allBetHistoryCount: Number(
+        summaryData
+          ?.allBetHistoryCount ??
+          totalCount ??
+          0,
+      ),
+
+      totalBetAmount: Number(
+        summaryData
+          ?.totalBetAmount ?? 0,
+      ),
+
+      totalWinAmount: Number(
+        summaryData
+          ?.totalWinAmount ?? 0,
+      ),
+
+      totalNetAmount: Number(
+        summaryData
+          ?.totalNetAmount ?? 0,
+      ),
+
+      totalWinProfit: Number(
+        summaryData
+          ?.totalWinProfit ?? 0,
+      ),
+
+      totalLossAmount: Number(
+        summaryData
+          ?.totalLossAmount ?? 0,
+      ),
+
+      winCount: Number(
+        summaryData?.winCount ?? 0,
+      ),
+
+      lossCount: Number(
+        summaryData?.lossCount ?? 0,
+      ),
+
+      pushCount: Number(
+        summaryData?.pushCount ?? 0,
+      ),
+
+      totalMatchStake: Number(
+        summaryData
+          ?.totalMatchStake ?? 0,
+      ),
+
+      totalNineWicketProfitLoss:
+        Number(
+          summaryData
+            ?.totalNineWicketProfitLoss ??
+            0,
+        ),
+
+      totalExposureChange: Number(
+        summaryData
+          ?.totalExposureChange ?? 0,
+      ),
+
+      oracleCount: Number(
+        summaryData?.oracleCount ?? 0,
+      ),
+
+      nineWicketCount: Number(
+        summaryData
+          ?.nineWicketCount ?? 0,
+      ),
     };
 
-    const pageSummary = pageSummaryAgg?.[0] || {
-      pageCount: 0,
-      pageBetTotal: 0,
-      pageWinTotal: 0,
-      pageNetTotal: 0,
-      pageWinProfit: 0,
-      pageLossAmount: 0,
+    /* =====================================================
+       PAGE SUMMARY
+    ===================================================== */
+
+    const pageSummaryData =
+      pageSummaryAgg?.[0] || {
+        pageCount: 0,
+
+        pageBetTotal: 0,
+        pageWinTotal: 0,
+        pageNetTotal: 0,
+
+        pageWinProfit: 0,
+        pageLossAmount: 0,
+
+        pageMatchStake: 0,
+
+        pageNineWicketProfitLoss: 0,
+
+        pageExposureChange: 0,
+      };
+
+    const pageSummary = {
+      pageCount: Number(
+        pageSummaryData
+          ?.pageCount ??
+          data.length ??
+          0,
+      ),
+
+      pageBetTotal: Number(
+        pageSummaryData
+          ?.pageBetTotal ?? 0,
+      ),
+
+      pageWinTotal: Number(
+        pageSummaryData
+          ?.pageWinTotal ?? 0,
+      ),
+
+      pageNetTotal: Number(
+        pageSummaryData
+          ?.pageNetTotal ?? 0,
+      ),
+
+      pageWinProfit: Number(
+        pageSummaryData
+          ?.pageWinProfit ?? 0,
+      ),
+
+      pageLossAmount: Number(
+        pageSummaryData
+          ?.pageLossAmount ?? 0,
+      ),
+
+      pageMatchStake: Number(
+        pageSummaryData
+          ?.pageMatchStake ?? 0,
+      ),
+
+      pageNineWicketProfitLoss:
+        Number(
+          pageSummaryData
+            ?.pageNineWicketProfitLoss ??
+            0,
+        ),
+
+      pageExposureChange: Number(
+        pageSummaryData
+          ?.pageExposureChange ?? 0,
+      ),
     };
+
+    /* =====================================================
+       RESPONSE
+    ===================================================== */
 
     return res.status(200).json({
       success: true,
-      data: enrichRows(rows, oracleMap),
+
+      userId: id,
+
+      data,
+
       pagination: {
         page,
         limit,
-        total: totalCount,
-        totalPages: Math.ceil(totalCount / limit) || 1,
-        hasNextPage: page * limit < totalCount,
-        hasPrevPage: page > 1,
+
+        total:
+          totalCount,
+
+        totalPages:
+          Math.ceil(
+            totalCount / limit,
+          ) || 1,
+
+        hasNextPage:
+          page * limit <
+          totalCount,
+
+        hasPrevPage:
+          page > 1,
       },
+
       filters,
+
       summary,
+
       pageSummary,
     });
   } catch (error) {
-    console.error("❌ single user bet logs fetch error:", error);
+    console.error(
+      "❌ single user bet logs fetch error:",
+      error,
+    );
+
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch single user bet logs",
-      error: error.message,
+
+      message:
+        "Failed to fetch single user bet logs",
+
+      error:
+        error.message,
     });
   }
 });

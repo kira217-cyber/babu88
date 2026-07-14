@@ -28,7 +28,7 @@ const jsonError = (res, message, status = 500, data = null) => {
 
 const getMasterApiBaseUrl = () => {
   return cleanBaseUrl(
-    process.env.MASTER_API_BASE_URL ||
+    // process.env.MASTER_API_BASE_URL ||
       "https://motherbabu88api.oracle-soft.com",
   );
 };

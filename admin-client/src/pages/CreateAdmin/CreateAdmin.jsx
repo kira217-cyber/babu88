@@ -76,12 +76,10 @@ const CreateAdmin = () => {
 
       // ✅ Games
       {
-        key: "add-game-category",
-        label: "Add Game Category ( /add-game-category )",
+        key: "add-game-api-key",
+        label: "Add Game Api Key ( /add-game-api-key )",
       },
-      { key: "add-provider", label: "Add Provider ( /add-provider )" },
-      { key: "add-game", label: "Add Game ( /add-game )" },
-
+     
       // ✅ Promotions
       { key: "add-promotion", label: "Add Promotion ( /add-promotion )" },
 

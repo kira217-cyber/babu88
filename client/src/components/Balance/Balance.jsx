@@ -13,28 +13,24 @@ const fetchBalanceColor = async () => {
   return data;
 };
 
-// ✅ logged in user balance fetch
 const fetchMyBalance = async (token) => {
   const { data } = await api.get("/api/users/me/balance", {
     headers: { Authorization: `Bearer ${token}` },
   });
-  return data; // { balance, currency }
+  return data;
 };
 
 const shadowFrom = (s) => (s ? String(s).replaceAll("_", " ") : "");
 
 const Balance = ({
-  // optional props support
   balance: balanceProp,
   onDeposit = () => {},
   onWithdraw = () => {},
   onAccount = () => {},
 }) => {
   const { isBangla } = useLanguage();
-
   const token = useSelector((state) => state.auth.token);
 
-  // ✅ UI color config
   const { data: colorDoc } = useQuery({
     queryKey: ["balance-color"],
     queryFn: fetchBalanceColor,
@@ -94,11 +90,11 @@ const Balance = ({
       deposit: isBangla ? "ডিপোজিট" : "Deposit",
       account: isBangla ? "ইতিহাস" : "History",
       refresh: isBangla ? "রিফ্রেশ" : "Refresh",
+      exposure: isBangla ? "এক্সপোজার" : "Exposure",
     }),
     [isBangla],
   );
 
-  // ✅ API balance query (direct)
   const {
     data: balData,
     refetch,
@@ -107,12 +103,11 @@ const Balance = ({
     queryKey: ["my-balance", token],
     queryFn: () => fetchMyBalance(token),
     enabled: !!token,
-    staleTime: 0, // ✅ always latest
+    staleTime: 0,
     cacheTime: 1000 * 60 * 5,
     retry: 1,
   });
 
-  // ✅ currency + symbol from api
   const currency = useMemo(() => {
     return balData?.currency || "BDT";
   }, [balData?.currency]);
@@ -121,13 +116,18 @@ const Balance = ({
     return currency === "USDT" ? "$" : "৳";
   }, [currency]);
 
-  // ✅ final balance: props > api > 0
   const balance = useMemo(() => {
     if (typeof balanceProp !== "undefined") return Number(balanceProp) || 0;
-    if (typeof balData?.balance !== "undefined") return Number(balData.balance) || 0;
+    if (typeof balData?.balance !== "undefined")
+      return Number(balData.balance) || 0;
     return 0;
   }, [balanceProp, balData?.balance]);
-  console.log("balance:", balance);
+
+  const exposureBalance = useMemo(() => {
+    return Number(
+      balData?.exposureBalance || balData?.nineWicket?.exposureBalance || 0,
+    );
+  }, [balData]);
 
   const onRefresh = useCallback(() => {
     if (!token) return;
@@ -144,7 +144,7 @@ const Balance = ({
     >
       <div className="mx-auto w-full px-3 py-2">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col items-start gap-1">
             <div
               className="flex items-center gap-2 bg-[#f2f2f2] rounded-md px-3 py-2 border border-black/10 shadow-[0_1px_0_rgba(0,0,0,0.04)]"
               style={{
@@ -206,10 +206,21 @@ const Balance = ({
                 />
               </button>
             </div>
+
+            <div className="pl-1 text-[10px] font-semibold text-red-600 leading-none">
+              {t.exposure}: {currencySymbol}
+              {Number.isFinite(Number(exposureBalance))
+                ? Number(exposureBalance).toFixed(2)
+                : "0.00"}
+            </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <button type="button" onClick={onWithdraw} className="flex flex-col items-center gap-1">
+            <button
+              type="button"
+              onClick={onWithdraw}
+              className="flex flex-col items-center gap-1"
+            >
               <span
                 className="h-10 w-10 rounded-lg bg-black flex items-center justify-center shadow-sm active:scale-[0.98] transition"
                 style={{
@@ -221,7 +232,10 @@ const Balance = ({
               >
                 <HiOutlineShieldCheck
                   className="text-white text-[20px]"
-                  style={{ color: ui.actionIconColor, fontSize: ui.actionIconSize }}
+                  style={{
+                    color: ui.actionIconColor,
+                    fontSize: ui.actionIconSize,
+                  }}
                 />
               </span>
               <span
@@ -237,7 +251,11 @@ const Balance = ({
               </span>
             </button>
 
-            <button type="button" onClick={onDeposit} className="flex flex-col items-center gap-1">
+            <button
+              type="button"
+              onClick={onDeposit}
+              className="flex flex-col items-center gap-1"
+            >
               <span
                 className="h-10 w-10 rounded-lg bg-black flex items-center justify-center shadow-sm active:scale-[0.98] transition"
                 style={{
@@ -249,7 +267,10 @@ const Balance = ({
               >
                 <RiWallet3Line
                   className="text-white text-[20px]"
-                  style={{ color: ui.actionIconColor, fontSize: ui.actionIconSize }}
+                  style={{
+                    color: ui.actionIconColor,
+                    fontSize: ui.actionIconSize,
+                  }}
                 />
               </span>
               <span
@@ -265,7 +286,11 @@ const Balance = ({
               </span>
             </button>
 
-            <button type="button" onClick={onAccount} className="flex flex-col items-center gap-1">
+            <button
+              type="button"
+              onClick={onAccount}
+              className="flex flex-col items-center gap-1"
+            >
               <span
                 className="h-10 w-10 rounded-lg bg-black flex items-center justify-center shadow-sm active:scale-[0.98] transition"
                 style={{
@@ -277,7 +302,10 @@ const Balance = ({
               >
                 <MdOutlineAccountBalanceWallet
                   className="text-white text-[20px]"
-                  style={{ color: ui.actionIconColor, fontSize: ui.actionIconSize }}
+                  style={{
+                    color: ui.actionIconColor,
+                    fontSize: ui.actionIconSize,
+                  }}
                 />
               </span>
               <span

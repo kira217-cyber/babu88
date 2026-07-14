@@ -27,7 +27,7 @@ const Loading = ({ open = false, text = "" }) => {
             <img
               src={loading}
               alt="Loading"
-              className="h-[88px] w-auto select-none pointer-events-none"
+              className="h-full w-full rounded-full object-center select-none pointer-events-none"
               draggable={false}
             />
           </div>

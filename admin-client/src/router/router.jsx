@@ -331,30 +331,30 @@ export const routes = createBrowserRouter([
           </PrivateRoute>
         ),
       },
-      {
-        path: "add-game-category",
-        element: (
-          <PrivateRoute permKey="add-game-category">
-            <AddGameCategory />
-          </PrivateRoute>
-        ),
-      },
-      {
-        path: "add-provider",
-        element: (
-          <PrivateRoute permKey="add-provider">
-            <AddProvider />
-          </PrivateRoute>
-        ),
-      },
-      {
-        path: "add-game",
-        element: (
-          <PrivateRoute permKey="add-game">
-            <AddGame />
-          </PrivateRoute>
-        ),
-      },
+      // {
+      //   path: "add-game-category",
+      //   element: (
+      //     <PrivateRoute permKey="add-game-category">
+      //       <AddGameCategory />
+      //     </PrivateRoute>
+      //   ),
+      // },
+      // {
+      //   path: "add-provider",
+      //   element: (
+      //     <PrivateRoute permKey="add-provider">
+      //       <AddProvider />
+      //     </PrivateRoute>
+      //   ),
+      // },
+      // {
+      //   path: "add-game",
+      //   element: (
+      //     <PrivateRoute permKey="add-game">
+      //       <AddGame />
+      //     </PrivateRoute>
+      //   ),
+      // },
       {
         path: "all-bet-logs",
         element: (

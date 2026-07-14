@@ -23,14 +23,14 @@ const Loading = ({ open = false, text = "" }) => {
           <span className="pulse-ring pulse-2" />
 
           {/* main circle */}
-          <div className="loader-core">
+      
             <img
               src={loading}
               alt="Loading"
-              className="h-[88px] w-auto select-none pointer-events-none"
               draggable={false}
+              className="absolute inset-0 h-full w-full object-contain select-none pointer-events-none"
             />
-          </div>
+       
         </div>
 
         {/* Optional text */}
@@ -78,8 +78,8 @@ const Loading = ({ open = false, text = "" }) => {
           position:absolute;
           top: 50%;
           left: 50%;
-          width: 200px;
-          height: 200px;
+          width: 160px;
+          height: 160px;
           transform: translate(-50%, -50%) scale(0.88);
           border-radius: 9999px;
           border: 2px solid rgba(245,196,0,0.65);

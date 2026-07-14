@@ -9,12 +9,27 @@ import { LanguageProvider } from "./Context/LanguageProvider";
 import { routes } from "./router/router";
 import { store } from "./app/store";
 import { rehydrateAuth } from "./features/auth/authSlice";
+import ReactPixel from 'react-facebook-pixel';
 
 const queryClient = new QueryClient();
 
-/**
- * 🔁 Context useEffect equivalent
- */
+// 1. Meta Pixel Initialize Component
+const MetaPixelInitializer = ({ children }) => {
+  useEffect(() => {
+    const options = {
+      autoConfig: true, 
+      debug: false, // Production-e false thakbe
+    };
+
+    // Client-er dewa Pixel ID init kora holo
+    ReactPixel.init('2249150775835230', null, options);
+    ReactPixel.pageView(); // Prothom bar page load-er PageView
+  }, []);
+
+  return children;
+};
+
+/** Context useEffect equivalent */
 const BootstrapAuth = ({ children }) => {
   const dispatch = useDispatch();
 
@@ -30,10 +45,13 @@ createRoot(document.getElementById("root")).render(
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
         <LanguageProvider>
-          <BootstrapAuth>
-            <ToastContainer position="top-right" />
-            <RouterProvider router={routes} />
-          </BootstrapAuth>
+          {/* Pixel Initializer wrap kore dewa holo */}
+          <MetaPixelInitializer>
+            <BootstrapAuth>
+              <ToastContainer position="top-right" />
+              <RouterProvider router={routes} />
+            </BootstrapAuth>
+          </MetaPixelInitializer>
         </LanguageProvider>
       </QueryClientProvider>
     </Provider>

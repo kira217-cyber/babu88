@@ -4,40 +4,115 @@ const { Schema } = mongoose;
 
 const ReferralTierSchema = new Schema(
   {
-    from: { type: Number, required: true, min: 1 },
-    to: { type: Number, required: true, min: 1 },
-    amount: { type: Number, required: true, min: 0 },
-    label: { type: String, default: "" },
-    isActive: { type: Boolean, default: true },
+    from: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+
+    to: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+
+    amount: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    label: {
+      type: String,
+      default: "",
+    },
+
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
   },
   { _id: false },
 );
 
 const ReferralTierStatSchema = new Schema(
   {
-    from: { type: Number, required: true, min: 1 },
-    to: { type: Number, required: true, min: 1 },
-    count: { type: Number, default: 0, min: 0 },
-    earned: { type: Number, default: 0, min: 0 },
+    from: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+
+    to: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+
+    count: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    earned: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
   },
   { _id: false },
 );
 
 const userSchema = new Schema(
   {
-    username: { type: String, required: true, trim: true },
-    email: { type: String, default: "" },
-    phone: { type: String, required: true, trim: true },
-    password: { type: String, required: true },
+    username: {
+      type: String,
+      required: true,
+      trim: true,
+    },
 
-    // ✅ Oracle game play username - must be 10 chars and unique when exists
-    // ✅ default null, so register time validation error will not happen
+    email: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    phone: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    password: {
+      type: String,
+      required: true,
+    },
+
+    /**
+     * Other Oracle games username
+     * Must be exactly 10 lowercase English letters.
+     */
     userGamePlayName: {
       type: String,
       default: null,
       trim: true,
+      lowercase: true,
       minlength: 10,
       maxlength: 10,
+    },
+
+    /**
+     * NineWicket username
+     * Must be exactly 6 lowercase English letters.
+     */
+    nineWicketUsername: {
+      type: String,
+      default: null,
+      trim: true,
+      lowercase: true,
+      minlength: 6,
+      maxlength: 6,
     },
 
     role: {
@@ -47,10 +122,21 @@ const userSchema = new Schema(
       index: true,
     },
 
-    isActive: { type: Boolean, default: true },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
 
-    currency: { type: String, enum: ["BDT", "USDT"], default: "BDT" },
-    balance: { type: Number, default: 0 },
+    currency: {
+      type: String,
+      enum: ["BDT", "USDT"],
+      default: "BDT",
+    },
+
+    balance: {
+      type: Number,
+      default: 0,
+    },
 
     referralCode: {
       type: String,
@@ -59,10 +145,25 @@ const userSchema = new Schema(
       uppercase: true,
     },
 
-    createdUsers: [{ type: Schema.Types.ObjectId, ref: "User", default: [] }],
-    referredBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
+    createdUsers: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+        default: [],
+      },
+    ],
 
-    referralCount: { type: Number, default: 0, min: 0 },
+    referredBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    referralCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
 
     referralTierOverride: {
       type: [ReferralTierSchema],
@@ -74,19 +175,60 @@ const userSchema = new Schema(
       default: [],
     },
 
-    commissionBalance: { type: Number, default: 0 },
-    gameLossCommission: { type: Number, default: 0 },
-    depositCommission: { type: Number, default: 0 },
-    referCommission: { type: Number, default: 0 },
-    gameWinCommission: { type: Number, default: 0 },
+    commissionBalance: {
+      type: Number,
+      default: 0,
+    },
 
-    gameLossCommissionBalance: { type: Number, default: 0 },
-    depositCommissionBalance: { type: Number, default: 0 },
-    referCommissionBalance: { type: Number, default: 0 },
-    gameWinCommissionBalance: { type: Number, default: 0 },
+    gameLossCommission: {
+      type: Number,
+      default: 0,
+    },
 
-    firstName: { type: String, default: "" },
-    lastName: { type: String, default: "" },
+    depositCommission: {
+      type: Number,
+      default: 0,
+    },
+
+    referCommission: {
+      type: Number,
+      default: 0,
+    },
+
+    gameWinCommission: {
+      type: Number,
+      default: 0,
+    },
+
+    gameLossCommissionBalance: {
+      type: Number,
+      default: 0,
+    },
+
+    depositCommissionBalance: {
+      type: Number,
+      default: 0,
+    },
+
+    referCommissionBalance: {
+      type: Number,
+      default: 0,
+    },
+
+    gameWinCommissionBalance: {
+      type: Number,
+      default: 0,
+    },
+
+    firstName: {
+      type: String,
+      default: "",
+    },
+
+    lastName: {
+      type: String,
+      default: "",
+    },
 
     refundHistory: [
       {
@@ -106,15 +248,59 @@ const userSchema = new Schema(
   { timestamps: true },
 );
 
-userSchema.index({ username: 1 }, { unique: true });
-userSchema.index({ phone: 1 }, { unique: true });
-userSchema.index({ referralCode: 1 }, { unique: true, sparse: true });
+userSchema.index(
+  { username: 1 },
+  {
+    unique: true,
+  },
+);
 
-// ✅ unique only when userGamePlayName exists
-userSchema.index({ userGamePlayName: 1 }, { unique: true, sparse: true });
+userSchema.index(
+  { phone: 1 },
+  {
+    unique: true,
+  },
+);
+
+userSchema.index(
+  { referralCode: 1 },
+  {
+    unique: true,
+    sparse: true,
+  },
+);
+
+/**
+ * Unique only when a valid string exists.
+ * Multiple users can still have null.
+ */
+userSchema.index(
+  { userGamePlayName: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      userGamePlayName: {
+        $type: "string",
+      },
+    },
+  },
+);
+
+userSchema.index(
+  { nineWicketUsername: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      nineWicketUsername: {
+        $type: "string",
+      },
+    },
+  },
+);
 
 userSchema.index({ role: 1, isActive: 1 });
 userSchema.index({ referredBy: 1 });
 
 const User = mongoose.model("User", userSchema);
+
 export default User;

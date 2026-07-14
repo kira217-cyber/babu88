@@ -310,6 +310,7 @@ const Navber = () => {
 
   const [balanceState, setBalanceState] = useState(0);
   const [currencyState, setCurrencyState] = useState("BDT");
+  const [exposureState, setExposureState] = useState(0);
 
   useEffect(() => {
     let mounted = true;
@@ -323,6 +324,9 @@ const Navber = () => {
 
         setBalanceState(Number(d?.balance) || 0);
         setCurrencyState(d?.currency || "BDT");
+        setExposureState(
+          Number(d?.exposureBalance || d?.nineWicket?.exposureBalance || 0),
+        );
       } catch {
         // silent
       }
@@ -434,6 +438,9 @@ const Navber = () => {
 
       setBalanceState(Number(d?.balance) || 0);
       setCurrencyState(d?.currency || "BDT");
+      setExposureState(
+        Number(d?.exposureBalance || d?.nineWicket?.exposureBalance || 0),
+      );
     } catch {
       toast.error(t.balanceReloadFail, { autoClose: 1800 });
     } finally {
@@ -647,7 +654,17 @@ const Navber = () => {
                   <span className="hidden h-8 w-px bg-black/20 sm:block" />
 
                   <div className="hidden h-10 items-center rounded-full bg-[#e6e6e6] px-4 text-[14px] font-extrabold text-black shadow-sm md:flex">
-                    {currencySymbol} {Number(balanceState).toFixed(2)}
+                    <span>
+                      {currencySymbol} {Number(balanceState).toFixed(2)}
+                    </span>
+
+                    <span className="ml-2 rounded-full bg-red-100 px-2 py-[2px] text-[10px] font-extrabold text-red-600">
+                      Exposure {currencySymbol}
+                      {Number.isFinite(Number(exposureState))
+                        ? Number(exposureState).toFixed(2)
+                        : "0.00"}
+                    </span>
+
                     <button
                       type="button"
                       onClick={reloadBalance}
@@ -657,9 +674,7 @@ const Navber = () => {
                       title="Reload balance"
                     >
                       <span
-                        className={`${
-                          balReloading ? "inline-block animate-spin" : ""
-                        }`}
+                        className={`${balReloading ? "inline-block animate-spin" : ""}`}
                       >
                         <TfiReload />
                       </span>

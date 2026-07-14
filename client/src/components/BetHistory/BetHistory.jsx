@@ -10,9 +10,17 @@ import Loading from "../Loading/Loading";
 
 const RESULT_TYPES = ["", "win", "loss", "push"];
 
+const PROVIDER_TYPES = [
+  { value: "", label: "All Providers" },
+  { value: "oracle", label: "Oracle" },
+  { value: "ninewicket", label: "NineWicket" },
+];
+
 const fmtMoney = (n) => {
   const num = Number(n || 0);
+
   if (Number.isNaN(num)) return "0.00";
+
   return num.toLocaleString("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -21,8 +29,11 @@ const fmtMoney = (n) => {
 
 const fmtDateTime = (d) => {
   if (!d) return "-";
+
   const dt = new Date(d);
+
   if (Number.isNaN(dt.getTime())) return "-";
+
   return dt.toLocaleString();
 };
 
@@ -56,10 +67,13 @@ const netClass = (value) => {
 const InfoRow = ({ label, value, valueClass = "text-black/80" }) => (
   <div className="flex items-start justify-between gap-3 py-2 border-b border-black/5 last:border-b-0">
     <div className="text-[12px] font-bold text-black/45">{label}</div>
+
     <div
       className={`text-[12px] font-semibold text-right break-all ${valueClass}`}
     >
-      {value || "-"}
+      {value !== undefined && value !== null && String(value).trim() !== ""
+        ? value
+        : "-"}
     </div>
   </div>
 );
@@ -67,9 +81,112 @@ const InfoRow = ({ label, value, valueClass = "text-black/80" }) => (
 const SummaryMini = ({ label, value, valueClass = "text-black" }) => (
   <div className="rounded-lg border border-black/10 bg-black/[0.02] p-3">
     <p className="text-[11px] font-bold text-black/45">{label}</p>
+
     <p className={`mt-1 text-[14px] font-extrabold ${valueClass}`}>{value}</p>
   </div>
 );
+
+const isNineWicketRow = (row) => {
+  const provider = String(row?.provider || row?.displayProviderName || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "");
+
+  return (
+    provider === "ninewicket" ||
+    provider === "nine-wicket" ||
+    Boolean(row?.nineWicketUsername) ||
+    Boolean(row?.nineWicketBetId)
+  );
+};
+
+const getProviderName = (row) => {
+  if (isNineWicketRow(row)) {
+    return "NineWicket";
+  }
+
+  return (
+    row?.displayProviderName ||
+    row?.providerName ||
+    row?.providerCode ||
+    row?.provider ||
+    "Oracle"
+  );
+};
+
+const getGameTitle = (row) => {
+  if (isNineWicketRow(row)) {
+    return (
+      row?.eventName ||
+      row?.displayGameName ||
+      row?.competitionName ||
+      "NineWicket"
+    );
+  }
+
+  return (
+    row?.displayGameName ||
+    row?.gameName ||
+    row?.oracleGameName ||
+    row?.game_uid ||
+    "-"
+  );
+};
+
+const getGameSubtitle = (row) => {
+  if (isNineWicketRow(row)) {
+    return (
+      [row?.eventTypeName, row?.competitionName, row?.marketName]
+        .filter(Boolean)
+        .join(" • ") ||
+      row?.game_uid ||
+      "-"
+    );
+  }
+
+  return row?.game_uid || "-";
+};
+
+const getBetAmount = (row) => {
+  if (isNineWicketRow(row)) {
+    return Number(
+      row?.displayBetAmount ?? row?.matchStake ?? row?.bet_amount ?? 0,
+    );
+  }
+
+  return Number(row?.bet_amount || 0);
+};
+
+const getUsername = (row) => {
+  if (isNineWicketRow(row)) {
+    return (
+      row?.nineWicketUsername ||
+      row?.displayUsername ||
+      row?.member_account ||
+      "-"
+    );
+  }
+
+  return (
+    row?.userGamePlayName || row?.displayUsername || row?.member_account || "-"
+  );
+};
+
+const getEventTypeName = (row) => {
+  return String(row?.eventTypeName || "").trim() || "-";
+};
+
+const getEventName = (row) => {
+  return String(row?.eventName || "").trim() || "-";
+};
+
+const getMarketName = (row) => {
+  return String(row?.marketName || "").trim() || "-";
+};
+
+const getCompetitionName = (row) => {
+  return String(row?.competitionName || "").trim() || "-";
+};
 
 const BetHistory = () => {
   const isAuth = useSelector(selectIsAuthenticated);
@@ -80,6 +197,7 @@ const BetHistory = () => {
 
   const [q, setQ] = useState("");
   const [resultType, setResultType] = useState("");
+  const [provider, setProvider] = useState("");
   const [providerCode, setProviderCode] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -90,33 +208,47 @@ const BetHistory = () => {
       limit,
       q: q || undefined,
       resultType: resultType || undefined,
-      providerCode: providerCode || undefined,
+      provider: provider || undefined,
+
+      providerCode:
+        provider === "ninewicket" ? undefined : providerCode || undefined,
+
       from: from || undefined,
       to: to || undefined,
     }),
-    [page, limit, q, resultType, providerCode, from, to],
+    [page, limit, q, resultType, provider, providerCode, from, to],
   );
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["me-bet-history", user?._id, params],
-    enabled: !!isAuth,
+
+    enabled: Boolean(isAuth),
+
     queryFn: async () => {
-      const res = await api.get("/api/me/bet-history", { params });
+      const res = await api.get("/api/me/bet-history", {
+        params,
+      });
+
       return res.data;
     },
+
     staleTime: 10_000,
     retry: 1,
   });
 
-  const rows = data?.data || [];
-  const totalPages = data?.totalPages || 1;
-  const total = data?.total || 0;
+  const rows = Array.isArray(data?.data) ? data.data : [];
+
+  const totalPages = Number(data?.totalPages || 1);
+
+  const total = Number(data?.total || 0);
+
   const summary = data?.summary || {};
 
   const clearFilters = () => {
     setPage(1);
     setQ("");
     setResultType("");
+    setProvider("");
     setProviderCode("");
     setFrom("");
     setTo("");
@@ -126,6 +258,7 @@ const BetHistory = () => {
     return (
       <div className="bg-white rounded-xl border border-black/10 p-4 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
         <div className="text-[14px] font-extrabold text-black">Bet History</div>
+
         <p className="mt-2 text-[13px] text-black/60">
           Please login to view your bet history.
         </p>
@@ -142,6 +275,7 @@ const BetHistory = () => {
           <div className="text-[16px] font-extrabold text-black">
             Bet History
           </div>
+
           <div className="text-[12px] text-black/55 mt-1">
             Showing {rows.length} items • Total {total} • Page {page}/
             {totalPages}
@@ -172,16 +306,19 @@ const BetHistory = () => {
           label="Total Bet"
           value={fmtMoney(summary.totalBetAmount)}
         />
+
         <SummaryMini
           label="Total Win"
           value={fmtMoney(summary.totalWinAmount)}
           valueClass="text-emerald-700"
         />
+
         <SummaryMini
           label="Total Loss"
           value={fmtMoney(summary.totalLossAmount)}
           valueClass="text-red-700"
         />
+
         <SummaryMini
           label="Net"
           value={fmtMoney(summary.totalNetAmount)}
@@ -196,7 +333,7 @@ const BetHistory = () => {
             setPage(1);
             setQ(e.target.value);
           }}
-          placeholder="Search game uid / round / serial"
+          placeholder="Search game / event / round / serial"
           className="h-10 rounded-lg border border-black/15 px-3 text-[13px] outline-none"
         />
 
@@ -210,7 +347,28 @@ const BetHistory = () => {
         >
           {RESULT_TYPES.map((item) => (
             <option key={item || "all"} value={item}>
-              {item ? item : "All Results"}
+              {item || "All Results"}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={provider}
+          onChange={(e) => {
+            const value = e.target.value;
+
+            setPage(1);
+            setProvider(value);
+
+            if (value === "ninewicket") {
+              setProviderCode("");
+            }
+          }}
+          className="h-10 rounded-lg border border-black/15 px-3 text-[13px] outline-none bg-white"
+        >
+          {PROVIDER_TYPES.map((item) => (
+            <option key={item.value || "all"} value={item.value}>
+              {item.label}
             </option>
           ))}
         </select>
@@ -219,10 +377,12 @@ const BetHistory = () => {
           value={providerCode}
           onChange={(e) => {
             setPage(1);
+
             setProviderCode(e.target.value.toUpperCase());
           }}
           placeholder="Provider Code (e.g. PG)"
-          className="h-10 rounded-lg border border-black/15 px-3 text-[13px] outline-none"
+          disabled={provider === "ninewicket"}
+          className="h-10 rounded-lg border border-black/15 px-3 text-[13px] outline-none disabled:bg-black/[0.03] disabled:text-black/35 disabled:cursor-not-allowed"
         />
 
         <input
@@ -246,6 +406,10 @@ const BetHistory = () => {
         />
       </div>
 
+      {/* =================================================
+          DESKTOP TABLE
+      ================================================= */}
+
       <div className="mt-4 hidden lg:block">
         {isLoading ? (
           <div className="text-[13px] text-black/60 py-10 text-center">
@@ -261,76 +425,127 @@ const BetHistory = () => {
           </div>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-black/10">
-            <table className="min-w-[1200px] w-full text-left">
+            <table className="min-w-[1900px] w-full text-left">
               <thead className="bg-[#f7f7f8]">
                 <tr className="text-[12px] text-black/65">
                   <th className="px-3 py-2 font-extrabold">Time</th>
-                  {/* <th className="px-3 py-2 font-extrabold">Provider</th> */}
+
+                  <th className="px-3 py-2 font-extrabold">Provider</th>
+
                   <th className="px-3 py-2 font-extrabold">Game</th>
+
                   <th className="px-3 py-2 font-extrabold">Result</th>
+
                   <th className="px-3 py-2 font-extrabold">Bet</th>
+
                   <th className="px-3 py-2 font-extrabold">Win</th>
+
                   <th className="px-3 py-2 font-extrabold">Net</th>
+
                   <th className="px-3 py-2 font-extrabold">Balance After</th>
+
                   <th className="px-3 py-2 font-extrabold">Round</th>
+
                   <th className="px-3 py-2 font-extrabold">Serial</th>
+
+                  <th className="px-3 py-2 font-extrabold">Event Type</th>
+
+                  <th className="px-3 py-2 font-extrabold">Event Name</th>
+
+                  <th className="px-3 py-2 font-extrabold">Market Name</th>
+
+                  <th className="px-3 py-2 font-extrabold">Competition Name</th>
                 </tr>
               </thead>
 
               <tbody>
-                {rows.map((x, idx) => (
-                  <tr
-                    key={x._id || x.serial_number || `${x.createdAt}-${idx}`}
-                    className="border-t border-black/5 text-[13px]"
-                  >
-                    <td className="px-3 py-2">{fmtDateTime(x.createdAt)}</td>
-                    {/* <td className="px-3 py-2 font-semibold">
-                      {x.provider || "-"}
-                    </td> */}
-                    <td className="px-3 py-2">
-                      <div className="font-semibold">
-                        {x.gameName || x.game_uid || "-"}
-                      </div>
-                      <div className="text-[11px] text-black/45 break-all">
-                        {x.game_uid || "-"}
-                      </div>
-                    </td>
-                    <td className="px-3 py-2">
-                      <span
-                        className={`px-2 py-[3px] rounded-md text-[12px] font-bold capitalize ${resultClass(
-                          x.resultType,
+                {rows.map((x, idx) => {
+                  const nineWicket = isNineWicketRow(x);
+
+                  return (
+                    <tr
+                      key={x._id || x.serial_number || `${x.createdAt}-${idx}`}
+                      className="border-t border-black/5 text-[13px]"
+                    >
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        {fmtDateTime(x.createdAt)}
+                      </td>
+
+                      <td className="px-3 py-2 font-semibold">
+                        {getProviderName(x)}
+                      </td>
+
+                      <td className="px-3 py-2">
+                        <div className="font-semibold">{getGameTitle(x)}</div>
+
+                        <div className="text-[11px] text-black/45 break-all">
+                          {x.game_uid || "-"}
+                        </div>
+                      </td>
+
+                      <td className="px-3 py-2">
+                        <span
+                          className={`px-2 py-[3px] rounded-md text-[12px] font-bold capitalize ${resultClass(
+                            x.resultType,
+                          )}`}
+                        >
+                          {x.resultType || "-"}
+                        </span>
+                      </td>
+
+                      <td className="px-3 py-2 font-semibold">
+                        {fmtMoney(getBetAmount(x))}
+                      </td>
+
+                      <td className="px-3 py-2 text-emerald-700">
+                        {fmtMoney(x.win_amount)}
+                      </td>
+
+                      <td
+                        className={`px-3 py-2 font-extrabold ${netClass(
+                          x.net_amount,
                         )}`}
                       >
-                        {x.resultType || "-"}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 font-semibold">
-                      {fmtMoney(x.bet_amount)}
-                    </td>
-                    <td className="px-3 py-2 text-emerald-700">
-                      {fmtMoney(x.win_amount)}
-                    </td>
-                    <td
-                      className={`px-3 py-2 font-extrabold ${netClass(
-                        x.net_amount,
-                      )}`}
-                    >
-                      {fmtMoney(x.net_amount)}
-                    </td>
-                    <td className="px-3 py-2">{fmtMoney(x.balance_after)}</td>
-                    <td className="px-3 py-2 text-[12px] text-black/70 break-all">
-                      {x.game_round || "-"}
-                    </td>
-                    <td className="px-3 py-2 text-[12px] text-black/70 break-all">
-                      {x.serial_number || "-"}
-                    </td>
-                  </tr>
-                ))}
+                        {fmtMoney(x.net_amount)}
+                      </td>
+
+                      <td className="px-3 py-2">{fmtMoney(x.balance_after)}</td>
+
+                      <td className="px-3 py-2 text-[12px] text-black/70 break-all">
+                        {x.game_round || "-"}
+                      </td>
+
+                      <td className="px-3 py-2 text-[12px] text-black/70 break-all">
+                        {x.serial_number || "-"}
+                      </td>
+
+                      <td className="px-3 py-2 text-[12px] text-black/70">
+                        {nineWicket ? getEventTypeName(x) : "-"}
+                      </td>
+
+                      <td className="px-3 py-2 text-[12px] text-black/70 min-w-[180px]">
+                        {nineWicket ? getEventName(x) : "-"}
+                      </td>
+
+                      <td className="px-3 py-2 text-[12px] text-black/70 min-w-[130px]">
+                        {nineWicket ? getMarketName(x) : "-"}
+                      </td>
+
+                      <td className="px-3 py-2 text-[12px] text-black/70 min-w-[150px]">
+                        {nineWicket ? getCompetitionName(x) : "-"}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
       </div>
+
+      {/* =================================================
+          MOBILE CARDS
+      ================================================= */}
 
       <div className="mt-4 lg:hidden">
         {isLoading ? (
@@ -347,52 +562,116 @@ const BetHistory = () => {
           </div>
         ) : (
           <div className="space-y-3">
-            {rows.map((x, idx) => (
-              <div
-                key={x._id || x.serial_number || `${x.createdAt}-${idx}`}
-                className="rounded-xl border border-black/10 bg-white overflow-hidden"
-              >
-                <div className="p-3 border-b border-black/5 bg-[#fafafa]">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-[12px] font-bold text-black/50">
-                      {fmtDateTime(x.createdAt)}
+            {rows.map((x, idx) => {
+              const nineWicket = isNineWicketRow(x);
+
+              return (
+                <div
+                  key={x._id || x.serial_number || `${x.createdAt}-${idx}`}
+                  className="rounded-xl border border-black/10 bg-white overflow-hidden"
+                >
+                  <div className="p-3 border-b border-black/5 bg-[#fafafa]">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-[12px] font-bold text-black/50">
+                        {fmtDateTime(x.createdAt)}
+                      </div>
+
+                      <span
+                        className={`px-2 py-[3px] rounded-md text-[11px] font-bold capitalize ${resultClass(
+                          x.resultType,
+                        )}`}
+                      >
+                        {x.resultType || "-"}
+                      </span>
                     </div>
 
-                    <span
-                      className={`px-2 py-[3px] rounded-md text-[11px] font-bold capitalize ${resultClass(
-                        x.resultType,
-                      )}`}
-                    >
-                      {x.resultType || "-"}
-                    </span>
+                    <div className="mt-2 text-[14px] font-extrabold text-black">
+                      {getProviderName(x)} • {getGameTitle(x)}
+                    </div>
+
+                    <div className="mt-1 text-[11px] text-black/45">
+                      {getGameSubtitle(x)}
+                    </div>
                   </div>
 
-                  <div className="mt-2 text-[14px] font-extrabold text-black">
-                    {x.provider || "-"} • {x.gameName || x.game_uid || "-"}
+                  <div className="p-3">
+                    <InfoRow label="Username" value={getUsername(x)} />
+
+                    {nineWicket && (
+                      <>
+                        <InfoRow
+                          label="Event Type Name"
+                          value={getEventTypeName(x)}
+                        />
+
+                        <InfoRow label="Event Name" value={getEventName(x)} />
+
+                        <InfoRow label="Market Name" value={getMarketName(x)} />
+
+                        <InfoRow
+                          label="Competition Name"
+                          value={getCompetitionName(x)}
+                        />
+                      </>
+                    )}
+
+                    <InfoRow
+                      label="Bet Amount"
+                      value={fmtMoney(getBetAmount(x))}
+                    />
+
+                    <InfoRow
+                      label="Win Amount"
+                      value={fmtMoney(x.win_amount)}
+                    />
+
+                    <InfoRow
+                      label="Net"
+                      value={fmtMoney(x.net_amount)}
+                      valueClass={netClass(x.net_amount)}
+                    />
+
+                    <InfoRow
+                      label="Balance After"
+                      value={fmtMoney(x.balance_after)}
+                    />
+
+                    {nineWicket && (
+                      <>
+                        <InfoRow
+                          label="Match Stake"
+                          value={fmtMoney(x.matchStake)}
+                        />
+
+                        <InfoRow
+                          label="Profit/Loss"
+                          value={fmtMoney(x.profitLoss)}
+                          valueClass={netClass(x.profitLoss)}
+                        />
+
+                        <InfoRow
+                          label="Bet Status"
+                          value={x.nineWicketBetStatus}
+                        />
+                      </>
+                    )}
+
+                    <InfoRow label="Game UID" value={x.game_uid} />
+
+                    <InfoRow label="Round" value={x.game_round} />
+
+                    <InfoRow label="Serial" value={x.serial_number} />
                   </div>
                 </div>
-
-                <div className="p-3">
-                  <InfoRow label="Bet Amount" value={fmtMoney(x.bet_amount)} />
-                  <InfoRow label="Win Amount" value={fmtMoney(x.win_amount)} />
-                  <InfoRow
-                    label="Net"
-                    value={fmtMoney(x.net_amount)}
-                    valueClass={netClass(x.net_amount)}
-                  />
-                  <InfoRow
-                    label="Balance After"
-                    value={fmtMoney(x.balance_after)}
-                  />
-                  <InfoRow label="Game UID" value={x.game_uid} />
-                  <InfoRow label="Round" value={x.game_round} />
-                  <InfoRow label="Serial" value={x.serial_number} />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
+
+      {/* =================================================
+          PAGINATION
+      ================================================= */}
 
       <div className="mt-4 flex items-center justify-between">
         <button
