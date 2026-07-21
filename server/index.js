@@ -79,9 +79,14 @@ import jackpotRoutes from "./routes/jackpotRoutes.js";
 import betLogRoutes from "./routes/betLogRoutes.js";
 import gameApiKeySettingRoutes from "./routes/gameApiKeySettingRoutes.js";
 import nineWicketWalletRoutes from "./routes/nineWicketWalletRoutes.js";
-
-
-
+import rewardStoreRoutes from "./routes/rewardStoreRoutes.js";
+import rewardClaimRoutes from "./routes/rewardClaimRoutes.js";
+import adminRewardHistoryRoutes from "./routes/adminRewardHistoryRoutes.js";
+import checkInRewardAdminRoutes from "./routes/checkInRewardAdminRoutes.js";
+import checkInRewardClientRoutes from "./routes/checkInRewardClientRoutes.js";
+import wheelRewardAdminRoutes from "./routes/wheelRewardAdminRoutes.js";
+import wheelSpinRoutes from "./routes/wheelSpinRoutes.js";
+import wheelTermsConditionRoutes from "./routes/wheelTermsConditionRoutes.js";
 
 // ...
 
@@ -183,8 +188,14 @@ app.use("/api", jackpotRoutes);
 app.use("/api", betLogRoutes);
 app.use("/api/admin/game-api-key", gameApiKeySettingRoutes);
 app.use("/api/nine-wicket-wallet", nineWicketWalletRoutes);
-
-
+app.use("/api", rewardStoreRoutes);
+app.use("/api", rewardClaimRoutes);
+app.use("/api", adminRewardHistoryRoutes);
+app.use("/api", checkInRewardAdminRoutes);
+app.use("/api", checkInRewardClientRoutes);
+app.use("/api", wheelRewardAdminRoutes);
+app.use("/api", wheelSpinRoutes);
+app.use("/api", wheelTermsConditionRoutes);
 
 // ✅ port
 const PORT = process.env.PORT || 5008;

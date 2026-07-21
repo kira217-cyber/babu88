@@ -133,7 +133,7 @@ const getAuthUserId = (req) => {
   }
 };
 
-const ORACLE_LAUNCH_KEY = "22207f875661a478cd3cd47b2ae303a5";
+const ORACLE_LAUNCH_KEY = "29f68115e7ded8a4cb4e1a44a9d1890c";
 
 const NINE_WICKET_GET_BALANCE_URL =
   "https://oraclegames.net/api/ninewicket/getbalance";

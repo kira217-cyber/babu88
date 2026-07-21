@@ -55,6 +55,11 @@ import AddRedeem from "../pages/AddRedeem/AddRedeem";
 import JackpotController from "../pages/JackpotController/JackpotController";
 import BetLogAllUser from "../pages/BetLogAllUser/BetLogAllUser";
 import AddGameApiKey from "../pages/AddGameApiKey/AddGameApiKey";
+import RewardStore from "../pages/RewardPages/RewardStore";
+import CheckInReward from "../pages/RewardPages/CheckInReward";
+import RewardHistory from "../pages/RewardPages/RewardHistory";
+import WheelOfFortuneReward from "../pages/RewardPages/WheelOfFortuneReward";
+import WheelTermsCondition from "../pages/WheelTermsCondition/WheelTermsCondition";
 
 export const routes = createBrowserRouter([
   {
@@ -203,7 +208,7 @@ export const routes = createBrowserRouter([
           </PrivateRoute>
         ),
       },
-       {
+      {
         path: "affiliate-user-brige",
         element: (
           <PrivateRoute permKey="affiliate-user-brige">
@@ -235,7 +240,7 @@ export const routes = createBrowserRouter([
           </PrivateRoute>
         ),
       },
-       {
+      {
         path: "add-auto-deposit",
         element: (
           <PrivateRoute permKey="add-auto-deposit">
@@ -259,7 +264,7 @@ export const routes = createBrowserRouter([
           </PrivateRoute>
         ),
       },
-       {
+      {
         path: "add-redeem",
         element: (
           <PrivateRoute permKey="add-redeem">
@@ -475,6 +480,46 @@ export const routes = createBrowserRouter([
         element: (
           <PrivateRoute permKey="live-controller">
             <LiveGameController />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "wheel-of-fortune-reward",
+        element: (
+          <PrivateRoute permKey="wheel-of-fortune-reward">
+            <WheelOfFortuneReward />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "all-reward-history",
+        element: (
+          <PrivateRoute permKey="all-reward-history">
+            <RewardHistory />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "check-in-reward",
+        element: (
+          <PrivateRoute permKey="check-in-reward">
+            <CheckInReward />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "reward-store",
+        element: (
+          <PrivateRoute permKey="reward-store">
+            <RewardStore />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "wheel-terms-condition",
+        element: (
+          <PrivateRoute permKey="wheel-terms-condition">
+            <WheelTermsCondition />
           </PrivateRoute>
         ),
       },

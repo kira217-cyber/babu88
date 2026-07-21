@@ -28,7 +28,11 @@ import {
   FaServer,
   FaStream,
   FaHistory,
+  FaGift,
+  FaCalendarCheck,
+  FaTrophy,
 } from "react-icons/fa";
+import { BsFillQuestionSquareFill } from "react-icons/bs";
 import { PiBridgeBold } from "react-icons/pi";
 import { HiMiniCubeTransparent } from "react-icons/hi2";
 import { GiCardJackClubs } from "react-icons/gi";
@@ -53,6 +57,7 @@ const Sidebar = () => {
   const [affiliateOpen, setAffiliateOpen] = useState(false);
   const [gamesOpen, setGamesOpen] = useState(false);
   const [usersOpen, setUsersOpen] = useState(false);
+  const [rewardOpen, setRewardOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
 
   const dispatch = useDispatch();
@@ -159,6 +164,42 @@ const Sidebar = () => {
         to: "/affiliate-user-brige",
         icon: <PiBridgeBold className="text-red-400" />,
         text: "Affiliate User Bridge",
+      },
+    ],
+    [],
+  );
+
+  const rewardSubItems = useMemo(
+    () => [
+      {
+        key: "reward-store",
+        to: "/reward-store",
+        icon: <FaGift className="text-yellow-400" />,
+        text: "Reward Store",
+      },
+      {
+        key: "check-in-reward",
+        to: "/check-in-reward",
+        icon: <FaCalendarCheck className="text-emerald-400" />,
+        text: "Check In Reward",
+      },
+      {
+        key: "wheel-of-fortune-reward",
+        to: "/wheel-of-fortune-reward",
+        icon: <FaTrophy className="text-orange-400" />,
+        text: "Wheel of Fortune",
+      },
+      {
+        key: "wheel-terms-condition",
+        to: "/wheel-terms-condition",
+        icon: <BsFillQuestionSquareFill className="text-orange-400" />,
+        text: "Wheel Terms & Conditions",
+      },
+      {
+        key: "all-reward-history",
+        to: "/all-reward-history",
+        icon: <FaHistory className="text-purple-400" />,
+        text: "All Reward History",
       },
     ],
     [],
@@ -395,6 +436,11 @@ const Sidebar = () => {
     [usersSubItems, permissions, isMother],
   );
 
+  const visibleRewardItems = useMemo(
+    () => rewardSubItems.filter((item) => can(item.key)),
+    [rewardSubItems, permissions, isMother],
+  );
+
   const visibleColorItems = useMemo(
     () => colorControllerItems.filter((s) => can(s.perm)),
     [colorControllerItems, permissions, isMother],
@@ -427,6 +473,7 @@ const Sidebar = () => {
 
   const showGames = visibleGamesItems.length > 0;
   const showUsers = visibleUsersItems.length > 0;
+  const showReward = visibleRewardItems.length > 0;
   const showColorController = visibleColorItems.length > 0;
   const showAffColorController = visibleAffColorItems.length > 0;
   const showDeposit = visibleDepositSubItems.length > 0;
@@ -443,6 +490,7 @@ const Sidebar = () => {
     if (!showAffColorController) setAffColorControllerOpen(false);
     if (!showGames) setGamesOpen(false);
     if (!showUsers) setUsersOpen(false);
+    if (!showReward) setRewardOpen(false);
   }, [
     showDeposit,
     showWithdraw,
@@ -452,6 +500,7 @@ const Sidebar = () => {
     showAffColorController,
     showGames,
     showUsers,
+    showReward,
   ]);
 
   const handleLogout = () => {
@@ -503,6 +552,7 @@ const Sidebar = () => {
             menuItems={visibleMenuItems}
             gamesItems={visibleGamesItems}
             usersItems={visibleUsersItems}
+            rewardItems={visibleRewardItems}
             colorItems={visibleColorItems}
             affColorItems={visibleAffColorItems}
             depositSubItems={visibleDepositSubItems}
@@ -525,6 +575,8 @@ const Sidebar = () => {
             setGamesOpen={setGamesOpen}
             usersOpen={usersOpen}
             setUsersOpen={setUsersOpen}
+            rewardOpen={rewardOpen}
+            setRewardOpen={setRewardOpen}
             showColorController={showColorController}
             showAffColorController={showAffColorController}
             showDeposit={showDeposit}
@@ -533,6 +585,7 @@ const Sidebar = () => {
             showAffiliate={showAffiliate}
             showGames={showGames}
             showUsers={showUsers}
+            showReward={showReward}
             onClose={() => setOpen(false)}
             onLogout={handleLogout}
             role={role}
@@ -584,28 +637,41 @@ const SidebarContent = ({
   menuItems,
   gamesItems,
   usersItems,
+  rewardItems,
   colorItems,
   affColorItems,
   depositSubItems,
   withdrawSubItems,
   clientControllerItems,
   affiliateSubItems,
+
   promotionsOpen,
   setPromotionsOpen,
+
   colorControllerOpen,
   setColorControllerOpen,
+
   affColorControllerOpen,
   setAffColorControllerOpen,
+
   depositOpen,
   setDepositOpen,
+
   withdrawOpen,
   setWithdrawOpen,
+
   affiliateOpen,
   setAffiliateOpen,
+
   gamesOpen,
   setGamesOpen,
+
   usersOpen,
   setUsersOpen,
+
+  rewardOpen,
+  setRewardOpen,
+
   showColorController,
   showAffColorController,
   showDeposit,
@@ -614,6 +680,8 @@ const SidebarContent = ({
   showAffiliate,
   showGames,
   showUsers,
+  showReward,
+
   onClose,
   onLogout,
   role,
@@ -737,6 +805,49 @@ const SidebarContent = ({
             {usersOpen && (
               <div className="mt-2 pl-14 space-y-1">
                 {usersItems.map((sub) => (
+                  <NavLink
+                    key={sub.to}
+                    to={sub.to}
+                    onClick={onClose}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-5 py-3 rounded-lg text-sm transition-all duration-200 ${
+                        isActive
+                          ? "bg-yellow-600/80 text-black font-medium shadow-sm shadow-yellow-500/40"
+                          : "text-yellow-100 hover:text-white hover:bg-yellow-800/50"
+                      }`
+                    }
+                  >
+                    <span className="text-xl">{sub.icon}</span>
+                    <span>{sub.text}</span>
+                  </NavLink>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Reward Dropdown */}
+        {showReward && (
+          <div className="mt-4">
+            <button
+              onClick={() => setRewardOpen(!rewardOpen)}
+              className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl text-white hover:bg-yellow-900/40 hover:text-yellow-100 transition-all duration-200"
+            >
+              <div className="flex items-center gap-4">
+                <span className="text-2xl text-white">
+                  <FaGift />
+                </span>
+                <span className="font-medium">Reward</span>
+              </div>
+              {rewardOpen ? (
+                <FaChevronUp size={18} />
+              ) : (
+                <FaChevronDown size={18} />
+              )}
+            </button>
+            {rewardOpen && (
+              <div className="mt-2 pl-14 space-y-1">
+                {rewardItems.map((sub) => (
                   <NavLink
                     key={sub.to}
                     to={sub.to}

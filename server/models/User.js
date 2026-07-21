@@ -32,7 +32,9 @@ const ReferralTierSchema = new Schema(
       default: true,
     },
   },
-  { _id: false },
+  {
+    _id: false,
+  },
 );
 
 const ReferralTierStatSchema = new Schema(
@@ -61,7 +63,9 @@ const ReferralTierStatSchema = new Schema(
       min: 0,
     },
   },
-  { _id: false },
+  {
+    _id: false,
+  },
 );
 
 const userSchema = new Schema(
@@ -90,8 +94,8 @@ const userSchema = new Schema(
     },
 
     /**
-     * Other Oracle games username
-     * Must be exactly 10 lowercase English letters.
+     * Normal Oracle games username.
+     * Must be exactly 10 lowercase letters.
      */
     userGamePlayName: {
       type: String,
@@ -103,8 +107,8 @@ const userSchema = new Schema(
     },
 
     /**
-     * NineWicket username
-     * Must be exactly 6 lowercase English letters.
+     * NineWicket username.
+     * Must be exactly 6 lowercase letters.
      */
     nineWicketUsername: {
       type: String,
@@ -133,9 +137,21 @@ const userSchema = new Schema(
       default: "BDT",
     },
 
+    /**
+     * User main balance.
+     */
     balance: {
       type: Number,
       default: 0,
+    },
+
+    /**
+     * Check-In থেকে পাওয়া Reward Coin।
+     */
+    rewardCoin: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
 
     referralCode: {
@@ -229,55 +245,51 @@ const userSchema = new Schema(
       type: String,
       default: "",
     },
-
-    refundHistory: [
-      {
-        provider_code: String,
-        game_code: String,
-        bet_type: String,
-        amount: Number,
-        transaction_id: String,
-        verification_key: String,
-        times: Number,
-        status: String,
-        balance_after: Number,
-        refundedAt: Date,
-      },
-    ],
   },
-  { timestamps: true },
+  {
+    timestamps: true,
+  },
 );
 
+/* =========================================================
+   INDEXES
+========================================================= */
+
 userSchema.index(
-  { username: 1 },
+  {
+    username: 1,
+  },
   {
     unique: true,
   },
 );
 
 userSchema.index(
-  { phone: 1 },
+  {
+    phone: 1,
+  },
   {
     unique: true,
   },
 );
 
 userSchema.index(
-  { referralCode: 1 },
+  {
+    referralCode: 1,
+  },
   {
     unique: true,
     sparse: true,
   },
 );
 
-/**
- * Unique only when a valid string exists.
- * Multiple users can still have null.
- */
 userSchema.index(
-  { userGamePlayName: 1 },
+  {
+    userGamePlayName: 1,
+  },
   {
     unique: true,
+
     partialFilterExpression: {
       userGamePlayName: {
         $type: "string",
@@ -287,9 +299,12 @@ userSchema.index(
 );
 
 userSchema.index(
-  { nineWicketUsername: 1 },
+  {
+    nineWicketUsername: 1,
+  },
   {
     unique: true,
+
     partialFilterExpression: {
       nineWicketUsername: {
         $type: "string",
@@ -298,9 +313,18 @@ userSchema.index(
   },
 );
 
-userSchema.index({ role: 1, isActive: 1 });
-userSchema.index({ referredBy: 1 });
+userSchema.index({
+  role: 1,
+  isActive: 1,
+});
 
-const User = mongoose.model("User", userSchema);
+userSchema.index({
+  referredBy: 1,
+});
+
+const User = mongoose.model(
+  "User",
+  userSchema,
+);
 
 export default User;

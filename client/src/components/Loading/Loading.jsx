@@ -23,14 +23,13 @@ const Loading = ({ open = false, text = "" }) => {
           <span className="pulse-ring pulse-2" />
 
           {/* main circle */}
-      
-            <img
-              src={loading}
-              alt="Loading"
-              draggable={false}
-              className="absolute inset-0 h-full w-full object-contain select-none pointer-events-none"
-            />
-       
+
+          <img
+            src={loading}
+            alt="Loading"
+            draggable={false}
+            className="absolute inset-0 h-full w-full object-contain select-none pointer-events-none"
+          />
         </div>
 
         {/* Optional text */}

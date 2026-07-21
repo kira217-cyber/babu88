@@ -79,7 +79,19 @@ const CreateAdmin = () => {
         key: "add-game-api-key",
         label: "Add Game Api Key ( /add-game-api-key )",
       },
-     
+      {
+        key: "add-game-category",
+        label: "Add Game Category ( /add-game-category )",
+      },
+      {
+        key: "add-provider",
+        label: "Add Provider ( /add-provider )",
+      },
+      {
+        key: "add-game",
+        label: "Add Game ( /add-game )",
+      },
+
       // ✅ Promotions
       { key: "add-promotion", label: "Add Promotion ( /add-promotion )" },
 
@@ -181,6 +193,28 @@ const CreateAdmin = () => {
       {
         key: "all-bet-logs",
         label: "All Bet Logs ( /all-bet-logs )",
+      },
+
+      // ✅ Rewards
+      {
+        key: "reward-store",
+        label: "Reward Store ( /reward-store )",
+      },
+      {
+        key: "check-in-reward",
+        label: "Check-In Reward ( /check-in-reward )",
+      },
+      {
+        key: "wheel-of-fortune-reward",
+        label: "Wheel of Fortune Reward ( /wheel-of-fortune-reward )",
+      },
+      {
+        key: "all-reward-history",
+        label: "All Reward History ( /all-reward-history )",
+      },
+      {
+        key: "wheel-terms-condition",
+        label: "Wheel Terms & Condition ( /wheel-terms-condition )",
       },
     ],
     [],

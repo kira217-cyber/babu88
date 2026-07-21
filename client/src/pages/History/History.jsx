@@ -7,6 +7,7 @@ import TurnOverHistory from "../../components/TurnOverHistory/TurnOverHistory";
 import WithdrawHistory from "../../components/WithdrawHistory/WithdrawHistory";
 import AutoDepositHistory from "../../components/AutoDepositHistory/AutoDepositHistory";
 import RedeemHistory from "../../components/RedeemHistory/RedeemHistory";
+import RewardHistory from "../../components/RewardHistory/RewardHistory";
 
 // ✅ Placeholder sections (replace with your real components later)
 // const DepositHistory = () => (
@@ -112,6 +113,11 @@ const History = () => {
         name: t("রিডিম হিস্ট্রি", "Redeem History"),
         component: <RedeemHistory />,
       },
+      {
+        id:"reward-history",
+        name: t("রিওয়ার্ড হিস্ট্রি", "Reward History"),
+        component: <RewardHistory />,
+      }
     ],
     [isBangla],
   );

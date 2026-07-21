@@ -20,7 +20,7 @@ const ORACLE_NINE_WICKET_URL =
   "https://oraclegames.net/api/ninewicket";
 
 const ORACLE_LAUNCH_KEY =
-  process.env.ORACLE_LAUNCH_KEY || "22207f875661a478cd3cd47b2ae303a5";
+  process.env.ORACLE_LAUNCH_KEY || "29f68115e7ded8a4cb4e1a44a9d1890c";
 
 const NINE_WICKET_GAME_UID =
   process.env.NINE_WICKET_GAME_UID || "48341a3bf62b6dd0814d7129e7e0834b";
