@@ -3,68 +3,53 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import Admin from "../models/Admin.js";
+import { protectAdmin, requireMother } from "../middleware/adminAuth.js";
+import {
+  loginRateLimit,
+  registerFailedLogin,
+  clearFailedLogin,
+} from "../middleware/loginRateLimit.js";
 
 const router = express.Router();
 
-// ✅ Demo Admin Data (default)
-const demoAdmin = {
-  email: "admin@babu88.com",
-  password: "123456",
-};
+const signAdminToken = (admin) =>
+  jwt.sign(
+    {
+      id: admin._id,
+      email: admin.email,
+      role: admin.role,
+      tokenVersion: admin.tokenVersion || 0,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "1d" },
+  );
 
 /* =========================
-   Inline Protect (JWT)
-========================= */
-const protectAdmin = async (req, res, next) => {
-  try {
-    const auth = req.headers.authorization || "";
-    const token = auth.startsWith("Bearer ") ? auth.split(" ")[1] : null;
-
-    if (!token)
-      return res.status(401).json({ message: "Not authorized - no token" });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const admin = await Admin.findById(decoded.id);
-
-    if (!admin)
-      return res
-        .status(401)
-        .json({ message: "Not authorized - admin not found" });
-
-    req.admin = admin;
-    next();
-  } catch (e) {
-    return res.status(401).json({ message: "Not authorized - invalid token" });
-  }
-};
-
-// ✅ mother only
-const requireMother = (req, res, next) => {
-  if (req.admin?.role !== "mother") {
-    return res.status(403).json({ message: "Only mother admin allowed" });
-  }
-  next();
-};
-
-/* =========================
-   Create first admin (demo)
+   Create first admin
+   - ✅ only works when NO admin exists yet (one-time bootstrap)
    - ✅ first admin always mother
+   - ✅ no hardcoded demo credentials - must be supplied explicitly
 ========================= */
 router.post("/create-first-time", async (req, res) => {
   try {
-    const { email, password } = req.body?.email ? req.body : demoAdmin;
+    const alreadyHasAdmin = await Admin.exists({});
+    if (alreadyHasAdmin) {
+      return res
+        .status(403)
+        .json({ message: "Setup already completed - an admin already exists" });
+    }
 
+    const { email, password } = req.body || {};
     if (!email || !password) {
       return res.status(400).json({ message: "email and password required" });
     }
-
-    const normalizedEmail = email.toLowerCase().trim();
-
-    const exists = await Admin.findOne({ email: normalizedEmail });
-    if (exists) {
-      return res.status(409).json({ message: "Admin already exists" });
+    if (String(password).length < 6) {
+      return res
+        .status(400)
+        .json({ message: "Password must be at least 6 characters" });
     }
 
+    const normalizedEmail = String(email).toLowerCase().trim();
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const admin = await Admin.create({
@@ -83,7 +68,6 @@ router.post("/create-first-time", async (req, res) => {
         role: admin.role,
         permissions: admin.permissions || [],
       },
-      demoLogin: { email: demoAdmin.email, password: demoAdmin.password },
     });
   } catch (err) {
     if (err?.code === 11000)
@@ -95,8 +79,10 @@ router.post("/create-first-time", async (req, res) => {
 /* =========================
    Login
    - ✅ return role & permissions
+   - ✅ rate limited against brute-force
+   - ✅ JWT carries tokenVersion, expires in 1 day
 ========================= */
-router.post("/login", async (req, res) => {
+router.post("/login", loginRateLimit, async (req, res) => {
   try {
     const { email, password } = req.body || {};
     if (!email || !password) {
@@ -106,18 +92,20 @@ router.post("/login", async (req, res) => {
     const normalizedEmail = email.toLowerCase().trim();
 
     const admin = await Admin.findOne({ email: normalizedEmail });
-    if (!admin)
+    if (!admin) {
+      registerFailedLogin(req);
       return res.status(401).json({ message: "Invalid email or password" });
+    }
 
     const ok = await bcrypt.compare(password, admin.password);
-    if (!ok)
+    if (!ok) {
+      registerFailedLogin(req);
       return res.status(401).json({ message: "Invalid email or password" });
+    }
 
-    const token = jwt.sign(
-      { id: admin._id, email: admin.email, role: admin.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "30d" },
-    );
+    clearFailedLogin(req);
+
+    const token = signAdminToken(admin);
 
     res.json({
       success: true,
@@ -151,6 +139,8 @@ router.get("/profile", protectAdmin, async (req, res) => {
 
 /* =========================
    ✅ UPDATE Profile (Protected)
+   - password change bumps tokenVersion -> every device (incl. this one)
+     must log in again with the new password
 ========================= */
 router.put("/profile", protectAdmin, async (req, res) => {
   try {
@@ -191,13 +181,17 @@ router.put("/profile", protectAdmin, async (req, res) => {
           .json({ message: "New password must be at least 6 characters" });
       }
       admin.password = await bcrypt.hash(newPassword, 10);
+      admin.tokenVersion = (admin.tokenVersion || 0) + 1;
     }
 
     await admin.save();
 
     res.json({
       success: true,
-      message: "✅ Profile updated. Please login again.",
+      message: wantPassChange
+        ? "✅ Profile updated. You have been logged out of all devices - please login again."
+        : "✅ Profile updated.",
+      forceLogout: wantPassChange,
       admin: { id: admin._id, email: admin.email, role: admin.role },
     });
   } catch (err) {
@@ -270,6 +264,8 @@ router.get("/admins", protectAdmin, requireMother, async (req, res) => {
    ✅ UPDATE ADMIN (Mother Only)
    PUT /api/admin/admins/:id
    body: { email?, role?, permissions?, newPassword? }
+   - password reset here also bumps that admin's tokenVersion
+     -> they're logged out everywhere immediately
 ========================= */
 router.put("/admins/:id", protectAdmin, requireMother, async (req, res) => {
   try {
@@ -293,7 +289,7 @@ router.put("/admins/:id", protectAdmin, requireMother, async (req, res) => {
     // Role update
     if (typeof role === "string") {
       target.role = role === "mother" ? "mother" : "sub";
-      // mother হলে permissions সবসময় empty
+      // mother হলে permissions সবসময় empty
       if (target.role === "mother") {
         target.permissions = [];
       }
@@ -310,6 +306,7 @@ router.put("/admins/:id", protectAdmin, requireMother, async (req, res) => {
         return res.status(400).json({ message: "New password must be at least 6 characters" });
       }
       target.password = await bcrypt.hash(newPassword, 10);
+      target.tokenVersion = (target.tokenVersion || 0) + 1;
     }
 
     await target.save();
@@ -329,6 +326,30 @@ router.put("/admins/:id", protectAdmin, requireMother, async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
+
+/* =========================
+   ✅ FORCE LOGOUT (Mother Only) - all devices, no password change
+   POST /api/admin/admins/:id/force-logout
+========================= */
+router.post(
+  "/admins/:id/force-logout",
+  protectAdmin,
+  requireMother,
+  async (req, res) => {
+    try {
+      const target = await Admin.findById(req.params.id);
+      if (!target) return res.status(404).json({ message: "Admin not found" });
+
+      target.tokenVersion = (target.tokenVersion || 0) + 1;
+      await target.save();
+
+      res.json({ success: true, message: "✅ Admin logged out of all devices" });
+    } catch (err) {
+      res.status(500).json({ message: "Server error", error: err.message });
+    }
+  },
+);
+
 /* =========================
    ✅ DELETE ADMIN (Mother Only)
    DELETE /api/admin/admins/:id

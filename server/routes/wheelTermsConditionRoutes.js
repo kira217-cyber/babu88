@@ -2,6 +2,7 @@
 
 import express from "express";
 import WheelTermsCondition from "../models/WheelTermsCondition.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -271,7 +272,7 @@ router.get("/wheel-terms", async (req, res) => {
    GET /api/admin/wheel-terms
 ====================================================== */
 
-router.get("/admin/wheel-terms", async (req, res) => {
+router.get("/admin/wheel-terms", protectAdmin, async (req, res) => {
   try {
     const terms = await WheelTermsCondition.findOne({
       settingKey: SETTING_KEY,
@@ -300,7 +301,7 @@ router.get("/admin/wheel-terms", async (req, res) => {
    POST /api/admin/wheel-terms
 ====================================================== */
 
-router.post("/admin/wheel-terms", async (req, res) => {
+router.post("/admin/wheel-terms", protectAdmin, async (req, res) => {
   try {
     const existingTerms = await WheelTermsCondition.findOne({
       settingKey: SETTING_KEY,
@@ -347,7 +348,7 @@ router.post("/admin/wheel-terms", async (req, res) => {
    PUT /api/admin/wheel-terms
 ====================================================== */
 
-router.put("/admin/wheel-terms", async (req, res) => {
+router.put("/admin/wheel-terms", protectAdmin, async (req, res) => {
   try {
     const existingTerms = await WheelTermsCondition.findOne({
       settingKey: SETTING_KEY,
@@ -399,7 +400,7 @@ router.put("/admin/wheel-terms", async (req, res) => {
    }
 ====================================================== */
 
-router.patch("/admin/wheel-terms/status", async (req, res) => {
+router.patch("/admin/wheel-terms/status", protectAdmin, async (req, res) => {
   try {
     const { isActive } = req.body || {};
 

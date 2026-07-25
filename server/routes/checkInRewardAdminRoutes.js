@@ -1,6 +1,7 @@
 import express from "express";
 import mongoose from "mongoose";
 import CheckInRewardSetting from "../models/CheckInRewardSetting.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -97,7 +98,7 @@ const normalizeDays = (days = []) => {
    GET /api/admin/check-in-reward
 ====================================================== */
 
-router.get("/admin/check-in-reward", async (req, res) => {
+router.get("/admin/check-in-reward", protectAdmin, async (req, res) => {
   try {
     const setting = await CheckInRewardSetting.findOne({
       settingKey: "global",
@@ -123,7 +124,7 @@ router.get("/admin/check-in-reward", async (req, res) => {
    POST /api/admin/check-in-reward
 ====================================================== */
 
-router.post("/admin/check-in-reward", async (req, res) => {
+router.post("/admin/check-in-reward", protectAdmin, async (req, res) => {
   try {
     const {
       title,
@@ -202,7 +203,7 @@ router.post("/admin/check-in-reward", async (req, res) => {
    PUT /api/admin/check-in-reward/:id
 ====================================================== */
 
-router.put("/admin/check-in-reward/:id", async (req, res) => {
+router.put("/admin/check-in-reward/:id", protectAdmin, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -292,7 +293,7 @@ router.put("/admin/check-in-reward/:id", async (req, res) => {
    PATCH /api/admin/check-in-reward/:id/status
 ====================================================== */
 
-router.patch("/admin/check-in-reward/:id/status", async (req, res) => {
+router.patch("/admin/check-in-reward/:id/status", protectAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { isActive } = req.body || {};

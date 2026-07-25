@@ -7,6 +7,7 @@ import User from "../models/User.js";
 import AffWithdrawMethod from "../models/AffWithdrawMethod.js";
 
 import { requireAuth } from "../middleware/requireAuth.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -291,12 +292,8 @@ router.get(
  * ✅ ADMIN / STAFF: list all affiliate withdraw requests
  * NOTE: এখানে requireAdmin চাইলে বসাও
  */
-router.get("/affiliate-withdraw-requests", requireAuth, async (req, res) => {
+router.get("/affiliate-withdraw-requests", protectAdmin, async (req, res) => {
   try {
-    // ✅ optional: admin-only guard example (uncomment if needed)
-    // const me = await User.findById(req.user.id).select("role");
-    // if (me?.role !== "admin") return res.status(403).json({ success:false, message:"Forbidden" });
-
     const status = req.query.status; // pending/approved/rejected/all
     const q = {};
     if (status && status !== "all") q.status = status;
@@ -331,7 +328,7 @@ router.get("/affiliate-withdraw-requests", requireAuth, async (req, res) => {
  */
 router.get(
   "/affiliate-withdraw-requests/:id",
-  requireAuth,
+  protectAdmin,
   async (req, res) => {
     try {
       const doc = await AffWithdrawRequest.findById(req.params.id).populate(
@@ -357,7 +354,7 @@ router.get(
  */
 router.patch(
   "/affiliate-withdraw-requests/:id/approve",
-  requireAuth,
+  protectAdmin,
   async (req, res) => {
     try {
       const { adminNote } = req.body || {};
@@ -397,7 +394,7 @@ router.patch(
  */
 router.patch(
   "/affiliate-withdraw-requests/:id/reject",
-  requireAuth,
+  protectAdmin,
   async (req, res) => {
     try {
       const { adminNote } = req.body || {};

@@ -1,6 +1,7 @@
 // routes/affRegisterColorRoutes.js
 import express from "express";
 import AffRegisterColor from "../models/AffRegisterColor.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -19,7 +20,7 @@ router.get("/aff-register-color", async (req, res) => {
 });
 
 // PUT /api/aff-register-color (upsert)
-router.put("/aff-register-color", async (req, res) => {
+router.put("/aff-register-color", protectAdmin, async (req, res) => {
   try {
     const payload = req.body || {};
     const updated = await AffRegisterColor.findOneAndUpdate(

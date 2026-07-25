@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 
 import User from "../models/User.js";
 import RewardClaim from "../models/RewardClaim.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -45,7 +46,7 @@ const getEndOfDay = (value) => {
    GET /api/admin/reward-claims
 ====================================================== */
 
-router.get("/admin/reward-claims", async (req, res) => {
+router.get("/admin/reward-claims", protectAdmin, async (req, res) => {
   try {
     const page = Math.max(Number.parseInt(req.query.page || "1", 10), 1);
 

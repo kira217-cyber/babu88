@@ -1,6 +1,7 @@
 import express from "express";
 import RegisterConfig from "../models/RegisterConfig.js";
 import upload from "../config/multer.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -20,7 +21,7 @@ router.get("/register-config", async (req, res) => {
 });
 
 // ✅ admin upsert
-router.put("/register-config", async (req, res) => {
+router.put("/register-config", protectAdmin, async (req, res) => {
   try {
     const doc = await getLatest();
     if (!doc) {
@@ -45,6 +46,7 @@ router.put("/register-config", async (req, res) => {
 // ✅ upload mobile banner
 router.post(
   "/register-config/upload-mobile-banner",
+  protectAdmin,
   upload.single("image"),
   async (req, res) => {
     try {
@@ -78,6 +80,7 @@ router.post(
 // ✅ upload desktop banner
 router.post(
   "/register-config/upload-desktop-banner",
+  protectAdmin,
   upload.single("image"),
   async (req, res) => {
     try {

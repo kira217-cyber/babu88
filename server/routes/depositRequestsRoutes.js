@@ -6,6 +6,7 @@ import DepositRequest from "../models/DepositRequests.js";
 import TurnOver from "../models/TurnOver.js";
 import User from "../models/User.js";
 import DepositMethod from "../models/DepositMethods.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -184,7 +185,7 @@ router.get("/deposit-requests/my", requireAuth, async (req, res) => {
 });
 
 /* ------------------ ADMIN: LIST ------------------ */
-router.get("/admin/deposit-requests", requireAuth, async (req, res) => {
+router.get("/admin/deposit-requests", protectAdmin, async (req, res) => {
   try {
     const page = Math.max(1, Number(req.query.page || 1));
     const limit = Math.min(100, Math.max(1, Number(req.query.limit || 10)));
@@ -231,7 +232,7 @@ router.get("/admin/deposit-requests", requireAuth, async (req, res) => {
 });
 
 /* ------------------ ADMIN: DETAILS ------------------ */
-router.get("/admin/deposit-requests/:id", requireAuth, async (req, res) => {
+router.get("/admin/deposit-requests/:id", protectAdmin, async (req, res) => {
   try {
     const doc = await DepositRequest.findById(req.params.id)
       .populate("user", "username phone balance isActive")
@@ -250,7 +251,7 @@ router.get("/admin/deposit-requests/:id", requireAuth, async (req, res) => {
 /* ------------------ ADMIN: APPROVE ------------------ */
 router.post(
   "/admin/deposit-requests/:id/approve",
-  requireAuth,
+  protectAdmin,
   async (req, res) => {
     try {
       const adminNote = String(req.body.adminNote || "");
@@ -405,7 +406,7 @@ router.post(
       // ✅ approve request
       freshDoc.status = "approved";
       freshDoc.adminNote = adminNote;
-      freshDoc.approvedBy = req.user.id;
+      freshDoc.approvedBy = req.admin._id;
       freshDoc.approvedAt = new Date();
 
       freshDoc.calc = {
@@ -459,7 +460,7 @@ router.post(
 /* ------------------ ADMIN: REJECT ------------------ */
 router.post(
   "/admin/deposit-requests/:id/reject",
-  requireAuth,
+  protectAdmin,
   async (req, res) => {
     try {
       const adminNote = String(req.body.adminNote || "");
@@ -474,7 +475,7 @@ router.post(
 
       doc.status = "rejected";
       doc.adminNote = adminNote;
-      doc.rejectedBy = req.user.id;
+      doc.rejectedBy = req.admin._id;
       doc.rejectedAt = new Date();
       await doc.save();
 

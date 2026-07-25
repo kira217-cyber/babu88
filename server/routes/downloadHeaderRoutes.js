@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import multer from "multer";
 import DownloadHeader from "../models/DownloadHeader.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -88,6 +89,7 @@ router.get("/download-header", async (req, res) => {
  */
 router.put(
   "/download-header",
+  protectAdmin,
   upload.fields([
     { name: "icon", maxCount: 1 },
     { name: "apk", maxCount: 1 },

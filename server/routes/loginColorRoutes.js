@@ -1,5 +1,6 @@
 import express from "express";
 import LoginColor from "../models/LoginColor.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -15,7 +16,7 @@ router.get("/login-color", async (req, res) => {
   }
 });
 
-router.put("/login-color", async (req, res) => {
+router.put("/login-color", protectAdmin, async (req, res) => {
   try {
     const existing =
       (await LoginColor.findOne({ isActive: true }).sort({ updatedAt: -1 })) ||

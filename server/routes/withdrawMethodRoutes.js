@@ -2,6 +2,7 @@
 import express from "express";
 import WithdrawMethod from "../models/WithdrawMethod.js";
 import upload from "../config/multer.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -72,7 +73,7 @@ router.get("/withdraw-methods/:id", async (req, res) => {
 });
 
 // ✅ CREATE
-router.post("/withdraw-methods", upload.single("logo"), async (req, res) => {
+router.post("/withdraw-methods", protectAdmin, upload.single("logo"), async (req, res) => {
   try {
     const body = req.body || {};
 
@@ -128,7 +129,7 @@ router.post("/withdraw-methods", upload.single("logo"), async (req, res) => {
 });
 
 // ✅ UPDATE
-router.put("/withdraw-methods/:id", upload.single("logo"), async (req, res) => {
+router.put("/withdraw-methods/:id", protectAdmin, upload.single("logo"), async (req, res) => {
   try {
     const body = req.body || {};
     const doc = await WithdrawMethod.findById(req.params.id);
@@ -191,7 +192,7 @@ router.put("/withdraw-methods/:id", upload.single("logo"), async (req, res) => {
 });
 
 // ✅ DELETE
-router.delete("/withdraw-methods/:id", async (req, res) => {
+router.delete("/withdraw-methods/:id", protectAdmin, async (req, res) => {
   try {
     const doc = await WithdrawMethod.findByIdAndDelete(req.params.id);
     if (!doc) return res.status(404).json({ message: "Not found" });

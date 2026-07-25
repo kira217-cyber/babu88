@@ -1,5 +1,6 @@
 import express from "express";
 import TwoBannerColor from "../models/TwoBannerColor.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -15,7 +16,7 @@ router.get("/two-banner-color", async (req, res) => {
   }
 });
 
-router.put("/two-banner-color", async (req, res) => {
+router.put("/two-banner-color", protectAdmin, async (req, res) => {
   try {
     const existing =
       (await TwoBannerColor.findOne({ isActive: true }).sort({ updatedAt: -1 })) ||

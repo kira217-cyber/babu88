@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import upload from "../config/multer.js";
 import Jackpot from "../models/Jackpot.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -58,7 +59,7 @@ router.get("/jackpot", async (req, res) => {
 
 // ✅ UPDATE config (admin)
 // send multipart/form-data (images optional)
-router.put("/jackpot", files, async (req, res) => {
+router.put("/jackpot", protectAdmin, files, async (req, res) => {
   try {
     const doc = await getOrCreateConfig();
 

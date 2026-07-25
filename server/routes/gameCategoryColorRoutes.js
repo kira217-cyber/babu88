@@ -1,5 +1,6 @@
 import express from "express";
 import GameCategoryColor from "../models/GameCategoryColor.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -17,7 +18,7 @@ router.get("/gamecategory-color", async (req, res) => {
 });
 
 // ✅ Admin: single upsert (first time create then update same doc)
-router.put("/gamecategory-color", async (req, res) => {
+router.put("/gamecategory-color", protectAdmin, async (req, res) => {
   try {
     const existing =
       (await GameCategoryColor.findOne({ isActive: true }).sort({ updatedAt: -1 })) ||

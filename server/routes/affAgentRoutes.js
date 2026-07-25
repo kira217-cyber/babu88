@@ -1,5 +1,6 @@
 import express from "express";
 import AffAgent from "../models/AffAgent.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -18,7 +19,7 @@ router.get("/aff-agent", async (req, res) => {
 /**
  * ✅ Create Agent config
  */
-router.post("/aff-agent", async (req, res) => {
+router.post("/aff-agent", protectAdmin, async (req, res) => {
   try {
     const created = await AffAgent.create(req.body);
     return res.status(201).json(created);
@@ -30,7 +31,7 @@ router.post("/aff-agent", async (req, res) => {
 /**
  * ✅ Update Agent config
  */
-router.put("/aff-agent/:id", async (req, res) => {
+router.put("/aff-agent/:id", protectAdmin, async (req, res) => {
   try {
     const updated = await AffAgent.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -45,7 +46,7 @@ router.put("/aff-agent/:id", async (req, res) => {
 /**
  * ✅ Delete Agent config
  */
-router.delete("/aff-agent/:id", async (req, res) => {
+router.delete("/aff-agent/:id", protectAdmin, async (req, res) => {
   try {
     const deleted = await AffAgent.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ message: "Not found" });

@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import multer from "multer";
 import FloatingSocial from "../models/FloatingSocial.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -76,7 +77,7 @@ router.get("/floating-social", async (req, res) => {
  * - body.items = JSON string of items array
  * - files fields: icon_0, icon_1, icon_2 ...
  */
-router.put("/floating-social", upload, async (req, res) => {
+router.put("/floating-social", protectAdmin, upload, async (req, res) => {
   try {
     const body = req.body || {};
     const rawItems = body.items;

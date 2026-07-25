@@ -2,69 +2,9 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import NineWicketWallet from "../models/NineWicketWallet.js";
 import User from "../models/User.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
-
-const requireAdmin = async (req, res, next) => {
-  try {
-    const header = req.headers.authorization || "";
-    const token = header.startsWith("Bearer ") ? header.slice(7) : null;
-
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: "No token provided",
-      });
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    const id =
-      decoded?.id ||
-      decoded?._id ||
-      decoded?.userId ||
-      decoded?.user?._id ||
-      decoded?.user?.id;
-
-    if (!id) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid token payload",
-      });
-    }
-
-    const admin = await User.findById(id).select("role isActive");
-
-    if (!admin) {
-      return res.status(404).json({
-        success: false,
-        message: "Admin not found",
-      });
-    }
-
-    if (admin.isActive !== true) {
-      return res.status(403).json({
-        success: false,
-        message: "Account disabled",
-      });
-    }
-
-    if (!["admin", "mother", "master"].includes(admin.role)) {
-      return res.status(403).json({
-        success: false,
-        message: "Admin access required",
-      });
-    }
-
-    req.admin = { id };
-    next();
-  } catch {
-    return res.status(401).json({
-      success: false,
-      message: "Invalid or expired token",
-    });
-  }
-};
 
 const requireUser = async (req, res, next) => {
   try {
@@ -161,7 +101,7 @@ router.get("/me", requireUser, async (req, res) => {
  * ADMIN: list all NineWicket wallets
  * GET /api/nine-wicket-wallet?page=1&limit=20&search=&status=&hasExposure=true
  */
-router.get("/", requireAdmin, async (req, res) => {
+router.get("/", protectAdmin, async (req, res) => {
   try {
     const page = Math.max(Number(req.query.page || 1), 1);
     const limit = Math.min(Math.max(Number(req.query.limit || 20), 1), 100);
@@ -243,7 +183,7 @@ router.get("/", requireAdmin, async (req, res) => {
  * ADMIN: single user wallet
  * GET /api/nine-wicket-wallet/:userId
  */
-router.get("/:userId", requireAdmin, async (req, res) => {
+router.get("/:userId", protectAdmin, async (req, res) => {
   try {
     const wallet = await NineWicketWallet.findOne({
       user: req.params.userId,

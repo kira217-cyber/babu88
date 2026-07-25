@@ -4,6 +4,7 @@ import fs from "fs";
 import path from "path";
 import Slider from "../models/Slider.js";
 import upload from "../config/multer.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -65,6 +66,7 @@ router.get("/all", async (req, res) => {
 ========================= */
 router.post(
   "/",
+  protectAdmin,
   upload.fields([
     { name: "imageDesktop", maxCount: 1 },
     { name: "imageMobile", maxCount: 1 },
@@ -107,6 +109,7 @@ router.post(
 ========================= */
 router.put(
   "/:id",
+  protectAdmin,
   upload.fields([
     { name: "imageDesktop", maxCount: 1 },
     { name: "imageMobile", maxCount: 1 },
@@ -149,7 +152,7 @@ router.put(
 /* =========================
    ✅ Delete slider (db + files)
 ========================= */
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", protectAdmin, async (req, res) => {
   try {
     const slider = await Slider.findById(req.params.id);
     if (!slider) return res.status(404).json({ message: "Slider not found" });

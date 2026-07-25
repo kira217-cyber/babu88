@@ -6,6 +6,7 @@ import path from "path";
 import fs from "fs";
 import upload from "../config/multer.js";
 import GameProvider from "../models/GameProvider.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -32,7 +33,7 @@ const parseBool = (v, def = false) => {
 };
 
 // CREATE provider under a category
-router.post("/", files, async (req, res) => {
+router.post("/", protectAdmin, files, async (req, res) => {
   try {
     const { categoryId, providerId, providerName, status, isHot, isNew } =
       req.body;
@@ -93,7 +94,7 @@ router.get("/", async (req, res) => {
 });
 
 // UPDATE
-router.put("/:id", files, async (req, res) => {
+router.put("/:id", protectAdmin, files, async (req, res) => {
   try {
     const doc = await GameProvider.findById(req.params.id);
     if (!doc)
@@ -133,7 +134,7 @@ router.put("/:id", files, async (req, res) => {
 });
 
 // DELETE
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", protectAdmin, async (req, res) => {
   try {
     const doc = await GameProvider.findById(req.params.id);
     if (!doc)

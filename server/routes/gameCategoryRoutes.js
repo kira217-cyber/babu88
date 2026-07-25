@@ -6,6 +6,7 @@ import path from "path";
 import fs from "fs";
 import upload from "../config/multer.js";
 import GameCategory from "../models/GameCategory.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -31,6 +32,7 @@ const getNextOrder = async () => {
 // ─── CREATE ────────────────────────────────────────────────
 router.post(
   "/",
+  protectAdmin,
   upload.fields([
     { name: "bannerImage", maxCount: 1 },
     { name: "iconImage", maxCount: 1 },
@@ -94,6 +96,7 @@ router.get("/", async (req, res) => {
 // ─── UPDATE ────────────────────────────────────────────────
 router.put(
   "/:id",
+  protectAdmin,
   upload.fields([
     { name: "bannerImage", maxCount: 1 },
     { name: "iconImage", maxCount: 1 },
@@ -158,7 +161,7 @@ router.put(
 );
 
 // ─── DELETE ────────────────────────────────────────────────
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", protectAdmin, async (req, res) => {
   try {
     const doc = await GameCategory.findById(req.params.id);
     if (!doc)

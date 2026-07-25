@@ -1,5 +1,6 @@
 import express from "express";
 import DownloadBannerColor from "../models/DownloadBannerColor.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -15,7 +16,7 @@ router.get("/download-banner-color", async (req, res) => {
   }
 });
 
-router.put("/download-banner-color", async (req, res) => {
+router.put("/download-banner-color", protectAdmin, async (req, res) => {
   try {
     const existing =
       (await DownloadBannerColor.findOne({ isActive: true }).sort({ updatedAt: -1 })) ||

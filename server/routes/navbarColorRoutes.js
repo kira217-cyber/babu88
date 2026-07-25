@@ -1,5 +1,6 @@
 import express from "express";
 import NavbarColor from "../models/NavbarColor.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -19,7 +20,7 @@ router.get("/navbar-color", async (req, res) => {
 });
 
 // ✅ admin: upsert (no need create/update separately)
-router.put("/navbar-color", async (req, res) => {
+router.put("/navbar-color", protectAdmin, async (req, res) => {
   try {
     // find one doc (prefer active, else any)
     const existing =

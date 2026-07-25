@@ -1,7 +1,7 @@
 import express from "express";
 import mongoose from "mongoose";
 import User from "../models/User.js";
-import { requireAuth } from "../middleware/requireAuth.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -14,7 +14,7 @@ const n = (v) => {
  * ✅ ADMIN: affiliate users list (pagination + search)
  * GET /api/admin/affiliate-bridge/users?page=1&limit=10&q=username
  */
-router.get("/affiliate-bridge/users", requireAuth, async (req, res) => {
+router.get("/affiliate-bridge/users", protectAdmin, async (req, res) => {
   try {
     const page = Math.max(parseInt(req.query.page || "1", 10), 1);
     const limit = Math.min(
@@ -92,7 +92,7 @@ router.get("/affiliate-bridge/users", requireAuth, async (req, res) => {
  */
 router.post(
   "/affiliate-bridge/bridge/:userId",
-  requireAuth,
+  protectAdmin,
   async (req, res) => {
     try {
       const { userId } = req.params;
@@ -151,7 +151,7 @@ router.post(
  * POST /api/admin/affiliate-bridge/bridge-all
  * body: { q?: "username" }
  */
-router.post("/affiliate-bridge/bridge-all", requireAuth, async (req, res) => {
+router.post("/affiliate-bridge/bridge-all", protectAdmin, async (req, res) => {
   try {
     const q = String(req.body?.q || "").trim();
     const match = { role: "aff-user" };

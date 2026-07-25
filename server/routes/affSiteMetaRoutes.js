@@ -1,6 +1,7 @@
 import express from "express";
 import AffSiteMeta from "../models/AffSiteMeta.js";
 import upload from "../config/multer.js"; // ✅ তোমার multer.js
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -15,7 +16,7 @@ const makeFileUrl = (req, filepath) => {
  * ✅ Upload favicon
  * FormData key: image
  */
-router.post("/aff-site-meta/upload/favicon", upload.single("image"), async (req, res) => {
+router.post("/aff-site-meta/upload/favicon", protectAdmin, upload.single("image"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
     const url = makeFileUrl(req, req.file.path);
@@ -29,7 +30,7 @@ router.post("/aff-site-meta/upload/favicon", upload.single("image"), async (req,
  * ✅ Upload logo
  * FormData key: image
  */
-router.post("/aff-site-meta/upload/logo", upload.single("image"), async (req, res) => {
+router.post("/aff-site-meta/upload/logo", protectAdmin, upload.single("image"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
     const url = makeFileUrl(req, req.file.path);
@@ -54,7 +55,7 @@ router.get("/aff-site-meta", async (req, res) => {
 /**
  * ✅ Create
  */
-router.post("/aff-site-meta", async (req, res) => {
+router.post("/aff-site-meta", protectAdmin, async (req, res) => {
   try {
     const created = await AffSiteMeta.create(req.body);
     return res.status(201).json(created);
@@ -66,7 +67,7 @@ router.post("/aff-site-meta", async (req, res) => {
 /**
  * ✅ Update
  */
-router.put("/aff-site-meta/:id", async (req, res) => {
+router.put("/aff-site-meta/:id", protectAdmin, async (req, res) => {
   try {
     const updated = await AffSiteMeta.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -81,7 +82,7 @@ router.put("/aff-site-meta/:id", async (req, res) => {
 /**
  * ✅ Delete
  */
-router.delete("/aff-site-meta/:id", async (req, res) => {
+router.delete("/aff-site-meta/:id", protectAdmin, async (req, res) => {
   try {
     const deleted = await AffSiteMeta.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ message: "Not found" });

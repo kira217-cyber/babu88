@@ -1,13 +1,13 @@
 // routes/adminRedeemRoutes.js
 import express from "express";
-import { requireAuth } from "../middleware/requireAuth.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 import RedeemSettings from "../models/RedeemSettings.js";
 import RedeemHistory from "../models/RedeemHistory.js";
 
 const router = express.Router();
 
 // ✅ get current settings
-router.get("/settings", requireAuth, async (req, res) => {
+router.get("/settings", protectAdmin, async (req, res) => {
   try {
     let s = await RedeemSettings.findOne();
     if (!s) s = await RedeemSettings.create({ enabled: false, minAmount: 100, maxAmount: 0 });
@@ -26,7 +26,7 @@ router.get("/settings", requireAuth, async (req, res) => {
 });
 
 // ✅ update settings
-router.put("/settings", requireAuth, async (req, res) => {
+router.put("/settings", protectAdmin, async (req, res) => {
   try {
     const enabled = !!req.body?.enabled;
     const minAmount = Number(req.body?.minAmount || 0);
@@ -58,7 +58,7 @@ router.put("/settings", requireAuth, async (req, res) => {
 });
 
 // ✅ admin list redeem histories
-router.get("/history", requireAuth, async (req, res) => {
+router.get("/history", protectAdmin, async (req, res) => {
   try {
     const page = Math.max(1, Number(req.query.page || 1));
     const limit = Math.min(50, Math.max(1, Number(req.query.limit || 10)));

@@ -1,6 +1,7 @@
 // routes/affFooterColorRoutes.js
 import express from "express";
 import AffFooterColor from "../models/AffFooterColor.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -24,7 +25,7 @@ router.get("/aff-footer-color", async (req, res) => {
  * PUT /api/aff-footer-color
  * upsert single config doc
  */
-router.put("/aff-footer-color", async (req, res) => {
+router.put("/aff-footer-color", protectAdmin, async (req, res) => {
   try {
     const payload = req.body || {};
     const updated = await AffFooterColor.findOneAndUpdate(

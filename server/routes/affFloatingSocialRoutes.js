@@ -2,6 +2,7 @@
 import express from "express";
 import AffFloatingSocial from "../models/AffFloatingSocial.js";
 import upload from "../config/multer.js"; // আপনার multer config
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -21,6 +22,7 @@ const makeFileUrl = (req, filepath) => {
  */
 router.post(
   "/aff-floating-social/upload",
+  protectAdmin,
   upload.single("image"),
   async (req, res) => {
     try {
@@ -64,7 +66,7 @@ router.get("/aff-floating-social", async (req, res) => {
  * @access  Private (admin)
  * @body    { imageUrl: string, linkUrl: string }
  */
-router.post("/aff-floating-social", async (req, res) => {
+router.post("/aff-floating-social", protectAdmin, async (req, res) => {
   try {
     const { imageUrl, linkUrl } = req.body;
 
@@ -96,7 +98,7 @@ router.post("/aff-floating-social", async (req, res) => {
  * @param   :id - MongoDB _id of the icon
  * @body    { imageUrl?: string, linkUrl?: string }
  */
-router.put("/aff-floating-social/:id", async (req, res) => {
+router.put("/aff-floating-social/:id", protectAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const updates = {};
@@ -134,7 +136,7 @@ router.put("/aff-floating-social/:id", async (req, res) => {
  * @access  Private (admin)
  * @param   :id - MongoDB _id of the icon
  */
-router.delete("/aff-floating-social/:id", async (req, res) => {
+router.delete("/aff-floating-social/:id", protectAdmin, async (req, res) => {
   try {
     const { id } = req.params;
 

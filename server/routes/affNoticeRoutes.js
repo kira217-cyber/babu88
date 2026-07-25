@@ -1,5 +1,6 @@
 import express from "express";
 import AffNotice from "../models/AffNotice.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -18,7 +19,7 @@ router.get("/aff-notice", async (req, res) => {
 /**
  * ✅ Create Notice config
  */
-router.post("/aff-notice", async (req, res) => {
+router.post("/aff-notice", protectAdmin, async (req, res) => {
   try {
     const created = await AffNotice.create(req.body);
     return res.status(201).json(created);
@@ -30,7 +31,7 @@ router.post("/aff-notice", async (req, res) => {
 /**
  * ✅ Update Notice config
  */
-router.put("/aff-notice/:id", async (req, res) => {
+router.put("/aff-notice/:id", protectAdmin, async (req, res) => {
   try {
     const updated = await AffNotice.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -45,7 +46,7 @@ router.put("/aff-notice/:id", async (req, res) => {
 /**
  * ✅ Delete Notice config
  */
-router.delete("/aff-notice/:id", async (req, res) => {
+router.delete("/aff-notice/:id", protectAdmin, async (req, res) => {
   try {
     const deleted = await AffNotice.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ message: "Not found" });

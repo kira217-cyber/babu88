@@ -1,6 +1,7 @@
 // routes/affCommissionColorRoutes.js
 import express from "express";
 import AffCommissionColor from "../models/AffCommissionColor.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -19,7 +20,7 @@ router.get("/aff-commission-color", async (req, res) => {
 });
 
 // PUT /api/aff-commission-color (upsert)
-router.put("/aff-commission-color", async (req, res) => {
+router.put("/aff-commission-color", protectAdmin, async (req, res) => {
   try {
     const payload = req.body || {};
     const updated = await AffCommissionColor.findOneAndUpdate(

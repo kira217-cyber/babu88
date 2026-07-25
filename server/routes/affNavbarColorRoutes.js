@@ -1,6 +1,7 @@
 // routes/affNavbarColorRoutes.js
 import express from "express";
 import AffNavbarColor from "../models/AffNavbarColor.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -26,7 +27,7 @@ router.get("/aff-navbar-color", async (req, res) => {
  * PUT /api/aff-navbar-color
  * Upsert config (single doc)
  */
-router.put("/aff-navbar-color", async (req, res) => {
+router.put("/aff-navbar-color", protectAdmin, async (req, res) => {
   try {
     const payload = req.body || {};
 

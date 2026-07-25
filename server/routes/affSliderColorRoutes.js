@@ -1,6 +1,7 @@
 // routes/affSliderColorRoutes.js
 import express from "express";
 import AffSliderColor from "../models/AffSliderColor.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -19,7 +20,7 @@ router.get("/aff-slider-color", async (req, res) => {
 });
 
 // PUT /api/aff-slider-color
-router.put("/aff-slider-color", async (req, res) => {
+router.put("/aff-slider-color", protectAdmin, async (req, res) => {
   try {
     const payload = req.body || {};
     const updated = await AffSliderColor.findOneAndUpdate(

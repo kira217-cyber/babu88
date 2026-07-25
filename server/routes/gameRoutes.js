@@ -6,6 +6,7 @@ import path from "path";
 import fs from "fs";
 import upload from "../config/multer.js";
 import Game from "../models/Game.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -38,7 +39,7 @@ const parseBool = (v, def = false) => {
 
 // ✅ Create (select game)
 // ✅ FIXED: now supports saving remote oracle image url when no upload
-router.post("/", upload.single("image"), async (req, res) => {
+router.post("/", protectAdmin, upload.single("image"), async (req, res) => {
   try {
     const {
       categoryId,
@@ -127,7 +128,7 @@ router.get("/", async (req, res) => {
 // ✅ remote url থাকলে unlink skip করবে
 // ✅ upload করলে: image becomes "/uploads/xxx.png"
 // ✅ upload না করলে: image unchanged
-router.put("/:id", upload.single("image"), async (req, res) => {
+router.put("/:id", protectAdmin, upload.single("image"), async (req, res) => {
   try {
     const doc = await Game.findById(req.params.id);
     if (!doc)
@@ -164,7 +165,7 @@ router.put("/:id", upload.single("image"), async (req, res) => {
 });
 
 // ✅ Delete selected game
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", protectAdmin, async (req, res) => {
   try {
     const doc = await Game.findById(req.params.id);
     if (!doc)

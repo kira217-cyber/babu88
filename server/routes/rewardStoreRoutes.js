@@ -4,6 +4,7 @@ import express from "express";
 import RewardStore from "../models/RewardStore.js";
 import RewardClaim from "../models/RewardClaim.js";
 import upload from "../config/multer.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -12,7 +13,7 @@ const router = express.Router();
    GET /api/admin/rewards
 ====================================================== */
 
-router.get("/admin/rewards", async (req, res) => {
+router.get("/admin/rewards", protectAdmin, async (req, res) => {
   try {
     const rewards = await RewardStore.find().sort({
       order: 1,
@@ -37,7 +38,7 @@ router.get("/admin/rewards", async (req, res) => {
    GET /api/admin/rewards/:id
 ====================================================== */
 
-router.get("/admin/rewards/:id", async (req, res) => {
+router.get("/admin/rewards/:id", protectAdmin, async (req, res) => {
   try {
     const reward = await RewardStore.findById(req.params.id);
 
@@ -68,6 +69,7 @@ router.get("/admin/rewards/:id", async (req, res) => {
 
 router.post(
   "/admin/rewards",
+  protectAdmin,
   upload.single("bannerImage"),
   async (req, res) => {
     try {
@@ -261,6 +263,7 @@ router.post(
 
 router.put(
   "/admin/rewards/:id",
+  protectAdmin,
   upload.single("bannerImage"),
   async (req, res) => {
     try {
@@ -462,7 +465,7 @@ router.put(
    PATCH /api/admin/rewards/:id/status
 ====================================================== */
 
-router.patch("/admin/rewards/:id/status", async (req, res) => {
+router.patch("/admin/rewards/:id/status", protectAdmin, async (req, res) => {
   try {
     const { status } = req.body || {};
 
@@ -512,7 +515,7 @@ router.patch("/admin/rewards/:id/status", async (req, res) => {
    DELETE /api/admin/rewards/:id
 ====================================================== */
 
-router.delete("/admin/rewards/:id", async (req, res) => {
+router.delete("/admin/rewards/:id", protectAdmin, async (req, res) => {
   try {
     const found = await RewardStore.findById(req.params.id);
 

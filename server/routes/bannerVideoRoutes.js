@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import multer from "multer";
 import BannerVideo from "../models/BannerVideo.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -82,7 +83,7 @@ router.get("/banner-videos", async (req, res) => {
  * - create
  * - form-data: bannerImg(file), titleBn, titleEn, youtube, isActive, order
  */
-router.post("/banner-videos", upload.single("bannerImg"), async (req, res) => {
+router.post("/banner-videos", protectAdmin, upload.single("bannerImg"), async (req, res) => {
   try {
     const { titleBn = "", titleEn = "", youtube = "", isActive = "true", order = "0" } = req.body;
 
@@ -111,7 +112,7 @@ router.post("/banner-videos", upload.single("bannerImg"), async (req, res) => {
  * - update
  * - bannerImg optional
  */
-router.put("/banner-videos/:id", upload.single("bannerImg"), async (req, res) => {
+router.put("/banner-videos/:id", protectAdmin, upload.single("bannerImg"), async (req, res) => {
   try {
     const { id } = req.params;
     const item = await BannerVideo.findById(id);
@@ -141,7 +142,7 @@ router.put("/banner-videos/:id", upload.single("bannerImg"), async (req, res) =>
 /**
  * ✅ DELETE /api/banner-videos/:id
  */
-router.delete("/banner-videos/:id", async (req, res) => {
+router.delete("/banner-videos/:id", protectAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const item = await BannerVideo.findById(id);

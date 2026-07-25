@@ -2,6 +2,7 @@ import express from "express";
 import mongoose from "mongoose";
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -11,7 +12,7 @@ const router = express.Router();
  * search   => username / phone (case-insensitive)
  * status   => "all" (default), "active", "inactive"
  */
-router.get("/affiliates", async (req, res) => {
+router.get("/affiliates", protectAdmin, async (req, res) => {
   try {
     // ─── Query parsing ───────────────────────────────────────
     const page = Math.max(parseInt(req.query.page || "1", 10), 1);
@@ -78,7 +79,7 @@ router.get("/affiliates", async (req, res) => {
  * GET /api/admin/affiliates/:id
  * ============================
  */
-router.get("/affiliates/:id", async (req, res) => {
+router.get("/affiliates/:id", protectAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -104,7 +105,7 @@ router.get("/affiliates/:id", async (req, res) => {
  * body: { gameLossCommission, depositCommission, referCommission, gameWinCommission }
  * ============================
  */
-router.patch("/affiliates/:id/activate", async (req, res) => {
+router.patch("/affiliates/:id/activate", protectAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -144,7 +145,7 @@ router.patch("/affiliates/:id/activate", async (req, res) => {
  * PATCH /api/admin/affiliates/:id/deactivate
  * ============================
  */
-router.patch("/affiliates/:id/deactivate", async (req, res) => {
+router.patch("/affiliates/:id/deactivate", protectAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -175,7 +176,7 @@ router.patch("/affiliates/:id/deactivate", async (req, res) => {
  *   password?    ← new field (optional)
  * }
  */
-router.patch("/affiliates/:id", async (req, res) => {
+router.patch("/affiliates/:id", protectAdmin, async (req, res) => {
   try {
     const { id } = req.params;
 

@@ -3,6 +3,7 @@ import express from "express";
 import User from "../models/User.js";
 import DepositRequest from "../models/DepositRequests.js";
 import WithdrawRequest from "../models/WithdrawRequests.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -16,7 +17,7 @@ const router = express.Router();
  *  - pendingDepositRequests
  *  - pendingWithdrawRequests
  */
-router.get("/admin/dashboard-stats", async (req, res) => {
+router.get("/admin/dashboard-stats", protectAdmin, async (req, res) => {
   try {
     const [
       allUsers,

@@ -2,6 +2,7 @@
 import express from "express";
 import DepositMethod from "../models/DepositMethods.js";
 import upload from "../config/multer.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -64,7 +65,7 @@ router.get("/deposit-methods/:id", async (req, res) => {
 });
 
 // ✅ CREATE
-router.post("/deposit-methods", upload.single("logo"), async (req, res) => {
+router.post("/deposit-methods", protectAdmin, upload.single("logo"), async (req, res) => {
   try {
     const body = req.body || {};
 
@@ -153,7 +154,7 @@ router.post("/deposit-methods", upload.single("logo"), async (req, res) => {
 });
 
 // ✅ UPDATE
-router.put("/deposit-methods/:id", upload.single("logo"), async (req, res) => {
+router.put("/deposit-methods/:id", protectAdmin, upload.single("logo"), async (req, res) => {
   try {
     const body = req.body || {};
     const doc = await DepositMethod.findById(req.params.id);
@@ -251,7 +252,7 @@ router.put("/deposit-methods/:id", upload.single("logo"), async (req, res) => {
 });
 
 // ✅ DELETE
-router.delete("/deposit-methods/:id", async (req, res) => {
+router.delete("/deposit-methods/:id", protectAdmin, async (req, res) => {
   try {
     const doc = await DepositMethod.findByIdAndDelete(req.params.id);
     if (!doc) return res.status(404).json({ message: "Not found" });

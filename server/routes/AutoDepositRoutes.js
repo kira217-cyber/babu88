@@ -5,6 +5,7 @@ import AutoDepositToken from "../models/AutoDepositToken.js";
 import AutoDeposit from "../models/AutoDeposit.js";
 import User from "../models/User.js";
 import TurnOver from "../models/TurnOver.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -121,7 +122,7 @@ function buildPublicUrls(req) {
 
 /* ----------------------------- ADMIN: GET ----------------------------- */
 
-router.get("/admin", async (req, res) => {
+router.get("/admin", protectAdmin, async (req, res) => {
   try {
     const s = await getOrCreateSetting();
 
@@ -162,7 +163,7 @@ router.get("/admin", async (req, res) => {
 
 /* ----------------------------- ADMIN: UPDATE ----------------------------- */
 
-router.put("/admin", async (req, res) => {
+router.put("/admin", protectAdmin, async (req, res) => {
   try {
     const { businessToken, active, minAmount, maxAmount, bonuses } = req.body;
 
@@ -474,7 +475,7 @@ router.get("/history/:userId", async (req, res) => {
 
 /* ----------------------------- ADMIN HISTORY ----------------------------- */
 
-router.get("/deposits/admin", async (req, res) => {
+router.get("/deposits/admin", protectAdmin, async (req, res) => {
   try {
     const page = Math.max(parseInt(req.query.page || "1", 10), 1);
     const limit = Math.min(

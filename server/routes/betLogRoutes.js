@@ -2,6 +2,7 @@ import express from "express";
 import mongoose from "mongoose";
 import axios from "axios";
 import GameHistory from "../models/GameHistory.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -263,7 +264,7 @@ const pageSummaryPipeline = ({ match, skip, limit }) => [
    GET /api/admin/bet-logs
 ====================================================== */
 
-router.get("/admin/bet-logs", async (req, res) => {
+router.get("/admin/bet-logs", protectAdmin, async (req, res) => {
   try {
     /* =====================================================
        PAGINATION
@@ -708,7 +709,7 @@ router.get("/admin/bet-logs", async (req, res) => {
    GET /api/admin/users/:id/bet-logs
 ====================================================== */
 
-router.get("/admin/users/:id/bet-logs", async (req, res) => {
+router.get("/admin/users/:id/bet-logs", protectAdmin, async (req, res) => {
   try {
     const { id } = req.params;
 

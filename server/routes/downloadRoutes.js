@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import multer from "multer";
 import Download from "../models/Download.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -101,6 +102,7 @@ router.get("/download-banner", async (req, res) => {
  */
 router.put(
   "/download-banner",
+  protectAdmin,
   upload.fields([
     { name: "apkFile", maxCount: 1 },
     { name: "rightImage", maxCount: 1 },

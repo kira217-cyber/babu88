@@ -1,5 +1,6 @@
 import express from "express";
 import AffWhyUs from "../models/AffWhyUs.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -18,7 +19,7 @@ router.get("/aff-whyus", async (req, res) => {
 /**
  * ✅ Create WhyUs config
  */
-router.post("/aff-whyus", async (req, res) => {
+router.post("/aff-whyus", protectAdmin, async (req, res) => {
   try {
     const created = await AffWhyUs.create(req.body);
     return res.status(201).json(created);
@@ -30,7 +31,7 @@ router.post("/aff-whyus", async (req, res) => {
 /**
  * ✅ Update WhyUs config
  */
-router.put("/aff-whyus/:id", async (req, res) => {
+router.put("/aff-whyus/:id", protectAdmin, async (req, res) => {
   try {
     const updated = await AffWhyUs.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -45,7 +46,7 @@ router.put("/aff-whyus/:id", async (req, res) => {
 /**
  * ✅ Delete WhyUs config
  */
-router.delete("/aff-whyus/:id", async (req, res) => {
+router.delete("/aff-whyus/:id", protectAdmin, async (req, res) => {
   try {
     const deleted = await AffWhyUs.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ message: "Not found" });

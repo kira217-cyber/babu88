@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import multer from "multer";
 import SingleBanner from "../models/SingleBanner.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -94,6 +95,7 @@ router.get("/single-banner", async (req, res) => {
  */
 router.put(
   "/single-banner",
+  protectAdmin,
   upload.fields([
     { name: "desktopImg", maxCount: 1 },
     { name: "mobileImg", maxCount: 1 },

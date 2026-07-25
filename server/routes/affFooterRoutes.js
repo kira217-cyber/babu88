@@ -1,6 +1,7 @@
 import express from "express";
 import AffFooter from "../models/AffFooter.js";
 import upload from "../config/multer.js"; // ✅ তোমার multer.js
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -19,7 +20,7 @@ const makeFileUrl = (req, filepath) => {
  * FormData key: image
  * returns: { url }
  */
-router.post("/aff-footer/upload", upload.single("image"), async (req, res) => {
+router.post("/aff-footer/upload", protectAdmin, upload.single("image"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
     const url = makeFileUrl(req, req.file.path);
@@ -44,7 +45,7 @@ router.get("/aff-footer", async (req, res) => {
 /**
  * ✅ Create new footer config
  */
-router.post("/aff-footer", async (req, res) => {
+router.post("/aff-footer", protectAdmin, async (req, res) => {
   try {
     const created = await AffFooter.create(req.body);
     res.status(201).json(created);
@@ -56,7 +57,7 @@ router.post("/aff-footer", async (req, res) => {
 /**
  * ✅ Update footer config
  */
-router.put("/aff-footer/:id", async (req, res) => {
+router.put("/aff-footer/:id", protectAdmin, async (req, res) => {
   try {
     const updated = await AffFooter.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -71,7 +72,7 @@ router.put("/aff-footer/:id", async (req, res) => {
 /**
  * ✅ Delete footer config
  */
-router.delete("/aff-footer/:id", async (req, res) => {
+router.delete("/aff-footer/:id", protectAdmin, async (req, res) => {
   try {
     const deleted = await AffFooter.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ message: "Not found" });

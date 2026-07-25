@@ -1,6 +1,7 @@
 import express from "express";
 import jwt from "jsonwebtoken";
 import TurnOver from "../models/TurnOver.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -26,16 +27,6 @@ const requireAuth = (req, res, next) => {
       message: "Unauthorized",
     });
   }
-};
-
-const requireAdmin = (req, res, next) => {
-  if (!req.user?.role || req.user.role !== "admin") {
-    return res.status(403).json({
-      success: false,
-      message: "Admin only",
-    });
-  }
-  next();
 };
 
 /* USER: my turnovers */
@@ -71,7 +62,7 @@ router.get("/turnovers/my", requireAuth, async (req, res) => {
 });
 
 /* ADMIN: list turnovers */
-router.get("/admin/turnovers", requireAuth, requireAdmin, async (req, res) => {
+router.get("/admin/turnovers", protectAdmin, async (req, res) => {
   try {
     const page = Math.max(1, Number(req.query.page || 1));
     const limit = Math.min(100, Math.max(1, Number(req.query.limit || 10)));
@@ -118,8 +109,7 @@ router.get("/admin/turnovers", requireAuth, requireAdmin, async (req, res) => {
 /* ADMIN: update progress */
 router.post(
   "/admin/turnovers/:id/progress",
-  requireAuth,
-  requireAdmin,
+  protectAdmin,
   async (req, res) => {
     try {
       const add = Number(req.body.add || 0);

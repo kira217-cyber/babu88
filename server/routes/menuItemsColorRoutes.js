@@ -1,5 +1,6 @@
 import express from "express";
 import MenuItemsColor from "../models/MenuItemsColor.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -17,7 +18,7 @@ router.get("/menuitems-color", async (req, res) => {
 });
 
 // ✅ Admin: upsert (first time create, then update)
-router.put("/menuitems-color", async (req, res) => {
+router.put("/menuitems-color", protectAdmin, async (req, res) => {
   try {
     const existing =
       (await MenuItemsColor.findOne({ isActive: true }).sort({ updatedAt: -1 })) ||

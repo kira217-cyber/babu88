@@ -1,6 +1,7 @@
 // routes/affWhyUsColorRoutes.js
 import express from "express";
 import AffWhyUsColor from "../models/AffWhyUsColor.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -19,7 +20,7 @@ router.get("/aff-whyus-color", async (req, res) => {
 });
 
 // PUT /api/aff-whyus-color
-router.put("/aff-whyus-color", async (req, res) => {
+router.put("/aff-whyus-color", protectAdmin, async (req, res) => {
   try {
     const payload = req.body || {};
     const updated = await AffWhyUsColor.findOneAndUpdate(

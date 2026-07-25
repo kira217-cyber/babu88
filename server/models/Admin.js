@@ -28,6 +28,12 @@ const adminSchema = new mongoose.Schema(
       type: [String], // ["dashboard","all-user","add-game","add-promotion"]
       default: [],
     },
+
+    // ✅ bumped on password change / forced logout so old JWTs stop working everywhere
+    tokenVersion: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true },
 );

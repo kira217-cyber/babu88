@@ -1,5 +1,6 @@
 import express from "express";
 import AffCommission from "../models/AffCommission.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -52,7 +53,7 @@ router.get("/aff-commission/:id", async (req, res) => {
  * ✅ CREATE (admin create)
  * POST /api/aff-commission
  */
-router.post("/aff-commission", async (req, res) => {
+router.post("/aff-commission", protectAdmin, async (req, res) => {
   try {
     // যদি নতুনটা active করা হয়, পুরোনো active গুলো off করে দাও
     if (req.body?.isActive === true) {
@@ -70,7 +71,7 @@ router.post("/aff-commission", async (req, res) => {
  * ✅ UPDATE (admin update)
  * PUT /api/aff-commission/:id
  */
-router.put("/aff-commission/:id", async (req, res) => {
+router.put("/aff-commission/:id", protectAdmin, async (req, res) => {
   try {
     if (req.body?.isActive === true) {
       await AffCommission.updateMany({ isActive: true }, { isActive: false });
@@ -93,7 +94,7 @@ router.put("/aff-commission/:id", async (req, res) => {
  * ✅ DELETE (admin delete)
  * DELETE /api/aff-commission/:id
  */
-router.delete("/aff-commission/:id", async (req, res) => {
+router.delete("/aff-commission/:id", protectAdmin, async (req, res) => {
   try {
     const deleted = await AffCommission.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ message: "Not found" });

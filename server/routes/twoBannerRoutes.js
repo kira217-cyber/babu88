@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import multer from "multer";
 import TwoBanner from "../models/TwoBanner.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -82,6 +83,7 @@ router.get("/two-banner", async (req, res) => {
  */
 router.put(
   "/two-banner",
+  protectAdmin,
   upload.fields([
     { name: "leftBanner", maxCount: 1 },
     { name: "rightBanner", maxCount: 1 },

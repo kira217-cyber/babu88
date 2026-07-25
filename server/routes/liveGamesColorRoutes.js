@@ -1,5 +1,6 @@
 import express from "express";
 import LiveGamesColor from "../models/LiveGamesColor.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -17,7 +18,7 @@ router.get("/livegames-color", async (req, res) => {
 });
 
 // ✅ Admin: single upsert (first create then update same doc)
-router.put("/livegames-color", async (req, res) => {
+router.put("/livegames-color", protectAdmin, async (req, res) => {
   try {
     const existing =
       (await LiveGamesColor.findOne({ isActive: true }).sort({ updatedAt: -1 })) ||

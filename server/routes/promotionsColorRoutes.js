@@ -1,5 +1,6 @@
 import express from "express";
 import PromotionsColor from "../models/PromotionsColor.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -16,7 +17,7 @@ router.get("/promotions-color", async (req, res) => {
 });
 
 // ✅ single upsert: first create then always update same doc
-router.put("/promotions-color", async (req, res) => {
+router.put("/promotions-color", protectAdmin, async (req, res) => {
   try {
     const existing =
       (await PromotionsColor.findOne({ isActive: true }).sort({ updatedAt: -1 })) ||

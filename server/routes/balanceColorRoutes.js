@@ -1,5 +1,6 @@
 import express from "express";
 import BalanceColor from "../models/BalanceColor.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -15,7 +16,7 @@ router.get("/balance-color", async (req, res) => {
   }
 });
 
-router.put("/balance-color", async (req, res) => {
+router.put("/balance-color", protectAdmin, async (req, res) => {
   try {
     const existing =
       (await BalanceColor.findOne({ isActive: true }).sort({ updatedAt: -1 })) ||

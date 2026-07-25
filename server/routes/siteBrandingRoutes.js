@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import multer from "multer";
 import SiteBranding from "../models/SiteBranding.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -118,6 +119,7 @@ router.get("/site-branding", async (req, res) => {
  */
 router.put(
   "/site-branding",
+  protectAdmin,
   upload.fields([
     { name: "favicon", maxCount: 1 },
     { name: "logo", maxCount: 1 },

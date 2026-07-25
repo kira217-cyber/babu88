@@ -5,8 +5,7 @@ import WithdrawRequest from "../models/WithdrawRequests.js";
 import User from "../models/User.js";
 import TurnOver from "../models/TurnOver.js";
 import { requireAuth } from "../middleware/requireAuth.js";
-
-// import requireAdmin from "../middleware/requireAdmin.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -248,7 +247,7 @@ router.get("/my/:id", requireAuth, async (req, res) => {
 /**
  * ✅ ADMIN: list requests (pending by default)
  */
-router.get("/", requireAuth, async (req, res) => {
+router.get("/", protectAdmin, async (req, res) => {
   try {
     const status = req.query.status; // pending/approved/rejected/all
     const q = {};
@@ -282,7 +281,7 @@ router.get("/", requireAuth, async (req, res) => {
 /**
  * ✅ ADMIN: details
  */
-router.get("/:id", requireAuth, async (req, res) => {
+router.get("/:id", protectAdmin, async (req, res) => {
   try {
     const doc = await WithdrawRequest.findById(req.params.id).populate(
       "user",
@@ -305,7 +304,7 @@ router.get("/:id", requireAuth, async (req, res) => {
  * ✅ ADMIN: approve
  * - does NOT change user balance (already held on request create)
  */
-router.patch("/:id/approve", requireAuth, async (req, res) => {
+router.patch("/:id/approve", protectAdmin, async (req, res) => {
   try {
     const { adminNote } = req.body || {};
     const doc = await WithdrawRequest.findById(req.params.id);
@@ -344,7 +343,7 @@ router.patch("/:id/approve", requireAuth, async (req, res) => {
  * ✅ ADMIN: reject
  * - refunds user balance back (because balance was held)
  */
-router.patch("/:id/reject", requireAuth, async (req, res) => {
+router.patch("/:id/reject", protectAdmin, async (req, res) => {
   try {
     const { adminNote } = req.body || {};
 

@@ -1,6 +1,7 @@
 import express from "express";
 import AffSlider from "../models/AffSlider.js";
 import upload from "../config/multer.js"; // ✅ তোমার multer.js
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -16,7 +17,7 @@ const makeFileUrl = (req, filepath) => {
  * FormData key: image
  * return: { url }
  */
-router.post("/aff-slider/upload", upload.single("image"), async (req, res) => {
+router.post("/aff-slider/upload", protectAdmin, upload.single("image"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
     const url = makeFileUrl(req, req.file.path);
@@ -41,7 +42,7 @@ router.get("/aff-slider", async (req, res) => {
 /**
  * ✅ Create slider config
  */
-router.post("/aff-slider", async (req, res) => {
+router.post("/aff-slider", protectAdmin, async (req, res) => {
   try {
     const created = await AffSlider.create(req.body); // {slides:[...], autoPlayDelay, loop}
     return res.status(201).json(created);
@@ -53,7 +54,7 @@ router.post("/aff-slider", async (req, res) => {
 /**
  * ✅ Update slider config
  */
-router.put("/aff-slider/:id", async (req, res) => {
+router.put("/aff-slider/:id", protectAdmin, async (req, res) => {
   try {
     const updated = await AffSlider.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -68,7 +69,7 @@ router.put("/aff-slider/:id", async (req, res) => {
 /**
  * ✅ Delete slider config
  */
-router.delete("/aff-slider/:id", async (req, res) => {
+router.delete("/aff-slider/:id", protectAdmin, async (req, res) => {
   try {
     const deleted = await AffSlider.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ message: "Not found" });

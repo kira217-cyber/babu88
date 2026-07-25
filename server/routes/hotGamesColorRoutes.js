@@ -1,5 +1,6 @@
 import express from "express";
 import HotGamesColor from "../models/HotGamesColor.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -36,7 +37,7 @@ router.get("/hotgames-color", async (req, res) => {
 });
 
 // PUT create/update latest config
-router.put("/hotgames-color", async (req, res) => {
+router.put("/hotgames-color", protectAdmin, async (req, res) => {
   try {
     const payload = cleanPayload(req.body);
 
@@ -81,7 +82,7 @@ router.put("/hotgames-color", async (req, res) => {
 });
 
 // Optional: reset default
-router.delete("/hotgames-color", async (req, res) => {
+router.delete("/hotgames-color", protectAdmin, async (req, res) => {
   try {
     await HotGamesColor.deleteMany({});
 

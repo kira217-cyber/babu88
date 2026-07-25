@@ -1,6 +1,7 @@
 // routes/noticeRoutes.js
 import express from "express";
 import Notice from "../models/Notice.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -30,7 +31,7 @@ router.get("/notice", async (req, res) => {
  * ✅ PUT /api/notice
  * - Admin থেকে update/upsert
  */
-router.put("/notice", async (req, res) => {
+router.put("/notice", protectAdmin, async (req, res) => {
   try {
     const { noticeBn, noticeEn, isActive } = req.body;
 

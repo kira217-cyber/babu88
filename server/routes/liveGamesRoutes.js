@@ -1,6 +1,7 @@
 // routes/liveGameGlobalRoutes.js
 import express from "express";
 import LiveGameGlobal from "../models/LiveGameGlobal.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -24,7 +25,7 @@ router.get("/live-games/global", async (req, res) => {
 });
 
 // UPDATE global game uid (admin)
-router.put("/live-games/global", async (req, res) => {
+router.put("/live-games/global", protectAdmin, async (req, res) => {
   try {
     const { gameUID, isActive } = req.body;
 

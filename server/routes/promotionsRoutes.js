@@ -2,6 +2,7 @@
 import express from "express";
 import Promotion from "../models/Promotions.js";
 import upload from "../config/multer.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 
 const router = express.Router();
@@ -39,6 +40,7 @@ router.get("/promotions/:id", async (req, res) => {
 ========================= */
 router.post(
   "/promotions",
+  protectAdmin,
   upload.single("image"),
   async (req, res) => {
     try {
@@ -90,6 +92,7 @@ router.post(
 ========================= */
 router.put(
   "/promotions/:id",
+  protectAdmin,
   upload.single("image"),
   async (req, res) => {
     try {
@@ -142,7 +145,7 @@ router.put(
 /* =========================
    ✅ ADMIN: DELETE
 ========================= */
-router.delete("/promotions/:id", async (req, res) => {
+router.delete("/promotions/:id", protectAdmin, async (req, res) => {
   try {
     const found = await Promotion.findById(req.params.id);
     if (!found) return res.status(404).json({ message: "Promotion not found" });

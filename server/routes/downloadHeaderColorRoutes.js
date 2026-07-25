@@ -1,5 +1,6 @@
 import express from "express";
 import DownloadHeaderColor from "../models/DownloadHeaderColor.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -17,7 +18,7 @@ router.get("/download-header-color", async (req, res) => {
   }
 });
 
-router.put("/download-header-color", async (req, res) => {
+router.put("/download-header-color", protectAdmin, async (req, res) => {
   try {
     const existing =
       (await DownloadHeaderColor.findOne({ isActive: true }).sort({

@@ -1,6 +1,7 @@
 import express from "express";
 import axios from "axios";
 import GameApiKeySetting from "../models/GameApiKeySetting.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -29,7 +30,7 @@ const jsonError = (res, message, status = 500, data = null) => {
 const getMasterApiBaseUrl = () => {
   return cleanBaseUrl(
     // process.env.MASTER_API_BASE_URL ||
-      "https://motherbabu88api.oracle-soft.com",
+      "https://mother-api.babu666.live",
   );
 };
 
@@ -85,6 +86,7 @@ const verifyMasterApiKey = async (apiKey) => {
    GET API KEY SETTING
 ====================================================== */
 
+// ✅ public: client site reads this to know if the master game API is active
 router.get("/", async (req, res) => {
   try {
     const setting = await GameApiKeySetting.findOne().sort({
@@ -103,7 +105,7 @@ router.get("/", async (req, res) => {
    SAVE / UPDATE API KEY
 ====================================================== */
 
-router.post("/", async (req, res) => {
+router.post("/", protectAdmin, async (req, res) => {
   try {
     const { apiKey, isActive = true } = req.body || {};
 
@@ -169,7 +171,7 @@ router.post("/", async (req, res) => {
    VERIFY SAVED API KEY
 ====================================================== */
 
-router.post("/verify", async (req, res) => {
+router.post("/verify", protectAdmin, async (req, res) => {
   try {
     const setting = await GameApiKeySetting.findOne().sort({
       createdAt: -1,
@@ -217,7 +219,7 @@ router.post("/verify", async (req, res) => {
    ACTIVE / INACTIVE API KEY
 ====================================================== */
 
-router.patch("/status", async (req, res) => {
+router.patch("/status", protectAdmin, async (req, res) => {
   try {
     const { isActive } = req.body || {};
 
@@ -248,7 +250,7 @@ router.patch("/status", async (req, res) => {
    DELETE / CLEAR API KEY
 ====================================================== */
 
-router.delete("/", async (req, res) => {
+router.delete("/", protectAdmin, async (req, res) => {
   try {
     const setting = await GameApiKeySetting.findOneAndDelete();
 

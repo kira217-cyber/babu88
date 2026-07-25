@@ -2,6 +2,7 @@
 import express from "express";
 import AffWithdrawMethod from "../models/AffWithdrawMethod.js";
 import upload from "../config/multer.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -74,6 +75,7 @@ router.get("/affiliate-withdraw-methods/:id", async (req, res) => {
 // ✅ CREATE (Affiliate)
 router.post(
   "/affiliate-withdraw-methods",
+  protectAdmin,
   upload.single("logo"),
   async (req, res) => {
     try {
@@ -132,6 +134,7 @@ router.post(
 // ✅ UPDATE (Affiliate)
 router.put(
   "/affiliate-withdraw-methods/:id",
+  protectAdmin,
   upload.single("logo"),
   async (req, res) => {
     try {
@@ -197,7 +200,7 @@ router.put(
 );
 
 // ✅ DELETE (Affiliate)
-router.delete("/affiliate-withdraw-methods/:id", async (req, res) => {
+router.delete("/affiliate-withdraw-methods/:id", protectAdmin, async (req, res) => {
   try {
     const doc = await AffWithdrawMethod.findByIdAndDelete(req.params.id);
     if (!doc) return res.status(404).json({ message: "Not found" });

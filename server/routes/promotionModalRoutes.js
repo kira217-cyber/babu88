@@ -1,6 +1,7 @@
 import express from "express";
 import PromotionModal from "../models/PromotionModal.js";
 import upload from "../config/multer.js"; // ✅ your multer path
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -21,7 +22,7 @@ router.get("/promotion-modal", async (req, res) => {
 });
 
 // ✅ admin upsert
-router.put("/promotion-modal", async (req, res) => {
+router.put("/promotion-modal", protectAdmin, async (req, res) => {
   try {
     const existing = await pickActiveOrLatest();
 
@@ -42,7 +43,7 @@ router.put("/promotion-modal", async (req, res) => {
 });
 
 // ✅ image upload (multer)
-router.post("/promotion-modal/upload-image", upload.single("image"), async (req, res) => {
+router.post("/promotion-modal/upload-image", protectAdmin, upload.single("image"), async (req, res) => {
   try {
     if (!req.file?.filename) {
       return res.status(400).json({ message: "No image uploaded" });

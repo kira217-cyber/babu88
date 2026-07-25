@@ -2,11 +2,12 @@
 import express from 'express';
 import Footer from '../models/Footer.js';
 import upload from '../config/multer.js'; // your multer config file
+import { protectAdmin } from '../middleware/adminAuth.js';
 
 const router = express.Router();
 
 // Upload image and return URL
-router.post('/upload/image', upload.single('image'), (req, res) => {
+router.post('/upload/image', protectAdmin, upload.single('image'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No image uploaded' });
   }
@@ -36,7 +37,7 @@ router.get('/footer', async (req, res) => {
 });
 
 // Update footer data (send full data object)
-router.put('/footer', async (req, res) => {
+router.put('/footer', protectAdmin, async (req, res) => {
   try {
     const data = req.body;
     const footer = await Footer.findOneAndUpdate({}, data, { upsert: true, new: true });

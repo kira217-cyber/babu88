@@ -1,5 +1,6 @@
 import express from "express";
 import FooterColor from "../models/FooterColor.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -17,7 +18,7 @@ router.get("/footer-color", async (req, res) => {
 });
 
 // ✅ Admin: single upsert (first create then update same doc)
-router.put("/footer-color", async (req, res) => {
+router.put("/footer-color", protectAdmin, async (req, res) => {
   try {
     const existing =
       (await FooterColor.findOne({ isActive: true }).sort({ updatedAt: -1 })) ||

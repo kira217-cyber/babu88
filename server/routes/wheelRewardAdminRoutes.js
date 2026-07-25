@@ -6,6 +6,7 @@ import mongoose from "mongoose";
 import WheelReward from "../models/WheelReward.js";
 import WheelSpinHistory from "../models/WheelSpinHistory.js";
 import upload from "../config/multer.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -487,7 +488,7 @@ const normalizeWheelData = (req, existingWheel = null) => {
    GET /api/admin/wheels
 ====================================================== */
 
-router.get("/admin/wheels", async (req, res) => {
+router.get("/admin/wheels", protectAdmin, async (req, res) => {
   try {
     const page = Math.max(Number.parseInt(req.query.page || "1", 10), 1);
 
@@ -571,7 +572,7 @@ router.get("/admin/wheels", async (req, res) => {
    GET /api/admin/wheels/:id
 ====================================================== */
 
-router.get("/admin/wheels/:id", async (req, res) => {
+router.get("/admin/wheels/:id", protectAdmin, async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({
@@ -611,7 +612,7 @@ router.get("/admin/wheels/:id", async (req, res) => {
    wheelImage
 ====================================================== */
 
-router.post("/admin/wheels", wheelImageUpload, async (req, res) => {
+router.post("/admin/wheels", protectAdmin, wheelImageUpload, async (req, res) => {
   try {
     if (!req.files?.backgroundImage?.[0]) {
       return res.status(400).json({
@@ -654,7 +655,7 @@ router.post("/admin/wheels", wheelImageUpload, async (req, res) => {
    নতুন image না দিলে পুরোনো image থাকবে।
 ====================================================== */
 
-router.put("/admin/wheels/:id", wheelImageUpload, async (req, res) => {
+router.put("/admin/wheels/:id", protectAdmin, wheelImageUpload, async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({
@@ -698,7 +699,7 @@ router.put("/admin/wheels/:id", wheelImageUpload, async (req, res) => {
    PATCH /api/admin/wheels/:id/status
 ====================================================== */
 
-router.patch("/admin/wheels/:id/status", async (req, res) => {
+router.patch("/admin/wheels/:id/status", protectAdmin, async (req, res) => {
   try {
     const { isActive } = req.body || {};
 
@@ -759,7 +760,7 @@ router.patch("/admin/wheels/:id/status", async (req, res) => {
    DELETE /api/admin/wheels/:id
 ====================================================== */
 
-router.delete("/admin/wheels/:id", async (req, res) => {
+router.delete("/admin/wheels/:id", protectAdmin, async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({

@@ -2,6 +2,7 @@ import express from "express";
 import mongoose from "mongoose";
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -68,7 +69,7 @@ const validateTiers = (tiers) => {
  * GET all normal users (role: "user") with pagination, search & status filter
  * GET /api/admin/users?page=1&limit=10&search=abc&status=all|active|inactive
  */
-router.get("/users", async (req, res) => {
+router.get("/users", protectAdmin, async (req, res) => {
   try {
     const page = Math.max(1, Number(req.query.page || 1));
     const limit = Math.min(50, Math.max(1, Number(req.query.limit || 10)));
@@ -123,7 +124,7 @@ router.get("/users", async (req, res) => {
  * PATCH /api/admin/users/:id/status
  * body: { isActive: true/false }
  */
-router.patch("/users/:id/status", async (req, res) => {
+router.patch("/users/:id/status", protectAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { isActive } = req.body;
@@ -158,7 +159,7 @@ router.patch("/users/:id/status", async (req, res) => {
  * ✅ Get single normal user details
  * GET /api/admin/users/:id
  */
-router.get("/users/:id", async (req, res) => {
+router.get("/users/:id", protectAdmin, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -194,7 +195,7 @@ router.get("/users/:id", async (req, res) => {
  *   firstName?, lastName?, password?
  * }
  */
-router.patch("/users/:id", async (req, res) => {
+router.patch("/users/:id", protectAdmin, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -293,7 +294,7 @@ router.patch("/users/:id", async (req, res) => {
  * ✅ This uses validateTiers() এখানে (schema pre-save hook ব্যবহার না করে)
  * ============================
  */
-router.patch("/users/:id/referral-tiers", async (req, res) => {
+router.patch("/users/:id/referral-tiers", protectAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { tiers } = req.body;

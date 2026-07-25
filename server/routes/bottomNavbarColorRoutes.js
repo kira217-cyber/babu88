@@ -1,5 +1,6 @@
 import express from "express";
 import BottomNavbarColor from "../models/BottomNavbarColor.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -17,7 +18,7 @@ router.get("/bottom-navbar-color", async (req, res) => {
 });
 
 // ✅ Admin: single upsert (first create then update same doc)
-router.put("/bottom-navbar-color", async (req, res) => {
+router.put("/bottom-navbar-color", protectAdmin, async (req, res) => {
   try {
     const existing =
       (await BottomNavbarColor.findOne({ isActive: true }).sort({ updatedAt: -1 })) ||

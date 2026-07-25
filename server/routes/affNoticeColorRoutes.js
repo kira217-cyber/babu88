@@ -1,6 +1,7 @@
 // routes/affNoticeColorRoutes.js
 import express from "express";
 import AffNoticeColor from "../models/AffNoticeColor.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -19,7 +20,7 @@ router.get("/aff-notice-color", async (req, res) => {
 });
 
 // PUT /api/aff-notice-color (upsert)
-router.put("/aff-notice-color", async (req, res) => {
+router.put("/aff-notice-color", protectAdmin, async (req, res) => {
   try {
     const payload = req.body || {};
     const updated = await AffNoticeColor.findOneAndUpdate(

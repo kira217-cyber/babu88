@@ -1,5 +1,6 @@
 import express from "express";
 import NoticeColor from "../models/NoticeColor.js";
+import { protectAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -19,7 +20,7 @@ router.get("/notice-color", async (req, res) => {
 });
 
 // upsert (first time create, then update)
-router.put("/notice-color", async (req, res) => {
+router.put("/notice-color", protectAdmin, async (req, res) => {
   try {
     const existing =
       (await NoticeColor.findOne({ isActive: true }).sort({ updatedAt: -1 })) ||
